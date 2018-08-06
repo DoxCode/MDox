@@ -10,14 +10,11 @@
 bool str_compare(std::string str, int itr, std::string busq);
 
 class Tokenizer {
-private:
-	int index = 0;
 public:
 	std::vector<std::string> tokens;
 	std::vector<int> num_Lines;
 
-	void cambiarIndice(int newIndice) { index = newIndice; };
-	void incrementarIndice() { index++; };
+	std::string getToken(int& inx) { if (inx >= tokens.size()) return NULL; int temp = inx; inx++; return tokens.at(temp); }
 	void agregarToken(std::string a) { tokens.push_back(a); };
 	void generarTokens(std::string vc);
 	bool GenerarTokenizerDesdeFichero(std::string ruta);
