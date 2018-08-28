@@ -1,9 +1,6 @@
 ﻿
 #include "Comandos.h"
-#include "Funciones.h"
 
-
-#include "Tokenizer.h"
 
 // Mapeado de correspondencias entre valores escritos y comandos a los cuales
 // hace referencia.
@@ -19,7 +16,7 @@ std::map<std::string, comandos_enum> RespCom = {
 	{ "exit"       , SALIR },
 };
 
-bool Comandos(std::string comando)
+bool Comandos(std::string comando, Interprete * interprete)
 {
 	comandos_enum e_com = RespCom[comando];
 
@@ -128,21 +125,14 @@ bool Comandos(std::string comando)
 				return false;
 			}
 
-			Flags_lectura flags = FLAG_LECT_NONE;
-
-			std::cout << "TOKENS: \n";
-
-			for (unsigned i = 0; i < parser.tokenizer.tokens.size(); i++)
+			if (interprete->CargarDatos(&parser))
 			{
-				std::cout << parser.tokenizer.tokens.at(i) << "  ";
+				std::cout << "Sintaxis del fichero correcta, cargado en memoria. \n";
 			}
-			
-			std::cout << "LINEAS: \n";
-			for (unsigned i = 0; i < parser.tokenizer.num_Lines.size(); i++)
+			else
 			{
-				std::cout << parser.tokenizer.num_Lines.at(i) << "  ";
+				std::cout << "Se ha producido un error en la lectura del fichero. \n";
 			}
-			
 
 			return false;
 		}

@@ -11,6 +11,9 @@
 
 #include "Tester.h"
 #include "Parser.h"
+#include "Funciones.h"
+#include "Tokenizer.h"
+#include "Interprete.h"
 
 // Lista de comandos existentes en MDOX, así como errores
 enum comandos_enum
@@ -22,7 +25,7 @@ enum comandos_enum
 	SALIR,
 };
 
-bool Comandos(std::string comando);
+bool Comandos(std::string comando, Interprete * interprete);
 std::tuple<bool, comandos_enum> comandoAyuda(std::string comando);
 void limpiarComando(std::string head, std::string& comando);
 void EscribirAyudaComando(comandos_enum com);
