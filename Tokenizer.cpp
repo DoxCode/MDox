@@ -84,7 +84,7 @@ void Tokenizer::generarTokens(std::string str)
 			}
 		}
 
-		p = strchr("()[]{}:,*+-^\"'<>;!%/.", c);
+		p = strchr("()[]{}:,*+-^\"'<>;=!%/.", c);
 
 		if (p)
 		{
@@ -105,6 +105,12 @@ void Tokenizer::generarTokens(std::string str)
 
 		val += c;
 
+	}
+
+	if (val.size() > 0)
+	{
+		tokens.push_back(val);
+		val = "";
 	}
 
 }
@@ -246,6 +252,8 @@ bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 	}
 
 	num_Lines = iLines;
+
+	std::cout << raw_string;
 	generarTokens(raw_string);
 
 	return true;
