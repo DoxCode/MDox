@@ -103,3 +103,41 @@ bool nextStringLine(std::string& linea, std::string busqueda)
 		return true;
 	return false;
 }
+
+bool is_number(const std::string& s)
+{
+	std::string::const_iterator it = s.begin();
+	while (it != s.end() && isdigit(*it)) ++it;
+	return !s.empty() && it == s.end();
+}
+
+bool is_Identificador(const std::string & s)
+{
+	int n_digit = 0;
+	int n_alph = 0;
+
+	for (unsigned itr = 0; itr < s.size(); itr++)
+	{
+		if (isdigit(s.at(itr)))
+		{
+			n_digit++;
+			continue;
+		}
+		else if (isalpha(s.at(itr)))
+		{
+			n_alph++;
+			continue;
+		}
+		else if (s.at(itr) == '_')
+		{
+			continue;
+		}
+		else return false;
+	}
+
+	if (n_alph > 0)
+		return true;
+
+
+	return false;
+}

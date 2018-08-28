@@ -6,6 +6,7 @@
 #include <sstream>
 #include <deque>
 
+
 #define deletePtr(x) {delete x; x = NULL;}
 
 void ReplaceAll(std::string& str, const std::string& from, const std::string& to);
@@ -14,4 +15,6 @@ std::deque<std::string> split_Str(std::string s, std::string delimiter);
 std::deque<std::string> split_StrMult(std::string s, std::deque<std::string> delimiters);
 void RetirarValoresNoUtiles(std::string& str);
 bool nextStringLine(std::string& linea, std::string busqueda);
+bool is_number(const std::string& s);
+bool is_Identificador(const std::string & s);
 #endif
