@@ -61,6 +61,7 @@ enum Flags_lectura
 };
 
 //Templates para flags.
+
 template<class T> inline T operator~ (T a) { return (T)~(int)a; }
 template<class T> inline T operator| (T a, T b) { return (T)((int)a | (int)b); }
 template<class T> inline T operator& (T a, T b) { return (T)((int)a & (int)b); }
@@ -84,25 +85,9 @@ if ((test_flags & FLAG_LECT_3) == FLAG_LECT_NONE) si NO existe
 // Para pre-11 C++
 //typedef SafeEnum<enum _Flags_lectura>  Flags_lectura;
 
-
-enum tipos_funciones
-{
-	FUNC_UNKNOWN,
-	FUNC_DECLARATIVOS, // Declaracion de funciones
-
-	FUNC_IF,
-
-
-};
-
 enum tipos_parametros
 {
 	PARAM_NONE,  // Usos varios
-	PARAM_UNKNOWN, //Desconocido
-	PARAM_EMPTY, //Salto de linea, linea vacia
-
-	PARAM_DECLARATIVOS, //Parametros declarativos, como "int", "float", etc
-	PARAM_VARIABLES,
 
 	//ENTEROS
 	PARAM_INT,	 // -2.147.483.647 a 2.147.483.647   (4 bytes)
@@ -111,7 +96,6 @@ enum tipos_parametros
 	PARAM_UINT16,  // De 0 a 65.535                    (2 bytes)
 	PARAM_INT64,   // De –9.223.372.036.854.775.808 a 9.223.372.036.854.775.807  (8 bytes)
 	PARAM_UINT64,   // De 0 a 18.446.744.073.709.551.615  (8 bytes)
-	PARAM_VOID,
 	
 	PARAM_CHAR,
 
@@ -128,162 +112,716 @@ enum tipos_parametros
 	PARAM_TUPLA,
 };
 
-enum ParamEnumClass
+enum NODE_type {
+	NODE_NULL,
+	NODE_SENTENCIA,
+	NODE_FUNCION,
+};
+
+
+class Parser_NODE { 
+public: 
+	virtual ~Parser_NODE() { }; 
+
+	virtual NODE_type node_type() { return NODE_NULL; };
+};
+
+
+// ############################################################
+// ################# PARAMETROS DE ENTRADA #################### 
+// ############################################################
+
+enum EntradaType {
+	ENTRADA_VALOR,
+	ENTRADA_PARAM,
+};
+
+class Funcion_ValorEntrada
 {
-	EP_BASE,
-	EP_VALOR,
-	EP_SINGLE,
-	EP_MULTIPLE,
+public:
+	EntradaType tipo;
 
+	Funcion_ValorEntrada(EntradaType a) : tipo(a) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Funcion_ValorEntrada() {
+	};
 };
 
-enum LexEnumClass
+// ###################################################
+// ################## DECLARATIVOS ###################
+// ###################################################
+
+enum DeclarativeType
 {
-	LEX_BASE,
-	LEX_FUNCION,  // Se trata de una funcion con valores de entrada y retorno
-	  LEX_FUNCION_INTERNA, //Se trata de un modelo de función que tiene además una estructura interna.
+	DEC_SINGLE,
+	DEC_MULTI,
 };
 
-class estructura_lineas {
-public:
-	std::string linea;
-	int index = 0;
-	estructura_lineas(){}
-	estructura_lineas(std::string a, int b) : linea(a), index(b) {}
+class D_Value { public: virtual ~D_Value() { }; };
 
+class Parser_Declarativo {
+public:
+	D_Value* value;
+	DeclarativeType tipo;
+
+	Parser_Declarativo(DeclarativeType a, D_Value* b) : tipo(a), value(b) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Parser_Declarativo() {
+		delete value;
+	};
 };
 
-
-
-
-// #################### Estructuras de los diferentes parametros. ####################
-class estructuraParametro {
+class Declarativo_SingleValue : public D_Value {
 public:
-	virtual ~estructuraParametro() { };
+	tipos_parametros value;
+	Declarativo_SingleValue(tipos_parametros a) : value(a) {}
+};
 
+class Declarativo_MultiValue : public D_Value {
+public:
 	tipos_parametros tipo;
+	std::vector<Parser_Declarativo*> value;
+	Declarativo_MultiValue(tipos_parametros a, std::vector<Parser_Declarativo*> b) : value(b), tipo(a) {}
 
-	// Usaremos el type para saber de forma estática que clase polimórfica trata. De esta forma
-	// evitaremos el uso de dynamic_cast y a cambio usaremos static_cast, que únicamente gastará tiempo en 
-	// fase de compilación y evitamos así acceder al proceso en tiempo real y con ello ganar tiempo de procesamiento a cambio
-	// de incrementar el coste de memoria.
-	ParamEnumClass _getType = EP_BASE;
-
-	estructuraParametro(tipos_parametros a, ParamEnumClass z) : tipo(a), _getType(z) {}
-	estructuraParametro(tipos_parametros a) : tipo(a) {}
-};
-
-class estructuraParValor : public estructuraParametro {
-public:
-	virtual ~estructuraParValor(){}
-
-	std::string value = "";
-
-	estructuraParValor(tipos_parametros a, std::string b) : estructuraParametro(a, EP_VALOR), value(b) {}
-	estructuraParValor(tipos_parametros a) : estructuraParametro(a, EP_VALOR) {}
-};
-
-class estructuraParMultiple : public estructuraParametro {
-public:
-	std::vector<estructuraParametro*> valores;
-
-	//Destructor ~ Liberamos la memoria de todos los punteros de valores.
-	virtual ~estructuraParMultiple() {
-		for (std::vector<estructuraParametro*>::iterator it = valores.begin(); it != valores.end(); ++it)
+	//Aseguramos el borrado de la memoria cuando se libere el objeto.
+	virtual ~Declarativo_MultiValue()
+	{
+		for (std::vector<Parser_Declarativo*>::iterator it = value.begin(); it != value.end(); ++it)
 		{
 			delete (*it);
 		}
-		valores.clear();
-	};
-
-	estructuraParMultiple(tipos_parametros a, std::vector<estructuraParametro*> b) : estructuraParametro(a, EP_MULTIPLE), valores(b) {}
-	estructuraParMultiple(tipos_parametros a) : estructuraParametro(a, EP_MULTIPLE) {}
-
-	//Se usará para agregar parametros comunes, no habra valores añadidos, solo definición
-	void addParametro(tipos_parametros a) { addGeneralParam(new estructuraParametro(a)); }
-	//Se usará para agregar parametros con valores, estos valores se guardan en un campo std::string
-	void addParametroValor(tipos_parametros a) { addGeneralParam(new estructuraParValor(a)); }
-	//Se usará para agregar parametros declarativos adicionales, estos podrán llamarse nuevamente para formar listas, se usan para tuplas, estructuras, etc.
-	void addParametroMultiple(tipos_parametros a) { addGeneralParam(new estructuraParMultiple(a)); }
-	//Estructura general, agrega cualquier clase sobrecargada de estructuraParametro
-	void addGeneralParam(estructuraParametro * a) { valores.push_back(a); }
-};
-
-class estructuraParSingle : public estructuraParametro {
-public:
-	estructuraParametro * valor;
-
-	//Destructor ~ Liberamos la memoria de valor.
-	virtual ~estructuraParSingle() { 
-		delete valor;
-	};
-
-	estructuraParSingle(tipos_parametros a, estructuraParametro* b) : estructuraParametro(a, EP_SINGLE), valor(b) {}
-	estructuraParSingle(tipos_parametros a) : estructuraParametro(a, EP_SINGLE) {}
-
-	void addParametro(tipos_parametros a) { addGeneralParam(new estructuraParametro(a)); }
-	//Se usará para agregar parametros con valores, estos valores se guardan en un campo std::string
-	void addParametroValor(tipos_parametros a) { addGeneralParam(new estructuraParValor(a)); }
-	//Se usará para agregar parametros declarativos adicionales, estos podrán llamarse nuevamente para formar listas, se usan para tuplas, estructuras, etc.
-	void addParametroMultiple(tipos_parametros a) { addGeneralParam(new estructuraParMultiple(a)); }
-
-	void addParametroSingle(tipos_parametros a) { addGeneralParam(new estructuraParSingle(a)); }
-
-	//Estructura general, agrega cualquier clase sobrecargada de estructuraParametro
-	void addGeneralParam(estructuraParametro* a) { valor = a; }
-};
-
-// #################### Estructuras de las diferentes <Funciones>. ####################
-class estructuraLexBase {
-public:
-
-	LexEnumClass _getType = LEX_BASE;
-
-	virtual ~estructuraLexBase()
-	{
+		value.clear();
 	}
-
-	estructuraLexBase(LexEnumClass a) : _getType(a) {}
-
 };
 
-class estructuraFuncion: public estructuraLexBase {
+// ############################################################
+// ####################### PARAMETRO ########################## 
+// ############################################################
+class Parser_Identificador;
+class Parser_Declarativo;
+class Parser_Operacion;
+
+enum ParamType {
+
+	PRM_DECLARATIVO_ID,
+	PRM_ID,
+	PRM_TUPLA,
+	PRM_ARRAY,
+	PRM_PUNTERO,
+	PRM_PUNTERO_INT,
+};
+
+
+class Parser_Parametro : public Funcion_ValorEntrada
+{
 public:
+	ParamType tipo;
 
-	tipos_funciones tipo;
-	estructuraParametro * paramDevuelto = NULL;
-	std::vector<estructuraParametro *> paramsEntrada;
+	Parser_Parametro(ParamType a) : tipo(a), Funcion_ValorEntrada(ENTRADA_PARAM){}
 
-	virtual ~estructuraFuncion()  
+	//Aseguramos el borrado de la memoria
+	virtual ~Parser_Parametro() {
+	};
+};
+
+class Parametro_Declarativo_ID : public Parser_Parametro {
+public:
+	Parser_Declarativo * pDec;
+	Parser_Identificador * pID;
+
+	Parametro_Declarativo_ID(Parser_Declarativo * a, Parser_Identificador * b) : pDec(a), pID(b), Parser_Parametro(PRM_DECLARATIVO_ID) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Parametro_Declarativo_ID() {
+		delete pDec;
+		delete pID;
+	};
+};
+
+class Parametro_Tupla : public Parser_Parametro {
+public:
+	std::vector<Parser_Operacion*> value;
+
+	Parametro_Tupla(std::vector<Parser_Operacion*> a) : value(a), Parser_Parametro(PRM_TUPLA) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Parametro_Tupla() {
+		for (std::vector<Parser_Operacion*>::iterator it = value.begin(); it != value.end(); ++it)
+		{
+			delete (*it);
+		}
+		value.clear();
+	};
+};
+
+// ############################################################
+// ####################### IGUALDAD ########################### 
+// ############################################################
+
+enum IgualdadType {
+	IG_EQUAL,
+	IG_ADD_EQ,
+	IG_SUB_EQ,
+};
+
+class Parser_Igualdad {
+public:
+	Parser_Parametro* param;
+	Parser_Operacion* op;
+	IgualdadType valor;
+
+	Parser_Igualdad(Parser_Parametro* a, Parser_Operacion*b, IgualdadType c) : param(a), op(b), valor(c) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Parser_Igualdad() {
+		delete param;
+		delete op;
+	};
+};
+
+// ###################################################
+// ################## IDENTIFICADOR ##################
+// ###################################################
+
+// ###################################################
+// ##################### VALOR  ######################
+// ###################################################
+
+enum ValorType
+{
+	VAL_ID,
+	VAL_LIT,
+	VAL_FUNC,
+};
+
+class Parser_Valor : public Funcion_ValorEntrada {
+public:
+	bool negado = false;
+	ValorType tipo;
+	Parser_Valor(ValorType a) : tipo(a), Funcion_ValorEntrada(ENTRADA_VALOR) {}
+	Parser_Valor(ValorType a, bool b) : tipo(a), negado(b), Funcion_ValorEntrada(ENTRADA_VALOR) {}
+
+	virtual ~Parser_Valor() {}
+};
+
+//IDENTIFICADOR
+class Parser_Identificador : public Parser_Valor, public Parser_Parametro {
+public:
+	std::string nombre;
+
+	Parser_Identificador(std::string a) : nombre(a), Parser_Valor(VAL_ID), Parser_Parametro(PRM_ID) {}
+	virtual ~Parser_Identificador() {}
+};
+
+//Basicamente se trataría de funciones con un retorno de un valor dado.
+class Valor_Funcion : public Parser_Valor {
+public:
+	Parser_Identificador* ID;
+	std::vector<Parser_Operacion*> entradas;
+
+	Valor_Funcion(Parser_Identificador * a, std::vector<Parser_Operacion*> b) : ID(a), entradas(b), Parser_Valor(VAL_FUNC)  {}
+
+	virtual ~Valor_Funcion() 
 	{ 
-		deletePtr(paramDevuelto);
+		delete ID; 
 
-		for (std::vector<estructuraParametro*>::iterator it = paramsEntrada.begin(); it != paramsEntrada.end(); ++it)
+		for (std::vector<Parser_Operacion*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
 		{
 			delete (*it);
 		}
-		paramsEntrada.clear();
+		entradas.clear();
 	}
+};
 
-	estructuraFuncion(tipos_funciones a) : tipo(a), estructuraLexBase(LEX_FUNCION) {}
-	estructuraFuncion(tipos_funciones a, LexEnumClass z) : tipo(a), estructuraLexBase(z) {}
+// ############################################################
+// ####################### OPERACIÓN  ######################### 
+// ############################################################
+
+class Parser_Math;
+
+enum OprtType
+{
+	OP_REC_OP,
+	OP_ID,
+	OP_MATH,
+};
+
+class Parser_Operacion {
+public:
+	OprtType tipo;
+	Parser_Operacion(OprtType a) : tipo(a) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Parser_Operacion() {}
+};
+
+class Operacion_Recursiva : public Parser_Operacion
+{
+public:
+	Parser_Operacion* op1 = NULL;
+	Parser_Math* op2 = NULL;
+
+	Operacion_Recursiva(Parser_Operacion * a, Parser_Math * b) : op1(a), op2(b), Parser_Operacion(OP_REC_OP) {}
+	Operacion_Recursiva(Parser_Operacion * a) : op1(a), op2(NULL), Parser_Operacion(OP_REC_OP) {}
+
+	//Aseguramos el borrado de la memoria cuando se libere el objeto.
+	virtual ~Operacion_Recursiva()
+	{
+		delete op1;
+		delete op2;
+	}
+};
+
+class Operacion_Math : public Parser_Operacion
+{
+public:
+	Parser_Valor * op1;
+	Parser_Math * op2;
+
+	Operacion_Math(Parser_Valor * a, Parser_Math * b) : op1(a), op2(b), Parser_Operacion(OP_MATH) {}
+	Operacion_Math(Parser_Valor * a) : op1(a), op2(NULL), Parser_Operacion(OP_MATH) {}
+
+	//Aseguramos el borrado de la memoria cuando se libere el objeto.
+	virtual ~Operacion_Math()
+	{
+		delete op1;
+		delete op2;
+	}
+};
+
+enum ID_ACCION {
+
+	ID_INCREMENTO,
+	ID_DECREMENTO,
+	ID_NEGACION,
+};
+
+class Operacion_ID : public Parser_Operacion
+{
+public:
+	Parser_Identificador * ID;
+	ID_ACCION accion;
+
+	Operacion_ID(Parser_Identificador * a, ID_ACCION b) : ID(a), accion(b),  Parser_Operacion(OP_ID) {}
+
+	//Aseguramos el borrado de la memoria cuando se libere el objeto.
+	virtual ~Operacion_ID()
+	{
+		delete ID;
+	}
+};
+
+
+// ############################################################
+// ########################## MATH ############################ 
+// ############################################################
+
+enum MATH_ACCION {
+
+	MATH_NONE,
+	MATH_SUMA,
+	MATH_MULT,
+	MATH_DIV,
+	MATH_DIV_ENTERA,
+	MATH_RESTA,
+	MATH_EXP,
+	MATH_MOD,
+};
+
+class Parser_Math
+{
+public:
+	MATH_ACCION accion;
+	Parser_Operacion * op;
+
+	Parser_Math(MATH_ACCION a, Parser_Operacion * b) : accion(a), op(b) {}
+};
+
+
+// ###################################################
+// #################### LITERALES ####################
+// ###################################################
+
+class Value {
+public:
+	virtual tipos_parametros getTypeValue() { return PARAM_NONE; };
+	virtual ~Value() { };
+
+	virtual Value * Clone() { return new Value(*this); }
+};
+
+class Parser_Literal : public Parser_Valor {
+public:
+	Value* value;
+
+	Parser_Literal(Value* a) : value(a), Parser_Valor(VAL_LIT) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Parser_Literal() {
+		delete value;
+	};
 
 };
 
-class estructuraFuncInterna : public estructuraFuncion {
+class Value_DOUBLE : public Value
+{
 public:
-	std::vector<estructuraFuncion *> funcionesInternas;
+	double value;
+	virtual tipos_parametros getTypeValue() { return PARAM_DOUBLE; };
+	Value_DOUBLE(double a) : value(a) {}
+	Value_DOUBLE() {}
+	virtual Value * Clone() { return new Value_DOUBLE(*this); }
+};
 
-	virtual ~estructuraFuncInterna()
+class Value_INT : public Value
+{
+public:
+	int value;
+	virtual tipos_parametros getTypeValue() { return PARAM_INT; };
+	Value_INT() {}
+	Value_INT(int a) : value(a) {}
+	virtual Value * Clone() { return new Value_INT(*this); }
+};
+
+class Value_STRING : public Value
+{
+public:
+	std::string value;
+	virtual tipos_parametros getTypeValue() { return PARAM_STRING; };
+	Value_STRING() {}
+	Value_STRING(std::string a) : value(a) {}
+	virtual Value * Clone() { return new Value_STRING(*this); }
+};
+
+class Value_BOOL : public Value
+{
+public:
+	bool value = false;
+	virtual tipos_parametros getTypeValue() { return PARAM_BOOL; };
+	Value_BOOL(bool a) : value(a) {}
+	virtual Value * Clone() { return new Value_BOOL(*this); }
+};
+
+class Value_TUPLA : public Value
+{
+public:
+	std::vector<Value*> value;
+
+	Value_TUPLA(std::vector<Value*> a) : value(a) {}
+
+	virtual tipos_parametros getTypeValue() { return PARAM_TUPLA; };
+	virtual ~Value_TUPLA()
 	{
-		for (std::vector<estructuraFuncion*>::iterator it = funcionesInternas.begin(); it != funcionesInternas.end(); ++it)
+		for (std::vector<Value*>::iterator it = value.begin(); it != value.end(); ++it)
 		{
 			delete (*it);
 		}
-		funcionesInternas.clear();
-	}
+	};
+	virtual Value * Clone() { return new Value_TUPLA(*this); }
+};
 
-	estructuraFuncInterna(tipos_funciones a) : estructuraFuncion(a, LEX_FUNCION_INTERNA) {}
+// ############################################################
+// ###################### CONDICIONAL ######################### 
+// ############################################################
+
+enum CondicionalType {
+	COND_REC,
+	COND_OP,
+};
+
+enum CondicionalAgregadoType {
+	COND_NONE,
+	COND_AG_AND,
+	COND_AG_OR,
+};
+
+enum CondicionalAccionType {
+	COND_ACC_NONE,
+	COND_ACC_EQUAL,
+	COND_ACC_NOT_EQUAL,
+	COND_ACC_MINOR,
+	COND_ACC_MAJOR,
+	COND_ACC_MINOR_OR_EQUAL,
+	COND_ACC_MAJOR_OR_EQUAL,
+};
+
+
+class Parser_Condicional {
+public:
+	CondicionalType tipo;
+
+	Parser_Condicional(CondicionalType a) : tipo(a) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Parser_Condicional() {
+	};
+};
+
+//Condición agregada a otra condición para formar cadenas condicionales AND, OR ->   &&/|| <COND>
+class Condicional_Agregada {
+public:
+	CondicionalAgregadoType accion;
+	Parser_Condicional* cond;
+
+	Condicional_Agregada(CondicionalAgregadoType a, Parser_Condicional* b) : accion(a), cond(b) {}
+	virtual ~Condicional_Agregada() {
+		delete cond;
+	}
+};
+
+class Condicional_Agregada_Operacional {
+public:
+	CondicionalAccionType AccType;
+	Parser_Operacion* op;
+
+	Condicional_Agregada_Operacional(CondicionalAccionType a, Parser_Operacion* b) : AccType(a), op(b) {}
+	virtual ~Condicional_Agregada_Operacional() {
+		delete op;
+	}
+};
+
+class Condicional_Recursiva : public Parser_Condicional {
+public:
+	bool negada;
+	Parser_Condicional * c1;
+	Condicional_Agregada * ca;
+
+	//Ruta sin el segundo condicional: !(<COND>)
+	Condicional_Recursiva(bool a, Parser_Condicional * b) : negada(a), c1(b), ca(NULL), Parser_Condicional(COND_REC) {}
+	//Ruta con una condicional adicional agregada:   !(<COND>) &&/|| <COND>
+	Condicional_Recursiva(bool a, Parser_Condicional * b, Condicional_Agregada * c) : negada(a), c1(b), ca(c), Parser_Condicional(COND_REC) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Condicional_Recursiva() {
+		delete c1;
+		delete ca;
+	}
+};
+
+class Condicional_Operacion : public Parser_Condicional {
+public:
+	Parser_Operacion * op1;
+	std::vector<Condicional_Agregada_Operacional*>* adicional_ops;
+	Condicional_Agregada * ca;
+
+	//Ruta de salida simple, solamente valor de operación:  <OP>
+	Condicional_Operacion(Parser_Operacion * a) : op1(a), adicional_ops(NULL), ca(NULL), Parser_Condicional(COND_OP) {}
+	//Ruta de salida con más de un valor operacional: <OP> <= <OP> < <OP> == <OP> ->  (a <= 5 < b == c)
+	Condicional_Operacion(Parser_Operacion * a, std::vector<Condicional_Agregada_Operacional*>* b) : op1(a), adicional_ops(b), ca(NULL), Parser_Condicional(COND_OP) {}
+	//Ruta de salida con más de un valor operacional y una condición agregada: <OP> <= <OP> < <OP> || <COND> ->  (a <= 5 < b) || c
+	Condicional_Operacion(Parser_Operacion * a, std::vector<Condicional_Agregada_Operacional*>* b, Condicional_Agregada* c) : op1(a), adicional_ops(b), ca(c), Parser_Condicional(COND_OP) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Condicional_Operacion() {
+		delete op1;
+
+		if (adicional_ops)
+		{
+			for (std::vector<Condicional_Agregada_Operacional*>::iterator it = adicional_ops->begin(); it != adicional_ops->end(); ++it)
+			{
+				delete (*it);
+			}
+			adicional_ops->clear();
+			delete adicional_ops;
+		}
+	}
+};
+
+
+// ############################################################
+// ####################### SENTENCIA ########################## 
+// ############################################################
+
+enum SentenciaType {
+	SENT_REC,
+	SENT_IF,
+	SENT_WHILE,
+	SENT_FOR,
+	SENT_RETURN,
+	SENT_PRINT,
+	SENT_OP,
+	SENT_IGU,
+	SENT_VAR_INI,
+
+};
+
+class Parser_Sentencia : public Parser_NODE {
+public:
+	SentenciaType tipo;
+
+	Parser_Sentencia(SentenciaType a) : tipo(a) {}
+
+	virtual NODE_type node_type() { return NODE_SENTENCIA; }
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Parser_Sentencia() {
+	};
+};
+
+class Sentencia_Recursiva : public Parser_Sentencia {
+public:
+	std::vector<Parser_Sentencia*> valor;
+
+	Sentencia_Recursiva(std::vector<Parser_Sentencia*> a) : valor(a), Parser_Sentencia(SENT_REC) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Sentencia_Recursiva() {
+		for (std::vector<Parser_Sentencia*>::iterator it = valor.begin(); it != valor.end(); ++it)
+		{
+			delete (*it);
+		}
+		valor.clear();
+	}
+};
+
+class Sentencia_IF : public Parser_Sentencia {
+public:
+	Parser_Condicional * pCond;
+	Parser_Sentencia * pS;
+	Parser_Sentencia * pElse;
+
+	// Sentencia IF sin ELSE asignado.
+	Sentencia_IF(Parser_Condicional * a, Parser_Sentencia* b) : pCond(a), pS(b), pElse(NULL), Parser_Sentencia(SENT_IF) {}
+	// Sentencia IF con ELSE asignado
+	Sentencia_IF(Parser_Condicional * a, Parser_Sentencia* b, Parser_Sentencia* c) : pCond(a), pS(b), pElse(c), Parser_Sentencia(SENT_IF) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Sentencia_IF() {
+		delete pCond;
+		delete pS;
+		delete pElse;
+	}
+};
+
+class Sentencia_WHILE : public Parser_Sentencia {
+public:
+	Parser_Condicional * pCond;
+	Parser_Sentencia * pS;
+
+	Sentencia_WHILE(Parser_Condicional * a, Parser_Sentencia* b) : pCond(a), pS(b), Parser_Sentencia(SENT_WHILE) {}
+	
+	//Aseguramos el borrado de la memoria
+	virtual ~Sentencia_WHILE() {
+		delete pCond;
+		delete pS;
+	}
+};
+
+class Sentencia_FOR : public Parser_Sentencia {
+public:
+	Parser_Igualdad * pIguald;
+	Parser_Condicional * pCond;
+	Parser_Operacion * pOp;
+	Parser_Sentencia * pS;
+
+	Sentencia_FOR(Parser_Igualdad * a, Parser_Condicional * b, Parser_Operacion * c, Parser_Sentencia * d) : pIguald(a), pCond(b), pOp(c), pS(d), Parser_Sentencia(SENT_FOR) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Sentencia_FOR() {
+		delete pIguald;
+		delete pOp;
+		delete pCond;
+		delete pS;
+	}
+};
+
+class Sentencia_Return : public Parser_Sentencia {
+public:
+	Parser_Operacion * pOp;
+
+	Sentencia_Return(Parser_Operacion * a) : pOp(a), Parser_Sentencia(SENT_RETURN) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Sentencia_Return() {
+		delete pOp;
+	}
+};
+
+class Sentencia_Print : public Parser_Sentencia {
+public:
+	Parser_Operacion * pOp;
+
+	Sentencia_Print(Parser_Operacion * a) : pOp(a), Parser_Sentencia(SENT_PRINT) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Sentencia_Print() {
+		delete pOp;
+	}
+};
+
+class Sentencia_Operacional : public Parser_Sentencia {
+public:
+	Parser_Operacion * pOp;
+
+	Sentencia_Operacional( Parser_Operacion * a) : pOp(a), Parser_Sentencia(SENT_OP) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Sentencia_Operacional() {
+		delete pOp;
+	}
+};
+
+class Sentencia_Igualdad : public Parser_Sentencia {
+public:
+	Parser_Igualdad * pIg;
+
+	Sentencia_Igualdad(Parser_Igualdad * a) : pIg(a), Parser_Sentencia(SENT_IGU) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Sentencia_Igualdad() {
+		delete pIg;
+	}
+};
+
+
+class Sentencia_Parametro : public Parser_Sentencia {
+public:
+	Parser_Parametro * pPar;
+
+	Sentencia_Parametro(Parser_Parametro * a) : pPar(a), Parser_Sentencia(SENT_VAR_INI) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Sentencia_Parametro() {
+		delete pPar;
+	}
+};
+
+// ############################################################
+// ####################### FUNCIONES ########################## 
+// ############################################################
+
+
+
+class Parser_Funcion : public Parser_NODE {
+public:
+	Parser_Identificador * pID;
+	std::vector<Funcion_ValorEntrada*> entradas;
+	Parser_Declarativo * salida;
+	Parser_Sentencia * body;
+
+	// Función sin valor devuelto, el valor devuelto puede ser automático o no tenerlo
+	Parser_Funcion(Parser_Identificador * a, std::vector<Funcion_ValorEntrada*> b, Parser_Sentencia * c) : pID(a), entradas(b), body(c), salida(NULL){}
+	//Función completa
+	Parser_Funcion(Parser_Identificador * a, std::vector<Funcion_ValorEntrada*> b, Parser_Sentencia * c, Parser_Declarativo * d) : pID(a), entradas(b), body(c), salida(d) {}
+
+	virtual NODE_type node_type() { return NODE_FUNCION; }
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Parser_Funcion() 
+	{
+		delete pID;
+		delete salida;
+		delete body;
+
+		for (std::vector<Funcion_ValorEntrada*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
+		{
+			delete (*it);
+		}
+		entradas.clear();
+
+	};
 };
 
 
