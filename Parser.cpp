@@ -620,13 +620,23 @@ Parser_Igualdad * Parser::getIgualdad(int& local_index)
 			return NULL;
 		}
 
-		Parser_Operacion * pOp = getOperacion(index);
+/*		int index2 = index;
+		Parser_Operacion * pOp = getOperacion(index2);
 
 		if (pOp)
 		{
-			local_index = index;
+			local_index = index2;
 			return new Parser_Igualdad(pPar, pOp, tipo);
 		}
+*/
+		Parser_Condicional * pCond = getCondicional(index);
+
+		if (pCond)
+		{
+			local_index = index;
+			return new Parser_Igualdad(pPar, pCond, tipo);
+		}
+		
 
 		delete pPar;
 		return NULL;
@@ -718,9 +728,61 @@ Condicional_Agregada_Operacional* Parser::getCondAgregadaOperacional(int& local_
 
 Parser_Condicional * Parser::getCondicional(int& local_index)
 {
-	
-	//Comprobando RECURSIVA condicional
+	//Comprobando condicional OPERACIONAL
 	int index = local_index;
+
+	Parser_Operacion * pOp = getOperacion(index);
+
+	if (pOp)
+	{
+		std::vector<Condicional_Agregada_Operacional*>* valor = new std::vector<Condicional_Agregada_Operacional*>();
+		int t_index = index;
+
+		while (true)
+		{
+			int t2_index = t_index;
+			Condicional_Agregada_Operacional * pCao = getCondAgregadaOperacional(t2_index);
+
+			if (pCao)
+			{
+				valor->push_back(pCao);
+				t_index = t2_index;
+				continue;
+			}
+			else
+				break;
+		}
+
+		/*if (valor->size() == 0)
+		{
+		local_index = index;
+		return new Condicional_Operacion(pOp);
+		}*/
+
+		int t2_index = t_index;
+		Condicional_Agregada * pCa = getCondAgregada(t2_index);
+
+		if (pCa)
+		{
+			local_index = t2_index;
+			if (valor->size() == 0)
+				return new Condicional_Operacion(pOp, NULL, pCa);
+			else
+				return new Condicional_Operacion(pOp, valor, pCa);
+		}
+		else
+		{
+			local_index = t_index;
+			if (valor->size() == 0)
+				return new Condicional_Operacion(pOp);
+			else
+				return new Condicional_Operacion(pOp, valor);
+		}
+	}
+
+
+	//Comprobando RECURSIVA condicional
+	index = local_index;
 	std::string tk1 = tokenizer.getToken(index);
 
 	bool called = false;
@@ -768,51 +830,7 @@ Parser_Condicional * Parser::getCondicional(int& local_index)
 		}
 	}
 
-	//Comprobando condicional OPERACIONAL
-	 index = local_index;
-
-	Parser_Operacion * pOp = getOperacion(index);
-
-	if (pOp)
-	{
-		std::vector<Condicional_Agregada_Operacional*>* valor = new std::vector<Condicional_Agregada_Operacional*>();
-		int t_index = index;
-
-		while (true)
-		{
-			int t2_index = t_index;
-			Condicional_Agregada_Operacional * pCao = getCondAgregadaOperacional(t2_index);
-
-			if (pCao)
-			{
-				valor->push_back(pCao);
-				t_index = t2_index;
-				continue;
-			}
-			else
-				break;
-		}
-
-		if (valor->size() == 0)
-		{
-			local_index = index;
-			return new Condicional_Operacion(pOp);
-		}
-
-		int t2_index = t_index;
-		Condicional_Agregada * pCa = getCondAgregada(t2_index);
-
-		if (pCa)
-		{
-			local_index = t2_index;
-			return new Condicional_Operacion(pOp, valor, pCa);
-		}
-		else
-		{
-			local_index = t_index;
-			return new Condicional_Operacion(pOp, valor);
-		}
-	}
+	
 
 
 	return NULL;

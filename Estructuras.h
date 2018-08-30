@@ -259,6 +259,7 @@ public:
 // ############################################################
 // ####################### IGUALDAD ########################### 
 // ############################################################
+class Parser_Condicional;
 
 enum IgualdadType {
 	IG_EQUAL,
@@ -269,15 +270,16 @@ enum IgualdadType {
 class Parser_Igualdad {
 public:
 	Parser_Parametro* param;
-	Parser_Operacion* op;
+	Parser_Condicional* cond;
 	IgualdadType valor;
 
-	Parser_Igualdad(Parser_Parametro* a, Parser_Operacion*b, IgualdadType c) : param(a), op(b), valor(c) {}
+	//Igualdad con valor en la derecha CONDICIONAL si es OPERACIONAL, COND solo tendrá el valor de la operacion.
+	Parser_Igualdad(Parser_Parametro* a, Parser_Condicional* b, IgualdadType c) : param(a), cond(b), valor(c) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Parser_Igualdad() {
 		delete param;
-		delete op;
+		delete cond;
 	};
 };
 

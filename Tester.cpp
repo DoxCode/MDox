@@ -295,7 +295,7 @@ void debug_mostrarIgualdad(Parser_Igualdad* p, int tb)
 	case IG_SUB_EQ: std::cout << tabulacion(tb) << "[ -= ]\n"; break;
 	}
 
-	debug_mostrarOperaciones(p->op, tb + 1);
+//	debug_mostrarOperaciones(p->op, tb + 1);
 }
 
 void debug_mostrarSentencia(Parser_Sentencia* p, int tb)
