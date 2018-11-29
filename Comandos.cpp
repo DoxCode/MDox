@@ -125,11 +125,7 @@ bool Comandos(std::string comando, Interprete * interprete)
 				return false;
 			}
 
-			if (interprete->CargarDatos(&parser))
-			{
-				std::cout << "Sintaxis del fichero correcta, cargado en memoria. \n";
-			}
-			else
+			if (!interprete->CargarDatos(&parser))
 			{
 				std::cout << "Se ha producido un error en la lectura del fichero. \n";
 			}
