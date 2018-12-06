@@ -1,6 +1,14 @@
 
 #include "Funciones.h"
 
+/* Transforma de cadena a double, pasandole el formato de coma por locale.*/
+double s2d(const std::string str, const std::locale &loc) {
+	double val;
+	std::stringstream ss(str);
+	ss.imbue(loc);
+	ss >> val;
+	return val;
+}
 
 void ReplaceAll(std::string& str, const std::string& from, const std::string& to) {
 	size_t start_pos = 0;

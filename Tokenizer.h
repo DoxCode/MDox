@@ -9,24 +9,63 @@
 
 bool str_compare(std::string str, int itr, std::string busq);
 
+class Token {
+public:
+	std::string token;
+	int linea;
+	int char_horizontal;
+	Token(int a, int b, std::string c) : linea(a), char_horizontal(b), token(c) {}
+};
+
+
+class Linea {
+public:
+	std::string val;
+	int linea;
+	Linea(int a, std::string b) : linea(a), val(b) {}
+};
+
 class Tokenizer {
 public:
-	std::vector<std::string> tokens;
-	std::vector<int> num_Lines;
+	std::string fichero = "<interprete>";
+	std::vector<Token*> tokens;
+	Token * token_actual;
 
-	std::string getToken(int& inx) 
+	Token * getToken(int& inx)
 	{ 
 		if (inx >= tokens.size()) 
-			return ""; 
+			return NULL; 
 		int temp = inx; 
 		inx++; 
-		return tokens.at(temp); 
+		token_actual = tokens.at(temp);
+		return token_actual;
 	}
-	void agregarToken(std::string a) { tokens.push_back(a); };
-	void generarTokens(std::string vc);
+
+	std::string getTokenValue(int& inx)
+	{
+		Token * t = getToken(inx);
+		if (t)
+			return t->token;
+		else return "<Cierre inválido>";
+	}
+
+
+
+	void agregarToken(Token * a) { tokens.push_back(a); };
 	bool GenerarTokenizerDesdeFichero(std::string ruta);
+	void Tokenizer::generarTokens(std::vector<Linea*> str);
 
 	Tokenizer() {}
+
+	~Tokenizer()
+	{
+		for (std::vector<Token*>::iterator it = tokens.begin(); it != tokens.end(); ++it)
+		{
+			delete (*it);
+		}
+	};
 };
+
+
 
 #endif

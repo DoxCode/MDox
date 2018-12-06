@@ -112,6 +112,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Funciones.cpp" />
+    <ClCompile Include="Interprete.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Comandos.cpp" />
     <ClCompile Include="Tokenizer.cpp" />
@@ -122,6 +123,7 @@
     <ClInclude Include="Comandos.h" />
     <ClInclude Include="Estructuras.h" />
     <ClInclude Include="Funciones.h" />
+    <ClInclude Include="Interprete.h" />
     <ClInclude Include="Tokenizer.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="Tester.h" />

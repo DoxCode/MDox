@@ -7,15 +7,16 @@ Rodrigo de Miguel Fernández. Usal.
 **/
 
 #include "Main.h"
-
-
+#include "Tester.h"
 
 int main()
 {
+	setlocale(LC_ALL, "");
 	std::cout << "Bienvenido a MDOX, version " << VERSION << "(" << ESTADO << ") \n";
-	std::cout << "Copyright (c) 2018-2019 Rodrigo de Miguel Fernandez. Universidad de Salamanca. \n";
-	std::cout << "MDOX es un software gratuito y SIN GARANTIAS, eres libre de distribuirlo. \n\n";
+	std::cout << "Copyright (c) 2018-2019 Rodrigo de Miguel Fernández. Universidad de Salamanca. \n";
+	std::cout << "MDOX es un software gratuito y SIN GARANTIAS, eres libre de distribuirlo. \n";
 
+	//std::cout<<testFactorial(15);
 	Iniciar_Interprete();
 	return 0;
 }
@@ -32,7 +33,7 @@ void Iniciar_Interprete()
 
 	while (!salida)
 	{
-		std::cout << "Interprete> ";
+		std::cout << "\nInterprete> ";
 		std::string ibs;
 		getline(std::cin, ibs);
 
@@ -45,22 +46,25 @@ void Iniciar_Interprete()
 			continue;
 		}
 
-		std::string lines = "";
+		std::vector<Linea*> lines;
+
 
 		if (ibs == "<?")
 		{	
+			int i = 0;
 			while (true)
 			{
+				i++;
 				std::cout << "   ";
 				getline(std::cin, ibs);
 
 				if (ibs == "?>")
 					break;
 
-				lines += ibs;
+				lines.push_back(new Linea(i, ibs));
 			}
 		}
-		else lines = ibs;
+		else lines.push_back(new Linea(1, ibs));
 
 		//Comando adicional, tomado como una SENTENCIA.
 		Parser parser = Parser();

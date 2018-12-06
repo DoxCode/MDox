@@ -7,111 +7,121 @@
 */
 #include "Tokenizer.h"
 
-void Tokenizer::generarTokens(std::string str)
+void Tokenizer::generarTokens(std::vector<Linea*> str)
 {	
 	std::string val = "";
 
 	bool _cadena = false;
 
-	for (unsigned itr = 0; itr < str.size(); itr++) 
+	for (std::vector<Linea*>::iterator it = str.begin(); it != str.end(); ++it)
 	{
-		const char c = str.at(itr);
-
-		if (_cadena)
+		for (unsigned itr = 0; itr < (*it)->val.size(); itr++)
 		{
-			if (c == '"')
+			const char c = (*it)->val.at(itr);
+
+			if (_cadena)
 			{
-				if (val.size() > 0)
+				if (c == '"')
 				{
-					tokens.push_back(val);
-					val = "";
+					if (val.size() > 0)
+					{
+						tokens.push_back(new Token((*it)->linea,itr,val));
+						val = "";
+					}
+
+					std::string chr(1, c);
+					tokens.push_back(new Token((*it)->linea, itr, chr));
+					_cadena = false;
 				}
-
-				std::string chr(1, c);
-				tokens.push_back(chr);
-				_cadena = false;
-			}
-			else
-			{
-				val += c;
-			}
-			continue;
-		}
-
-
-		const char* p = strchr(" \t\n", c);
-
-		if (p)
-		{
-			if (val.size() > 0)
-			{
-				tokens.push_back(val);
-				val = "";
-			}
-			continue;
-		}
-
-		if(itr+1 < str.size())
-		{
-			const char c2 = str.at(itr + 1);
-		
-			if (
-				(c == '+' && c2 == '+') ||
-				(c == '-' && c2 == '-') ||
-				(c == ':' && c2 == ':') ||
-				(c == '+' && c2 == '=') ||
-				(c == '-' && c2 == '=') ||
-				(c == '=' && c2 == '=') ||
-				(c == '!' && c2 == '=') ||
-				(c == '<' && c2 == '=') ||
-				(c == '>' && c2 == '=') ||
-				(c == '&' && c2 == '&') ||
-				(c == '|' && c2 == '|')
-				) 
-			{
-				if (val.size() > 0)
+				else
 				{
-					tokens.push_back(val);
-					val = "";
+					val += c;
 				}
-
-				std::string chr(1, c);
-				chr += c2;
-				tokens.push_back(chr);
-				itr++;
 				continue;
-
 			}
-		}
 
-		p = strchr("()[]{}:,*+-^\"'<>;=!%/.", c);
 
-		if (p)
-		{
-			if (val.size() > 0)
+			const char* p = strchr(" \t\n", c);
+
+			if (p)
 			{
-				tokens.push_back(val);
-				val = "";
+				if (val.size() > 0)
+				{
+					tokens.push_back(new Token((*it)->linea, itr, val));
+					val = "";
+				}
+				continue;
 			}
 
-			std::string chr(1, c);
-			tokens.push_back(chr);
+			if (itr + 1 < (*it)->val.size())
+			{
+				const char c2 = (*it)->val.at(itr+1);
 
-			if (c == '"')
-				_cadena = true;
+				if (
+					(c == '+' && c2 == '+') ||
+					(c == '-' && c2 == '-') ||
+					(c == ':' && c2 == ':') ||
+					(c == '+' && c2 == '=') ||
+					(c == '-' && c2 == '=') ||
+					(c == '=' && c2 == '=') ||
+					(c == '!' && c2 == '=') ||
+					(c == '<' && c2 == '=') ||
+					(c == '>' && c2 == '=') ||
+					(c == '&' && c2 == '&') ||
+					(c == '|' && c2 == '|')
+					)
+				{
+					if (val.size() > 0)
+					{
+						tokens.push_back(new Token((*it)->linea, itr, val));
+						val = "";
+					}
 
-			continue;
+					std::string chr(1, c);
+					chr += c2;
+					tokens.push_back(new Token((*it)->linea, itr, chr));
+					itr++;
+					continue;
+
+				}
+			}
+
+			p = strchr("()[]{}:,*+-^\"'<>;=!%/.", c);
+
+			if (p)
+			{
+				if (val.size() > 0)
+				{
+					tokens.push_back(new Token((*it)->linea, itr, val));
+					val = "";
+				}
+
+				std::string chr(1, c);
+				tokens.push_back(new Token((*it)->linea, itr, chr));
+
+				if (c == '"')
+					_cadena = true;
+
+				continue;
+			}
+
+			val += c;
 		}
 
-		val += c;
+		if (val.size() > 0)
+		{
+			tokens.push_back(new Token((*it)->linea, (*it)->val.size(), val));
+			val = "";
+		}
 
 	}
 
-	if (val.size() > 0)
+	for (std::vector<Linea*>::iterator it = str.begin(); it != str.end(); ++it)
 	{
-		tokens.push_back(val);
-		val = "";
+		delete (*it);
 	}
+
+
 
 }
 
@@ -142,8 +152,7 @@ bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 	std::ifstream ifs(ruta);
 	std::string temp_line;
 
-	std::string raw_string = "";
-	std::vector<int> iLines;
+	std::vector<Linea*> raw_string;
 
 	if (ifs.fail()) {
 		return false;
@@ -151,8 +160,13 @@ bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 
 	bool comentario_bloque = false;
 
+
+
+	int line = 0;
 	while (std::getline(ifs, temp_line))
 	{
+		line++;
+
 		while (true)
 		{
 			if (comentario_bloque)
@@ -179,13 +193,7 @@ bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 			{
 				if (temp_line.size() > 0)
 				{
-					int n = std::count(temp_line.begin(), temp_line.end(), ' ');
-					n += std::count(temp_line.begin(), temp_line.end(), '\t');
-					n += std::count(temp_line.begin(), temp_line.end(), '\n');
-					n = temp_line.length() - n;
-
-					iLines.push_back(n);
-					raw_string += " " + temp_line;
+					raw_string.push_back(new Linea(line, temp_line));
 				}
 				break;
 			}
@@ -196,13 +204,7 @@ bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 
 				if (temp_line.size() > 0)
 				{
-					int n = std::count(temp_line.begin(), temp_line.end(), ' ');
-					n += std::count(temp_line.begin(), temp_line.end(), '\t');
-					n += std::count(temp_line.begin(), temp_line.end(), '\n');
-					n = temp_line.length() - n;
-
-					iLines.push_back(n);
-					raw_string += temp_line;
+					raw_string.push_back(new Linea(line, temp_line));
 				}
 				break;
 			}
@@ -217,13 +219,7 @@ bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 
 					if (temp_line.size() > 0)
 					{
-						int n = std::count(temp_line.begin(), temp_line.end(), ' ');
-						n += std::count(temp_line.begin(), temp_line.end(), '\t');
-						n += std::count(temp_line.begin(), temp_line.end(), '\n');
-						n = temp_line.length() - n;
-
-						iLines.push_back(n);
-						raw_string += temp_line;
+						raw_string.push_back(new Linea(line, temp_line));
 					}
 					comentario_bloque = true;
 				}
@@ -233,16 +229,9 @@ bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 					std::string head = temp_line.substr(0, offset2);
 					std::string tail = temp_line.erase(0, endl + 2);
 
-
 					temp_line = head + tail;
 
-					int n = std::count(temp_line.begin(), temp_line.end(), ' ');
-					n += std::count(temp_line.begin(), temp_line.end(), '\t');
-					n += std::count(temp_line.begin(), temp_line.end(), '\n');
-					n = temp_line.length() - n;
-
-					iLines.push_back(n);
-					raw_string += temp_line;
+					raw_string.push_back(new Linea(line, temp_line));
 					continue;
 				}
 				break;
@@ -251,9 +240,7 @@ bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 		}
 	}
 
-	num_Lines = iLines;
-
-	std::cout << raw_string;
+	fichero = ruta;
 	generarTokens(raw_string);
 
 	return true;

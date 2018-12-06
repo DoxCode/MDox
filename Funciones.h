@@ -9,6 +9,7 @@
 
 #define deletePtr(x) {delete x; x = NULL;}
 
+double s2d(const std::string str, const std::locale &loc);
 void ReplaceAll(std::string& str, const std::string& from, const std::string& to);
 std::deque<std::string> split(const std::string& s, char delimiter);
 std::deque<std::string> split_Str(std::string s, std::string delimiter);

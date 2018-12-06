@@ -87,7 +87,7 @@ if ((test_flags & FLAG_LECT_3) == FLAG_LECT_NONE) si NO existe
 
 enum tipos_parametros
 {
-	PARAM_NONE,  // Usos varios
+	PARAM_VOID,
 
 	//ENTEROS
 	PARAM_INT,	 // -2.147.483.647 a 2.147.483.647   (4 bytes)
@@ -96,13 +96,14 @@ enum tipos_parametros
 	PARAM_UINT16,  // De 0 a 65.535                    (2 bytes)
 	PARAM_INT64,   // De –9.223.372.036.854.775.808 a 9.223.372.036.854.775.807  (8 bytes)
 	PARAM_UINT64,   // De 0 a 18.446.744.073.709.551.615  (8 bytes)
-	
+
 	PARAM_CHAR,
 
 	PARAM_FLOAT,   // 7 digitos						 (4 bytes)
 	PARAM_DOUBLE,  // 15 digitos						 (8 bytes)
 	PARAM_BOOL,   //  true/false                       (1 byte)
 	PARAM_STRUCT, //Diseñado por el usuario.
+
 
 	PARAM_ENUM,
 	PARAM_STRING,
@@ -121,8 +122,9 @@ enum NODE_type {
 
 class Parser_NODE { 
 public: 
+	int linea;
+	int offset;
 	virtual ~Parser_NODE() { }; 
-
 	virtual NODE_type node_type() { return NODE_NULL; };
 };
 
@@ -132,7 +134,7 @@ public:
 // ############################################################
 
 enum EntradaType {
-	ENTRADA_VALOR,
+	ENTRADA_OP,
 	ENTRADA_PARAM,
 };
 
@@ -195,14 +197,29 @@ public:
 		value.clear();
 	}
 };
+// ########################################################
+// ####################### VALOR ##########################
+// ########################################################
+enum ValorType
+{
+	VAL_ID,
+	VAL_LIT,
+	VAL_FUNC,
+};
+
+class Parser_Valor {
+public:
+	bool negado = false;
+	ValorType tipo;
+	Parser_Valor(ValorType a) : tipo(a) {}
+	Parser_Valor(ValorType a, bool b) : tipo(a), negado(b) {}
+
+	virtual ~Parser_Valor() {}
+};
 
 // ############################################################
-// ####################### PARAMETRO ########################## 
+// ####################### PARAMETRO ##########################
 // ############################################################
-class Parser_Identificador;
-class Parser_Declarativo;
-class Parser_Operacion;
-
 enum ParamType {
 
 	PRM_DECLARATIVO_ID,
@@ -213,18 +230,48 @@ enum ParamType {
 	PRM_PUNTERO_INT,
 };
 
-
 class Parser_Parametro : public Funcion_ValorEntrada
 {
 public:
 	ParamType tipo;
+	Parser_Parametro(ParamType a) : tipo(a), Funcion_ValorEntrada(ENTRADA_PARAM) {}
+	//Aseguramos el borrado de la memoria
+	virtual ~Parser_Parametro() {};
+};
 
-	Parser_Parametro(ParamType a) : tipo(a), Funcion_ValorEntrada(ENTRADA_PARAM){}
+// ################################################################
+// ####################### IDENTIFICADOR ########################## 
+// ################################################################
+class Parser_Identificador : public Parser_Valor, public Parser_Parametro {
+public:
+	std::string nombre;
+	Parser_Identificador(std::string a) : nombre(a), Parser_Valor(VAL_ID), Parser_Parametro(PRM_ID) {}
+	virtual ~Parser_Identificador() {};
+};
+
+// ################################################################
+// ######################### OPERACIONES ########################## 
+// ################################################################
+enum OprtType
+{
+	OP_REC_OP,
+	OP_ID,
+	OP_MATH,
+};
+
+class Parser_Operacion : public Funcion_ValorEntrada {
+public:
+	OprtType tipo;
+	Parser_Operacion(OprtType a) : tipo(a), Funcion_ValorEntrada(ENTRADA_OP) {}
 
 	//Aseguramos el borrado de la memoria
-	virtual ~Parser_Parametro() {
-	};
+	virtual ~Parser_Operacion()
+	{}
 };
+
+// ############################################################
+// #################### PARAMETROS POLY #######################
+// ############################################################
 
 class Parametro_Declarativo_ID : public Parser_Parametro {
 public:
@@ -256,66 +303,9 @@ public:
 	};
 };
 
-// ############################################################
-// ####################### IGUALDAD ########################### 
-// ############################################################
-class Parser_Condicional;
-
-enum IgualdadType {
-	IG_EQUAL,
-	IG_ADD_EQ,
-	IG_SUB_EQ,
-};
-
-class Parser_Igualdad {
-public:
-	Parser_Parametro* param;
-	Parser_Condicional* cond;
-	IgualdadType valor;
-
-	//Igualdad con valor en la derecha CONDICIONAL si es OPERACIONAL, COND solo tendrá el valor de la operacion.
-	Parser_Igualdad(Parser_Parametro* a, Parser_Condicional* b, IgualdadType c) : param(a), cond(b), valor(c) {}
-
-	//Aseguramos el borrado de la memoria
-	virtual ~Parser_Igualdad() {
-		delete param;
-		delete cond;
-	};
-};
-
-// ###################################################
-// ################## IDENTIFICADOR ##################
-// ###################################################
-
-// ###################################################
-// ##################### VALOR  ######################
-// ###################################################
-
-enum ValorType
-{
-	VAL_ID,
-	VAL_LIT,
-	VAL_FUNC,
-};
-
-class Parser_Valor : public Funcion_ValorEntrada {
-public:
-	bool negado = false;
-	ValorType tipo;
-	Parser_Valor(ValorType a) : tipo(a), Funcion_ValorEntrada(ENTRADA_VALOR) {}
-	Parser_Valor(ValorType a, bool b) : tipo(a), negado(b), Funcion_ValorEntrada(ENTRADA_VALOR) {}
-
-	virtual ~Parser_Valor() {}
-};
-
-//IDENTIFICADOR
-class Parser_Identificador : public Parser_Valor, public Parser_Parametro {
-public:
-	std::string nombre;
-
-	Parser_Identificador(std::string a) : nombre(a), Parser_Valor(VAL_ID), Parser_Parametro(PRM_ID) {}
-	virtual ~Parser_Identificador() {}
-};
+// ###############################################################
+// ######################### VALOR PLY ###########################
+// ###############################################################
 
 //Basicamente se trataría de funciones con un retorno de un valor dado.
 class Valor_Funcion : public Parser_Valor {
@@ -334,30 +324,40 @@ public:
 			delete (*it);
 		}
 		entradas.clear();
-	}
+	};
+};
+// ############################################################
+// ########################## MATH ############################ 
+// ############################################################
+
+enum MATH_ACCION {
+
+	MATH_NONE,
+	MATH_SUMA,
+	MATH_MULT,
+	MATH_DIV,
+	MATH_DIV_ENTERA,
+	MATH_RESTA,
+	MATH_EXP,
+	MATH_MOD,
 };
 
-// ############################################################
-// ####################### OPERACIÓN  ######################### 
-// ############################################################
-
-class Parser_Math;
-
-enum OprtType
+class Parser_Math
 {
-	OP_REC_OP,
-	OP_ID,
-	OP_MATH,
-};
-
-class Parser_Operacion {
 public:
-	OprtType tipo;
-	Parser_Operacion(OprtType a) : tipo(a) {}
+	MATH_ACCION accion;
+	Parser_Operacion * op;
 
-	//Aseguramos el borrado de la memoria
-	virtual ~Parser_Operacion() {}
+	Parser_Math(MATH_ACCION a, Parser_Operacion * b) : accion(a), op(b) {}
+
+	virtual ~Parser_Math() {
+		delete op;
+	};
 };
+
+// ###############################################################
+// ####################### OPERACIÓN PLY ######################### 
+// ###############################################################
 
 class Operacion_Recursiva : public Parser_Operacion
 {
@@ -416,43 +416,20 @@ public:
 };
 
 
-// ############################################################
-// ########################## MATH ############################ 
-// ############################################################
-
-enum MATH_ACCION {
-
-	MATH_NONE,
-	MATH_SUMA,
-	MATH_MULT,
-	MATH_DIV,
-	MATH_DIV_ENTERA,
-	MATH_RESTA,
-	MATH_EXP,
-	MATH_MOD,
-};
-
-class Parser_Math
-{
-public:
-	MATH_ACCION accion;
-	Parser_Operacion * op;
-
-	Parser_Math(MATH_ACCION a, Parser_Operacion * b) : accion(a), op(b) {}
-};
-
-
 // ###################################################
 // #################### LITERALES ####################
 // ###################################################
 
 class Value {
 public:
-	virtual tipos_parametros getTypeValue() { return PARAM_NONE; };
+	virtual tipos_parametros getTypeValue() { return PARAM_VOID; };
 	virtual ~Value() { };
+
+	Value() { };
 
 	virtual Value * Clone() { return new Value(*this); }
 };
+
 
 class Parser_Literal : public Parser_Valor {
 public:
@@ -470,7 +447,7 @@ public:
 class Value_DOUBLE : public Value
 {
 public:
-	double value;
+	double value = 0;
 	virtual tipos_parametros getTypeValue() { return PARAM_DOUBLE; };
 	Value_DOUBLE(double a) : value(a) {}
 	Value_DOUBLE() {}
@@ -480,7 +457,7 @@ public:
 class Value_INT : public Value
 {
 public:
-	int value;
+	int value = 0;
 	virtual tipos_parametros getTypeValue() { return PARAM_INT; };
 	Value_INT() {}
 	Value_INT(int a) : value(a) {}
@@ -490,7 +467,7 @@ public:
 class Value_STRING : public Value
 {
 public:
-	std::string value;
+	std::string value = "";
 	virtual tipos_parametros getTypeValue() { return PARAM_STRING; };
 	Value_STRING() {}
 	Value_STRING(std::string a) : value(a) {}
@@ -554,7 +531,7 @@ class Parser_Condicional {
 public:
 	CondicionalType tipo;
 
-	Parser_Condicional(CondicionalType a) : tipo(a) {}
+	Parser_Condicional(CondicionalType a) : tipo(a) {};
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Parser_Condicional() {
@@ -567,7 +544,7 @@ public:
 	CondicionalAgregadoType accion;
 	Parser_Condicional* cond;
 
-	Condicional_Agregada(CondicionalAgregadoType a, Parser_Condicional* b) : accion(a), cond(b) {}
+	Condicional_Agregada(CondicionalAgregadoType a, Parser_Condicional* b) : accion(a), cond(b) {};
 	virtual ~Condicional_Agregada() {
 		delete cond;
 	}
@@ -578,7 +555,7 @@ public:
 	CondicionalAccionType AccType;
 	Parser_Operacion* op;
 
-	Condicional_Agregada_Operacional(CondicionalAccionType a, Parser_Operacion* b) : AccType(a), op(b) {}
+	Condicional_Agregada_Operacional(CondicionalAccionType a, Parser_Operacion* b) : AccType(a), op(b) {};
 	virtual ~Condicional_Agregada_Operacional() {
 		delete op;
 	}
@@ -591,9 +568,9 @@ public:
 	Condicional_Agregada * ca;
 
 	//Ruta sin el segundo condicional: !(<COND>)
-	Condicional_Recursiva(bool a, Parser_Condicional * b) : negada(a), c1(b), ca(NULL), Parser_Condicional(COND_REC) {}
+	Condicional_Recursiva(bool a, Parser_Condicional * b) : negada(a), c1(b), ca(NULL), Parser_Condicional(COND_REC) {};
 	//Ruta con una condicional adicional agregada:   !(<COND>) &&/|| <COND>
-	Condicional_Recursiva(bool a, Parser_Condicional * b, Condicional_Agregada * c) : negada(a), c1(b), ca(c), Parser_Condicional(COND_REC) {}
+	Condicional_Recursiva(bool a, Parser_Condicional * b, Condicional_Agregada * c) : negada(a), c1(b), ca(c), Parser_Condicional(COND_REC) {};
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Condicional_Recursiva() {
@@ -609,15 +586,16 @@ public:
 	Condicional_Agregada * ca;
 
 	//Ruta de salida simple, solamente valor de operación:  <OP>
-	Condicional_Operacion(Parser_Operacion * a) : op1(a), adicional_ops(NULL), ca(NULL), Parser_Condicional(COND_OP) {}
+	Condicional_Operacion(Parser_Operacion * a) : op1(a), adicional_ops(NULL), ca(NULL), Parser_Condicional(COND_OP) {};
 	//Ruta de salida con más de un valor operacional: <OP> <= <OP> < <OP> == <OP> ->  (a <= 5 < b == c)
-	Condicional_Operacion(Parser_Operacion * a, std::vector<Condicional_Agregada_Operacional*>* b) : op1(a), adicional_ops(b), ca(NULL), Parser_Condicional(COND_OP) {}
+	Condicional_Operacion(Parser_Operacion * a, std::vector<Condicional_Agregada_Operacional*>* b) : op1(a), adicional_ops(b), ca(NULL), Parser_Condicional(COND_OP) {};
 	//Ruta de salida con más de un valor operacional y una condición agregada: <OP> <= <OP> < <OP> || <COND> ->  (a <= 5 < b) || c
-	Condicional_Operacion(Parser_Operacion * a, std::vector<Condicional_Agregada_Operacional*>* b, Condicional_Agregada* c) : op1(a), adicional_ops(b), ca(c), Parser_Condicional(COND_OP) {}
+	Condicional_Operacion(Parser_Operacion * a, std::vector<Condicional_Agregada_Operacional*>* b, Condicional_Agregada* c) : op1(a), adicional_ops(b), ca(c), Parser_Condicional(COND_OP) {};
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Condicional_Operacion() {
 		delete op1;
+		delete ca;
 
 		if (adicional_ops)
 		{
@@ -631,6 +609,40 @@ public:
 	}
 };
 
+// ############################################################
+// ####################### IGUALDAD ########################### 
+// ############################################################
+
+enum IgualdadType {
+	IG_EQUAL,
+	IG_ADD_EQ,
+	IG_SUB_EQ,
+};
+
+class Parser_Igualdad {
+public:
+	Parser_Parametro* param;
+	Parser_Condicional* cond;
+	IgualdadType valor;
+
+	//Igualdad con valor en la derecha CONDICIONAL si es OPERACIONAL, COND solo tendrá el valor de la operacion.
+	Parser_Igualdad(Parser_Parametro* a, Parser_Condicional* b, IgualdadType c) : param(a), cond(b), valor(c) {};
+
+	//Aseguramos el borrado de la memoria
+	~Parser_Igualdad() {
+
+		bool p = false; bool c = false;
+		if (cond) c = true;
+		if (param) p = true;
+		delete cond;
+
+
+		p = false;  c = false;
+		if (cond) c = true;
+		if (param) p = true;
+		deletePtr(param);
+	};
+};
 
 // ############################################################
 // ####################### SENTENCIA ########################## 
@@ -718,7 +730,7 @@ public:
 	Parser_Operacion * pOp;
 	Parser_Sentencia * pS;
 
-	Sentencia_FOR(Parser_Igualdad * a, Parser_Condicional * b, Parser_Operacion * c, Parser_Sentencia * d) : pIguald(a), pCond(b), pOp(c), pS(d), Parser_Sentencia(SENT_FOR) {}
+	Sentencia_FOR(Parser_Igualdad * a, Parser_Condicional * b, Parser_Operacion * c, Parser_Sentencia * d) : pIguald(a), pCond(b), pOp(c), pS(d), Parser_Sentencia(SENT_FOR) {};
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_FOR() {
@@ -794,14 +806,15 @@ public:
 // ####################### FUNCIONES ########################## 
 // ############################################################
 
-
-
 class Parser_Funcion : public Parser_NODE {
 public:
 	Parser_Identificador * pID;
 	std::vector<Funcion_ValorEntrada*> entradas;
 	Parser_Declarativo * salida;
 	Parser_Sentencia * body;
+
+	std::string source;
+
 
 	// Función sin valor devuelto, el valor devuelto puede ser automático o no tenerlo
 	Parser_Funcion(Parser_Identificador * a, std::vector<Funcion_ValorEntrada*> b, Parser_Sentencia * c) : pID(a), entradas(b), body(c), salida(NULL){}
