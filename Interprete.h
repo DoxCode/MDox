@@ -110,6 +110,8 @@ public:
 	Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Value * value2);
 	Value* Interprete::Transformar_Declarativo_Value(Parser_Declarativo * dec);
 	Variable* Interprete::BusquedaVariable(std::string ID, std::vector<Variable*> * variables);
+	bool Interprete::EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*> * variables);
+	bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variable*> * variables);
 	bool Interprete::EstablecerVariable(Variable * var, Value ** value);
 
    ~Interprete() 

@@ -129,6 +129,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 				std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 				return false;
 			}
+
 				return true;
 		}
 
@@ -139,179 +140,31 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 		{
 			Sentencia_Operacional * x = static_cast<Sentencia_Operacional*>(sentencia);
 
-			if (x->pOp->tipo == OP_ID)
+			if (!EstablecerOperacion(x->pOp, variables))
 			{
-				Operacion_ID * x2 = static_cast<Operacion_ID*>(x->pOp);
-
-				if (x2->accion == ID_INCREMENTO)
-				{
-					Variable * v1 = BusquedaVariable(x2->ID->nombre, variables);
-
-					if (v1)
-					{
-						if (v1->valor->getTypeValue() == PARAM_INT)
-						{
-							Value_INT * x3 = static_cast<Value_INT*>(v1->valor);
-							Value * xR = new Value_INT(x3->value + 1);
-
-							if (!EstablecerVariable(v1, &xR))
-							{
-								delete xR;
-								return false;
-							}
-							return true;
-						}
-						else if (v1->valor->getTypeValue() == PARAM_DOUBLE)
-						{
-							Value_DOUBLE * x3 = static_cast<Value_DOUBLE*>(v1->valor);
-							Value * xR = new Value_DOUBLE(x3->value + 1);
-
-							if (!EstablecerVariable(v1, &xR))
-							{
-								delete xR;
-								return false;
-							}
-							return true;
-						}
-						else
-						{
-							std::cout << "La variable '" << v1->nombre << "' no puede ser incrementada. Linea: ["<< x->linea << "::" << x->offset << "] ";
-							return false;
-						}
-
-					}
-					else
-					{
-						std::cout << "La variable '" << v1->nombre << "' no existe.  Linea: [" << x->linea << "::" << x->offset << "] ";
-						return false;
-					}
-				}
-				else  if (x2->accion == ID_DECREMENTO)
-				{
-					Variable * v1 = BusquedaVariable(x2->ID->nombre, variables);
-
-					if (v1)
-					{
-						if (v1->valor->getTypeValue() == PARAM_INT)
-						{
-							Value_INT * x3 = static_cast<Value_INT*>(v1->valor);
-							Value * xR = new Value_INT(x3->value - 1);
-
-							if (!EstablecerVariable(v1, &xR))
-							{
-								delete xR;
-								return false;
-							}
-							return true;
-						}
-						else if (v1->valor->getTypeValue() == PARAM_DOUBLE)
-						{
-							Value_DOUBLE * x3 = static_cast<Value_DOUBLE*>(v1->valor);
-							Value * xR = new Value_DOUBLE(x3->value - 1);
-
-							if (!EstablecerVariable(v1, &xR))
-							{
-								delete xR;
-								return false;
-							}
-							return true;
-						}
-						else
-						{
-							std::cout << "La variable '" << v1->nombre << "' no puede ser decrementada. Linea: [" << x->linea << "::" << x->offset << "] ";
-							return false;
-						}
-
-					}
-					else
-					{
-						std::cout << "La variable '" << v1->nombre << "' no existe.  Linea: [" << x->linea << "::" << x->offset << "] ";
-						return false;
-					}
-				}
-				else
-				{
-					std::cout << "La expresión no se iguala a ninguna variable.  Linea: [" << x->linea << "::" << x->offset << "] ";
-					return false;
-				}
-
-			}
-			else //Si se trata de una operación matemática.
-			{
-				Value * _res = Operaciones(x->pOp, variables);
-				
-				//Si devuelve algún valor la operación, lo borra, no lo usaremos.
-				if (_res)
-					delete(_res);
-
-				return true;
+				std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+				return false;
 			}
 
-
-			return false;
+			return true;
 		}
 		case SENT_IGU:
 		{
 			Sentencia_Igualdad * x = static_cast<Sentencia_Igualdad*>(sentencia);
 
-			Variable * var = Interprete_NuevaVariable(x->pIg->param, variables, true);
-
-			if (var)
+			if (!EstablecerIgualdad(x->pIg, variables))
 			{
-			 if(x->pIg->cond)
-				{
-					if (x->pIg->cond->tipo == COND_OP)
-					{
-						Condicional_Operacion * xOp = static_cast<Condicional_Operacion*>(x->pIg->cond);
-						if (xOp->ca == NULL && xOp->adicional_ops == NULL)
-						{
-							Value * v = Operaciones(xOp->op1, variables);
-
-							if (v == NULL)
-							{
-								std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
-								delete v;
-								return false;
-							}
-
-							if (!EstablecerVariable(var, &v))
-							{
-								std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
-								delete v;
-								return false;
-							}
-							delete v;
-							return true;
-						}
-					}
-
-					Value * v_bol = Condicionales(x->pIg->cond, variables);
-
-					if (v_bol == NULL)
-					{
-						std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
-						return false;
-					}
-
-					if (!EstablecerVariable(var, &v_bol))
-					{
-						delete v_bol;
-						std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
-						return false;
-					}
-					return true;
-				}
+				std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+				return false;
 			}
-			std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
-			return false;
+
+			return true;
 		}
 		// FUNCION PRINT:
 		// Permite escribir por consola un valor dado.
 		case SENT_PRINT:
 		{
 			Sentencia_Print * x = static_cast<Sentencia_Print*>(sentencia);
-
-		//	Value_BOOL * Interprete::Condicionales(Parser_Condicional * pCond, std::vector<Variable*> * variables)
 			Value * v = Operaciones(x->pOp, variables);
 
 			if (!v)
@@ -413,12 +266,250 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 
 			return true;
 		}
+		// FUNCION WHILE:
+		// Repite la sentencia hasta que la condición del bucle while se cumpla.
+		case SENT_WHILE:
+		{
+			Sentencia_WHILE * x = static_cast<Sentencia_WHILE*>(sentencia);
+
+
+			while (true)
+			{
+				Value_BOOL * b = Condicionales(x->pCond, variables);
+
+				if (b == NULL)
+					return false;
+
+				if (b->value)
+				{
+					delete b;
+
+					if (x->pS)
+					{
+						if (!Interprete_Sentencia(x->pS, variables))
+						{
+							std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+							return false;
+						}
+					}
+				}
+				else
+				{
+					delete b;
+					return true;
+				}
+			}
+		}
+		// FUNCION FOR:
+		// Repite la sentencia hasta que la condición del bucle while se cumpla.
+		case SENT_FOR:
+		{
+			Sentencia_FOR * x = static_cast<Sentencia_FOR*>(sentencia);
+			//Interprete_Sentencia(x->pIguald, variables);
+
+			if (x->pIguald)
+			{
+				if (!EstablecerIgualdad(x->pIguald, variables))
+				{
+					std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+					return false;
+				}
+
+			}
+
+			while (true)
+			{
+				bool res = true;
+
+				if (x->pCond)
+				{
+					Value_BOOL * b = Condicionales(x->pCond, variables);
+
+					if (b == NULL)
+					{
+						std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+						return false;
+					}
+
+					res = b->value;
+					delete b;
+				}
+
+				if (res)
+				{
+					if (!Interprete_Sentencia(x->pS, variables))
+					{
+						std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+						return false;
+					}			
+
+					if (x->pOp)
+					{
+						if (!EstablecerOperacion(x->pOp, variables))
+						{
+							std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+							return false;
+						}
+					}
+				}
+				else
+				{
+					return true;
+				}
+			}
+		}
+
 
 	}
 
 }
 
+bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variable*> * variables)
+{
+	if (pOp->tipo == OP_ID)
+	{
+		Operacion_ID * x2 = static_cast<Operacion_ID*>(pOp);
 
+		if (x2->accion == ID_INCREMENTO)
+		{
+			Variable * v1 = BusquedaVariable(x2->ID->nombre, variables);
+
+			if (v1)
+			{
+				if (v1->valor->getTypeValue() == PARAM_INT)
+				{
+					Value_INT * x3 = static_cast<Value_INT*>(v1->valor);
+					Value * xR = new Value_INT(x3->value + 1);
+
+					if (!EstablecerVariable(v1, &xR))
+					{
+						delete xR;
+						return false;
+					}
+					return true;
+				}
+				else if (v1->valor->getTypeValue() == PARAM_DOUBLE)
+				{
+					Value_DOUBLE * x3 = static_cast<Value_DOUBLE*>(v1->valor);
+					Value * xR = new Value_DOUBLE(x3->value + 1);
+
+					if (!EstablecerVariable(v1, &xR))
+					{
+						delete xR;
+						return false;
+					}
+					return true;
+				}
+				else return false;
+				
+
+			}
+			else return false;
+		}
+		else  if (x2->accion == ID_DECREMENTO)
+		{
+			Variable * v1 = BusquedaVariable(x2->ID->nombre, variables);
+
+			if (v1)
+			{
+				if (v1->valor->getTypeValue() == PARAM_INT)
+				{
+					Value_INT * x3 = static_cast<Value_INT*>(v1->valor);
+					Value * xR = new Value_INT(x3->value - 1);
+
+					if (!EstablecerVariable(v1, &xR))
+					{
+						delete xR;
+						return false;
+					}
+					return true;
+				}
+				else if (v1->valor->getTypeValue() == PARAM_DOUBLE)
+				{
+					Value_DOUBLE * x3 = static_cast<Value_DOUBLE*>(v1->valor);
+					Value * xR = new Value_DOUBLE(x3->value - 1);
+
+					if (!EstablecerVariable(v1, &xR))
+					{
+						delete xR;
+						return false;
+					}
+					return true;
+				}
+				else return false;
+
+
+			}
+			else return false;
+			
+		}
+		else return false;
+
+	}
+	else //Si se trata de una operación matemática.
+	{
+		Value * _res = Operaciones(pOp, variables);
+
+		//Si devuelve algún valor la operación, lo borra, no lo usaremos.
+		if (_res)
+			delete(_res);
+		else
+			return false;
+
+		return true;
+	}
+
+	return false;
+}
+
+bool Interprete::EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*> * variables)
+{
+	Variable * var = Interprete_NuevaVariable(pIg->param, variables, true);
+
+	if (var)
+	{
+		if (pIg->cond)
+		{
+			if (pIg->cond->tipo == COND_OP)
+			{
+				Condicional_Operacion * xOp = static_cast<Condicional_Operacion*>(pIg->cond);
+				if (xOp->ca == NULL && xOp->adicional_ops == NULL)
+				{
+					Value * v = Operaciones(xOp->op1, variables);
+
+					if (v == NULL)
+					{
+						delete v;
+						return false;
+					}
+
+					if (!EstablecerVariable(var, &v))
+					{
+						delete v;
+						return false;
+					}
+					delete v;
+					return true;
+				}
+			}
+
+			Value * v_bol = Condicionales(pIg->cond, variables);
+
+			if (v_bol == NULL)
+			{
+				return false;
+			}
+
+			if (!EstablecerVariable(var, &v_bol))
+			{
+				delete v_bol;
+				return false;
+			}
+			return true;
+		}
+	}
+	return false;
+}
 
 Variable * Interprete::Interprete_NuevaVariable(Parser_Parametro * par, std::vector<Variable*> * variables, bool existe)
 {
@@ -1531,10 +1622,20 @@ Value_BOOL * Interprete::Condicionales(Parser_Condicional * pCond, std::vector<V
 				Value * op1 = Operaciones(x->adicional_ops->at(itr)->op, variables);
 				Value * op2 = Operaciones(x->adicional_ops->at(itr+1)->op, variables);
 
+				if (!op1 || !op2)
+				{
+					delete op1;
+					delete op2;
+					return NULL;
+				}
+
+
 				Value_BOOL * b = CondicionalDeDosValores(op1, x->adicional_ops->at(itr + 1)->AccType, op2);
 
 				if (b == NULL)
 				{
+					delete op1;
+					delete op2;
 					return NULL;
 				}
 
@@ -1549,10 +1650,16 @@ Value_BOOL * Interprete::Condicionales(Parser_Condicional * pCond, std::vector<V
 			{
 				Value * opN = Operaciones(x->adicional_ops->at(0)->op, variables);
 
+				if (!opN)
+				{
+					return NULL;
+				}
+
 				Value_BOOL * b = CondicionalDeDosValores(valOp, x->adicional_ops->at(0)->AccType, opN);
 
 				if (b == NULL)
 				{
+					delete opN;
 					return NULL;
 				}
 
@@ -1619,7 +1726,9 @@ Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> *
 	delete componenteInterno;
 
 	if (val == NULL)
+	{
 		return NULL;
+	}
 	
 	return val;
 }

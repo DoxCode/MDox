@@ -1002,63 +1002,54 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 		if (tokenizer.getTokenValue(index) == "(")
 		{
 			Parser_Igualdad * pIg = getIgualdad(index);
-
-			if (pIg)
+			if (tokenizer.getTokenValue(index) == ";")
 			{
+				Parser_Condicional * pCond = getCondicional(index);
+
 				if (tokenizer.getTokenValue(index) == ";")
 				{
-					Parser_Condicional * pCond = getCondicional(index);
+					Parser_Operacion * pOp = getOperacion(index);
 
-					if (pCond)
-					{
-						if (tokenizer.getTokenValue(index) == ";")
+						if (tokenizer.getTokenValue(index) == ")")
 						{
-							Parser_Operacion * pOp = getOperacion(index);
+							Parser_Sentencia * pSent = getSentencia(index);
 
-							if (pOp)
+							if (pSent)
 							{
-								if (tokenizer.getTokenValue(index) == ")")
-								{
-									Parser_Sentencia * pSent = getSentencia(index);
-
-									if (pSent)
-									{
-										local_index = index;
-										Sentencia_FOR *sif = new Sentencia_FOR(pIg, pCond, pOp, pSent);
-										sif->linea = tokenizer.token_actual->linea;
-										sif->offset = tokenizer.token_actual->char_horizontal;
-										return sif;
-									}
-									else
-									{
-										deletePtr(pOp);
-										deletePtr(pCond);
-										deletePtr(pIg);
-										return NULL;
-									}
-								}
-								deletePtr(pOp);
+								local_index = index;
+								Sentencia_FOR *sif = new Sentencia_FOR(pIg, pCond, pOp, pSent);
+								sif->linea = tokenizer.token_actual->linea;
+								sif->offset = tokenizer.token_actual->char_horizontal;
+								return sif;
 							}
-							else 
+							else
 							{
+								deletePtr(pOp);
 								deletePtr(pCond);
 								deletePtr(pIg);
 								return NULL;
 							}
 						}
-
-						deletePtr(pCond);
+						else
+						{
+							deletePtr(pOp);
+							deletePtr(pCond);
+							deletePtr(pIg);
+							return NULL;
+						}
 					}
-					else 
-					{
+					else
+					{ 
+						deletePtr(pCond);
 						deletePtr(pIg);
 						return NULL;
 					}
 				}
-
+			else
+			{
 				deletePtr(pIg);
+				return NULL;
 			}
-			else return NULL;
 		}
 	}
 
