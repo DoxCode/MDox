@@ -1,6 +1,6 @@
 /**
 
-Compilado bajo UBUNTU:   g++ Comandos.cpp Main.cpp Funciones.cpp -std=gnu++11 -lstdc++
+Compilado bajo UBUNTU:   g++ *.cpp -std=gnu++11 -lstdc++
 
 
 Rodrigo de Miguel Fernández. Usal.
@@ -15,7 +15,6 @@ int main()
 	std::cout << "Copyright (c) 2018-2019 Rodrigo de Miguel Fernández. Universidad de Salamanca. \n";
 	std::cout << "MDOX es un software gratuito y SIN GARANTIAS, eres libre de distribuirlo. \n";
 
-	//std::cout<<testFactorial(15);
 	Iniciar_Interprete();
 	return 0;
 }

@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include "Comandos.h"
-#include "Funciones.h"
+#include "../MDOX/Funciones.h"
 #include "Interprete.h"
 
 //Prototipos

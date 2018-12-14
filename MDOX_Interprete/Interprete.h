@@ -1,8 +1,9 @@
 #ifndef INTERPRETE_H
 #define INTERPRETE_H
 
-#include "Estructuras.h"
-#include "Parser.h"
+//
+#include "../MDOX/Estructuras.h"
+#include "../MDOX/Parser.h"
 #include <math.h>  
 
 class OperacionComp

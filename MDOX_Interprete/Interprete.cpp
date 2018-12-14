@@ -1,5 +1,6 @@
 
 #include "Interprete.h"
+#include "../MDOX/Parser.cpp"
 
 
 bool Interprete::CargarDatos(Parser* parser)

@@ -1,6 +1,7 @@
 ﻿
 #include "Comandos.h"
-
+#include "../MDOX/Funciones.cpp"
+#include "../MDOX/Tokenizer.cpp"
 
 // Mapeado de correspondencias entre valores escritos y comandos a los cuales
 // hace referencia.

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -20,8 +20,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{42DF36B7-AC7E-44ED-A883-0A16BD37CD18}</ProjectGuid>
-    <RootNamespace>MDOX</RootNamespace>
+    <ProjectGuid>{E9B0043D-64A9-4F1E-8EAA-6AA2FFB0CD3D}</ProjectGuid>
+    <RootNamespace>MDOXInterprete</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -111,23 +111,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Funciones.cpp" />
-    <ClCompile Include="Interprete.cpp" />
-    <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Comandos.cpp" />
-    <ClCompile Include="Tokenizer.cpp" />
-    <ClCompile Include="Tester.cpp" />
-    <ClCompile Include="Parser.cpp" />
+    <ClInclude Include="Comandos.h" />
+    <ClInclude Include="Interprete.h" />
+    <ClInclude Include="Main.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Comandos.h" />
-    <ClInclude Include="Estructuras.h" />
-    <ClInclude Include="Funciones.h" />
-    <ClInclude Include="Interprete.h" />
-    <ClInclude Include="Tokenizer.h" />
-    <ClInclude Include="Main.h" />
-    <ClInclude Include="Tester.h" />
-    <ClInclude Include="Parser.h" />
+    <ClCompile Include="Comandos.cpp" />
+    <ClCompile Include="Interprete.cpp" />
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{f345f48e-1f82-405e-a8a8-822b145da915}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Estructuras.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Funciones.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Parser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Tokenizer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Funciones.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Parser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Tokenizer.cpp" />
+  </ItemGroup>
+</Project>
