@@ -7,7 +7,6 @@ Rodrigo de Miguel Fernández. Usal.
 **/
 
 #include "Main.h"
-#include "Tester.h"
 
 int main()
 {

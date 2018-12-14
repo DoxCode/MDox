@@ -9,7 +9,6 @@
 #include <list>
 #include <vector>
 
-#include "Tester.h"
 #include "Parser.h"
 #include "Funciones.h"
 #include "Tokenizer.h"
