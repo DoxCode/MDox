@@ -97,22 +97,22 @@ public:
 	int deep = 1; //Se usa para las variables.
 
 	bool CargarDatos(Parser* parser);
-	bool Interprete::Interpretar(Parser* parser);
-	bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<Variable*> * variables);
-	Variable * Interprete::Interprete_NuevaVariable(Parser_Parametro * par, std::vector<Variable*> * variables, bool existe);
+	bool Interpretar(Parser* parser);
+	bool Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<Variable*> * variables);
+	Variable * Interprete_NuevaVariable(Parser_Parametro * par, std::vector<Variable*> * variables, bool existe);
 
-	Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vector<Variable*> * variables);
-	bool Interprete::ConversionXtoBool(Value * valOp, bool& salida);
-	Value_BOOL * Interprete::Condicionales(Parser_Condicional * pCond, std::vector<Variable*> * variables);
-	Value_BOOL * Interprete::CondicionalDeDosValores(Value * value1, CondicionalAccionType accion, Value * value2);
-	Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables);
-	Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables, std::vector<OperacionComp*>* componente);
-	Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Value * value2);
-	Value* Interprete::Transformar_Declarativo_Value(Parser_Declarativo * dec);
-	Variable* Interprete::BusquedaVariable(std::string ID, std::vector<Variable*> * variables);
-	bool Interprete::EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*> * variables);
-	bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variable*> * variables);
-	bool Interprete::EstablecerVariable(Variable * var, Value ** value);
+	Value* ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vector<Variable*> * variables);
+	bool ConversionXtoBool(Value * valOp, bool& salida);
+	Value_BOOL * Condicionales(Parser_Condicional * pCond, std::vector<Variable*> * variables);
+	Value_BOOL * CondicionalDeDosValores(Value * value1, CondicionalAccionType accion, Value * value2);
+	Value * Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables);
+	Value * Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables, std::vector<OperacionComp*>* componente);
+	Value * OperacionSobreValores(Value * value1, MATH_ACCION accion, Value * value2);
+	Value* Transformar_Declarativo_Value(Parser_Declarativo * dec);
+	Variable* BusquedaVariable(std::string ID, std::vector<Variable*> * variables);
+	bool EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*> * variables);
+	bool EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variable*> * variables);
+	bool EstablecerVariable(Variable * var, Value ** value);
 
    ~Interprete() 
     {

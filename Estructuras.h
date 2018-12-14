@@ -631,15 +631,7 @@ public:
 	//Aseguramos el borrado de la memoria
 	~Parser_Igualdad() {
 
-		bool p = false; bool c = false;
-		if (cond) c = true;
-		if (param) p = true;
 		delete cond;
-
-
-		p = false;  c = false;
-		if (cond) c = true;
-		if (param) p = true;
 		deletePtr(param);
 	};
 };

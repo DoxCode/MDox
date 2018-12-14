@@ -5,6 +5,8 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <cstring>
+#include <cstdio>
 #include "Funciones.h"
 
 bool str_compare(std::string str, int itr, std::string busq);
@@ -53,7 +55,7 @@ public:
 
 	void agregarToken(Token * a) { tokens.push_back(a); };
 	bool GenerarTokenizerDesdeFichero(std::string ruta);
-	void Tokenizer::generarTokens(std::vector<Linea*> str);
+	void generarTokens(std::vector<Linea*> str);
 
 	Tokenizer() {}
 

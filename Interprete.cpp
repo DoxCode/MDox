@@ -534,7 +534,7 @@ Variable * Interprete::Interprete_NuevaVariable(Parser_Parametro * par, std::vec
 					return var;
 				}
 				std::cout << "Error al intentar inicializar la variable '" << x->pID->nombre << "'. ";
-				return false;
+				return NULL;
 			}
 			else
 			{
