@@ -6,6 +6,7 @@
 #include <list>
 #include <tuple>
 #include "Funciones.h"
+#include "Tokenizer.h"
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -17,13 +18,6 @@ enum tipo_permanente
 	TP_ETIQUETA,
 	TP_INCLUDE,
 	TP_FUNCION,
-};
-
-
-enum metaetiquetas_codigo
-{
-	ME_PSEUDOCODIGO,
-	ME_MDOX,
 };
 
 
@@ -80,10 +74,29 @@ if ((test_flags & FLAG_LECT_3) == FLAG_LECT_NONE) si NO existe
 
 */
 
-
-
 // Para pre-11 C++
 //typedef SafeEnum<enum _Flags_lectura>  Flags_lectura;
+
+
+
+//Valores que tendrá cada NODO, la línea a la que pertenece, el offset, y el nombre del fichero.
+class OutData_Parametros
+{
+public:
+	int linea;
+	int offset;
+	Fichero * fichero = NULL;
+
+	OutData_Parametros() {}
+	OutData_Parametros(int a, int b, Fichero * c) : linea(a), offset(b), fichero(c) {}
+
+	void loadDatas(int a, int b, Fichero * c)
+	{
+		linea = a;
+		offset = b;
+		fichero = c;
+	}
+};
 
 enum tipos_parametros
 {
@@ -122,8 +135,17 @@ enum NODE_type {
 
 class Parser_NODE { 
 public: 
-	int linea;
-	int offset;
+
+	Parser_NODE() {}
+
+	public:
+		OutData_Parametros parametros;
+
+		void generarPosicion(Tokenizer * tokenizer) 
+		{ 
+			parametros = OutData_Parametros(tokenizer->token_actual->linea, tokenizer->token_actual->char_horizontal, tokenizer->fichero);
+		}
+
 	virtual ~Parser_NODE() { }; 
 	virtual NODE_type node_type() { return NODE_NULL; };
 };
@@ -230,7 +252,7 @@ enum ParamType {
 	PRM_PUNTERO_INT,
 };
 
-class Parser_Parametro : public Funcion_ValorEntrada
+class Parser_Parametro : public Funcion_ValorEntrada, public Parser_NODE
 {
 public:
 	ParamType tipo;
@@ -259,7 +281,7 @@ enum OprtType
 	OP_MATH,
 };
 
-class Parser_Operacion : public Funcion_ValorEntrada {
+class Parser_Operacion : public Funcion_ValorEntrada, public Parser_NODE{
 public:
 	OprtType tipo;
 	Parser_Operacion(OprtType a) : tipo(a), Funcion_ValorEntrada(ENTRADA_OP) {}
@@ -308,7 +330,8 @@ public:
 // ###############################################################
 
 //Basicamente se trataría de funciones con un retorno de un valor dado.
-class Valor_Funcion : public Parser_Valor {
+class Valor_Funcion : public Parser_Valor, public Parser_NODE
+ {
 public:
 	Parser_Identificador* ID;
 	std::vector<Parser_Operacion*> entradas;
@@ -431,7 +454,7 @@ public:
 };
 
 
-class Parser_Literal : public Parser_Valor {
+class Parser_Literal : public Parser_Valor, public Parser_NODE {
 public:
 	Value* value;
 
@@ -527,7 +550,7 @@ enum CondicionalAccionType {
 };
 
 
-class Parser_Condicional {
+class Parser_Condicional : public Parser_NODE {
 public:
 	CondicionalType tipo;
 
@@ -619,7 +642,7 @@ enum IgualdadType {
 	IG_SUB_EQ,
 };
 
-class Parser_Igualdad {
+class Parser_Igualdad : public Parser_NODE {
 public:
 	Parser_Parametro* param;
 	Parser_Condicional* cond;
@@ -804,9 +827,6 @@ public:
 	std::vector<Funcion_ValorEntrada*> entradas;
 	Parser_Declarativo * salida;
 	Parser_Sentencia * body;
-
-	std::string source;
-
 
 	// Función sin valor devuelto, el valor devuelto puede ser automático o no tenerlo
 	Parser_Funcion(Parser_Identificador * a, std::vector<Funcion_ValorEntrada*> b, Parser_Sentencia * c) : pID(a), entradas(b), body(c), salida(NULL){}

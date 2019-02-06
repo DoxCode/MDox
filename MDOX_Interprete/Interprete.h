@@ -3,6 +3,7 @@
 
 //
 #include "../MDOX/Estructuras.h"
+#include "../MDOX/Errores.h"
 #include "../MDOX/Parser.h"
 #include <math.h>  
 
@@ -88,6 +89,8 @@ class Interprete {
 private:
 	Value * _retorno = NULL;
 public:
+	std::vector<Fichero*> nombre_ficheros; //Nombre de ficheros cargados en la instancia actual del interprete.
+
 	std::vector<Parser_Funcion*> funciones;
 
 	//Variable de retorno actual
@@ -103,17 +106,17 @@ public:
 	Variable * Interprete_NuevaVariable(Parser_Parametro * par, std::vector<Variable*> * variables, bool existe);
 
 	Value* ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vector<Variable*> * variables);
-	bool ConversionXtoBool(Value * valOp, bool& salida);
+	bool ConversionXtoBool(Value * valOp, bool& salida, OutData_Parametros * outData);
 	Value_BOOL * Condicionales(Parser_Condicional * pCond, std::vector<Variable*> * variables);
-	Value_BOOL * CondicionalDeDosValores(Value * value1, CondicionalAccionType accion, Value * value2);
+	Value_BOOL * CondicionalDeDosValores(Value * value1, CondicionalAccionType accion, Value * value2, OutData_Parametros * outData);
 	Value * Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables);
 	Value * Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables, std::vector<OperacionComp*>* componente);
-	Value * OperacionSobreValores(Value * value1, MATH_ACCION accion, Value * value2);
+	Value * OperacionSobreValores(Value * value1, MATH_ACCION accion, Value * value2, OutData_Parametros * outData);
 	Value* Transformar_Declarativo_Value(Parser_Declarativo * dec);
 	Variable* BusquedaVariable(std::string ID, std::vector<Variable*> * variables);
 	bool EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*> * variables);
 	bool EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variable*> * variables);
-	bool EstablecerVariable(Variable * var, Value ** value);
+	bool EstablecerVariable(Variable * var, Value ** value, OutData_Parametros * salidaError);
 
    ~Interprete() 
     {

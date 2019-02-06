@@ -92,6 +92,60 @@ void RetirarValoresNoUtiles(std::string& str) {
 	str = str.erase(0, num);
 }
 
+
+std::string getFileNameAndExt(std::string s)
+{
+	const size_t last_slash_idx = s.find_last_of("\\/");
+	if (std::string::npos != last_slash_idx)
+	{
+		s.erase(0, last_slash_idx + 1);
+	}
+
+	return s;
+}
+
+//Transformar una ruta relativa a una Absoluta.
+//Esto lógicamente dependerá del sistema operativo, por lo que el código será distinto dependiendo
+//sobre que SO se está realizando la compilación.
+std::string getAbsolutePathFromRelative(std::string path)
+{
+	int len = path.length();
+
+	#ifdef _WIN32
+		char full[_MAX_PATH];
+		if (_fullpath(full, path.c_str(), _MAX_PATH) != NULL)
+		{
+			return std::string(full);
+		}
+		else
+		{
+			return path;
+		}
+
+	#elif linux	
+		char * full = realpath(path.c_str(), NULL);
+
+		if (full != NULL)
+		{
+			char f2[_MAX_PATH];
+			strcpy(f2, full);
+			std::string ret(f2);
+			delete full;
+			return ret;
+		}
+		else
+		{
+			return path;
+		}
+	#else
+		return path; // Desconocida forma
+	#endif
+}
+
+
+
+
+
 // Ejemplos:
 //  double d = string_to<double>("1223.23");
 //  int i = string_to<int>("1223");

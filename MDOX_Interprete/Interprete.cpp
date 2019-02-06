@@ -1,8 +1,10 @@
 
 #include "Interprete.h"
+#include "../MDOX/Errores.cpp"
 #include "../MDOX/Parser.cpp"
 
 
+//TODO: FALLA AL CARGAR DOS VECES Y EJECUTAR FUNCION
 bool Interprete::CargarDatos(Parser* parser)
 {
 	//Borramos la lista de funciones existentes actualmente.
@@ -10,6 +12,7 @@ bool Interprete::CargarDatos(Parser* parser)
 	{
 		delete (*it);
 	}
+	funciones.clear();
 
 /*	std::cout << "TOKENS: \n";
 
@@ -19,6 +22,9 @@ bool Interprete::CargarDatos(Parser* parser)
 	}
 
 	std::cout << "\n\n";*/
+
+
+	this->nombre_ficheros.push_back(parser->tokenizer.fichero);
 	
 	//Interpretando datos...size_t
 	int local = 0;
@@ -30,14 +36,13 @@ bool Interprete::CargarDatos(Parser* parser)
 
 		if (p2)
 		{
-			p2->source = parser->tokenizer.fichero;
 			funciones.push_back(p2);
 			continue;
 		}
 		else
 		{
-			std::cout << " --Error de sintaxis en la linea [" << parser->tokenizer.token_actual->linea << "::" << parser->tokenizer.token_actual->char_horizontal << "]. <"+parser->tokenizer.fichero +"> '" <<
-				parser->tokenizer.token_actual->token << "' no es una operación reconocida o no fue cerrada correctamente. \n";
+			OutData_Parametros data = OutData_Parametros(parser->tokenizer.token_actual->linea, parser->tokenizer.token_actual->char_horizontal, this->nombre_ficheros.back());
+			Errores::generarError(Errores::ERROR_DE_SINTAXIS, &data, parser->tokenizer.token_actual->token);
 			return false;
 		}
 	}
@@ -56,20 +61,21 @@ bool Interprete::Interpretar(Parser * parser)
 		//	std::cout << "--:: " << parser.tokenizer.tokens.at(local) << " :: " << local << " \n";
 
 		Parser_Sentencia* p2 = parser->getSentencia(local);
+		
 
 		if (p2)
 		{
 			if (!Interprete_Sentencia(p2, &variables))
 			{
-				std::cout << (" \n");
-				delete p2;
-				return false;
+				//TODO: TESTING PARA LEER TODO
+				//delete p2;
+				//return false;
 			}
 		}
 		else
 		{
-			std::cout << " --Error de sintaxis en la linea [" << parser->tokenizer.token_actual->linea <<"::" << parser->tokenizer.token_actual->char_horizontal << "]. <Interprete> '" <<
-				parser->tokenizer.token_actual->token << "' no es una operación reconocida. \n";
+			OutData_Parametros data = OutData_Parametros(parser->tokenizer.token_actual->linea, parser->tokenizer.token_actual->char_horizontal, NULL);
+			Errores::generarError(Errores::ERROR_DE_SINTAXIS, &data, parser->tokenizer.token_actual->token);
 			//delete p2;
 			return false;
 		}
@@ -101,7 +107,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 			{
 				if (!Interprete_Sentencia(*it, &variables2))
 				{
-					std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+					//No devolverá error en principio
 					return false;
 				}
 			
@@ -121,20 +127,19 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 			return true;
 		}
 
-		//Crea una VARIABLE
+		//Inicializa una variable dada
 		case SENT_VAR_INI:
 		{
 			Sentencia_Parametro * x = static_cast<Sentencia_Parametro*>(sentencia);
 			if (Interprete_NuevaVariable(x->pPar, variables, false) == NULL) // Crea nueva variable, si ya existe devuelve NULL
 			{
-				std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+				//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 				return false;
 			}
 
 				return true;
 		}
 
-		//Operaciones, si son llamadas como funciones solo podrán ser sumatorios, etc. var++, ++var etc.
 		// Add+1 -> También se podrá llamar a operaciones matemáticas, pero su resultado nunca se guardará. 
 		//  Esto se debe a que se puede ejecutar directamente funciones aún sin ser return void.
 		case SENT_OP:
@@ -143,7 +148,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 
 			if (!EstablecerOperacion(x->pOp, variables))
 			{
-				std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+				//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 				return false;
 			}
 
@@ -155,7 +160,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 
 			if (!EstablecerIgualdad(x->pIg, variables))
 			{
-				std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+				//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 				return false;
 			}
 
@@ -169,7 +174,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 			Value * v = Operaciones(x->pOp, variables);
 
 			if (!v)
-				std::cout << "El valor introducido No es una operación.";
+				Errores::generarError(Errores::ERROR_FUNCION_PARAMETRO_OPERACION_INVALIDA, &x->parametros, "print");
 
 			if (v)
 			{
@@ -244,7 +249,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 					delete b;
 					if (!Interprete_Sentencia(x->pS, variables))
 					{
-						std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+						//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 						return false;
 					}
 					return true;
@@ -257,7 +262,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 				{
 					if (!Interprete_Sentencia(x->pElse, variables))
 					{
-						std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+						//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 						return false;
 					}
 
@@ -289,7 +294,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 					{
 						if (!Interprete_Sentencia(x->pS, variables))
 						{
-							std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+							//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 							return false;
 						}
 					}
@@ -312,7 +317,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 			{
 				if (!EstablecerIgualdad(x->pIguald, variables))
 				{
-					std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+					//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 					return false;
 				}
 
@@ -328,7 +333,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 
 					if (b == NULL)
 					{
-						std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+						//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 						return false;
 					}
 
@@ -340,7 +345,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 				{
 					if (!Interprete_Sentencia(x->pS, variables))
 					{
-						std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+						//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 						return false;
 					}			
 
@@ -348,7 +353,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 					{
 						if (!EstablecerOperacion(x->pOp, variables))
 						{
-							std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
+						//	std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 							return false;
 						}
 					}
@@ -382,7 +387,7 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 					Value_INT * x3 = static_cast<Value_INT*>(v1->valor);
 					Value * xR = new Value_INT(x3->value + 1);
 
-					if (!EstablecerVariable(v1, &xR))
+					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
 					{
 						delete xR;
 						return false;
@@ -394,7 +399,7 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 					Value_DOUBLE * x3 = static_cast<Value_DOUBLE*>(v1->valor);
 					Value * xR = new Value_DOUBLE(x3->value + 1);
 
-					if (!EstablecerVariable(v1, &xR))
+					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
 					{
 						delete xR;
 						return false;
@@ -418,7 +423,7 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 					Value_INT * x3 = static_cast<Value_INT*>(v1->valor);
 					Value * xR = new Value_INT(x3->value - 1);
 
-					if (!EstablecerVariable(v1, &xR))
+					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
 					{
 						delete xR;
 						return false;
@@ -430,7 +435,7 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 					Value_DOUBLE * x3 = static_cast<Value_DOUBLE*>(v1->valor);
 					Value * xR = new Value_DOUBLE(x3->value - 1);
 
-					if (!EstablecerVariable(v1, &xR))
+					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
 					{
 						delete xR;
 						return false;
@@ -484,7 +489,7 @@ bool Interprete::EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*
 						return false;
 					}
 
-					if (!EstablecerVariable(var, &v))
+					if (!EstablecerVariable(var, &v, &pIg->parametros))
 					{
 						delete v;
 						return false;
@@ -501,7 +506,7 @@ bool Interprete::EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*
 				return false;
 			}
 
-			if (!EstablecerVariable(var, &v_bol))
+			if (!EstablecerVariable(var, &v_bol, &pIg->parametros))
 			{
 				delete v_bol;
 				return false;
@@ -534,18 +539,21 @@ Variable * Interprete::Interprete_NuevaVariable(Parser_Parametro * par, std::vec
 					variables->push_back(var);
 					return var;
 				}
-				std::cout << "Error al intentar inicializar la variable '" << x->pID->nombre << "'. ";
+
+				Errores::generarError(Errores::ERROR_INICIALIZACION_VARIABLE, &x->pID->parametros, x->pID->nombre);
 				return NULL;
 			}
 			else
 			{
+				Errores::generarWarning(Errores::WARNING_VARIABLE_YA_DECLARADA, &x->pID->parametros, x->pID->nombre);
+
 				if (existe)
 				{
 					return var1;
 				}
 				//Existe
-				std::cout << "Error de ejecución: La variable con nombre '" << x->pID->nombre << "' fue declarada más de una vez. ";
-				return NULL;
+
+				return NULL; // O NULL si queremos que lo de arriba sea error
 			}
 			break;
 		}
@@ -564,7 +572,7 @@ Variable * Interprete::Interprete_NuevaVariable(Parser_Parametro * par, std::vec
 			return v;
 		}
 		default:
-			std::cout << "Error al declarar parámetro.";
+			Errores::generarError(Errores::ERROR_DESC_DECLARACION_VARIABLE, &par->parametros);
 			return NULL;
 	}
 }
@@ -655,7 +663,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 					}
 
 					//Comprobamos el valor de entrada con el operacional.
-					Value_BOOL * _Cond = CondicionalDeDosValores(valor_operacion, COND_ACC_EQUAL, xCallEnt->entradas->at(ent_itr));
+					Value_BOOL * _Cond = CondicionalDeDosValores(valor_operacion, COND_ACC_EQUAL, xCallEnt->entradas->at(ent_itr), &xOperacion->parametros);
 
 					//De no poder convertir la operación correctamente, nos saltamos esta función. Pues no es posible realizarla.
 					if (_Cond == NULL)
@@ -688,13 +696,13 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 					//Si el parametro es DECLARATIVO + ID, es decir algo como: "int x"
 					// se tratará siempre de una VARIABLE LOCAL de la función, que se debe pasar al llamar a la función.
 
-					// SE producirá UN WARNING: Si dicha variable ya fue declarada.
+					// SE producirá UN ERROR: Si dicha variable ya fue declarada.
 					if (xParametro->tipo == PRM_DECLARATIVO_ID)
 					{
 						Parametro_Declarativo_ID* _xParID = static_cast<Parametro_Declarativo_ID*>(xParametro);
 						if (BusquedaVariable(_xParID->pID->nombre, &variablesEntorno) != NULL)
 						{
-							std::cout << "La entrada " << _xParID->pID->nombre << " de la función " << ID << " ya fue declarada.\n ";
+							Errores::generarError(Errores::ERROR_FUNCION_ENTRADA_DECLARADA, &_xParID->pID->parametros, _xParID->pID->nombre, ID);
 							correcto = false;
 							break;
 						}
@@ -703,7 +711,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 						Variable * _var = new Variable(_xParID->pID->nombre, v, true);
 						_var->deep = deep;
 
-						if (!EstablecerVariable(_var, &(xCallEnt->entradas->at(ent_itr))))
+						if (!EstablecerVariable(_var, &(xCallEnt->entradas->at(ent_itr)), &_xParID->pID->parametros))
 						{
 							forzar_salida = true;
 							break;
@@ -723,7 +731,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 						//La variable YA existe, ende no estamos inicializándola, si no más bien comparándola.
 						if (_var)
 						{
-							Value_BOOL * _Cond = CondicionalDeDosValores(_var->valor, COND_ACC_EQUAL, xCallEnt->entradas->at(ent_itr));
+							Value_BOOL * _Cond = CondicionalDeDosValores(_var->valor, COND_ACC_EQUAL, xCallEnt->entradas->at(ent_itr), &_xID->parametros);
 
 							//De no poder convertir la operación correctamente, nos saltamos esta función. Pues no es posible realizarla.
 							if (_Cond == NULL)
@@ -804,7 +812,6 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 
 				nullRetorno();
 
-				std::cout << " - " + (*funcion)->source + "\n";
 				deletePtr(xCallEnt);
 
 				return NULL;
@@ -813,11 +820,12 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 	}
 	//AGREGADO TODO
 	delete xCallEnt;
-	std::cout << "La función '" + ID + "' no está declarada o los parámetros de entrada no son correctos. ";
+
+	Errores::generarError(Errores::ERROR_FUNCION_NO_RECONOCIDA, &xFunc->parametros, ID);
 	return NULL;
 }
 
-bool Interprete::EstablecerVariable(Variable * var, Value ** value)
+bool Interprete::EstablecerVariable(Variable * var, Value ** value, OutData_Parametros * outData)
 {
 	if (var)
 	{
@@ -839,7 +847,6 @@ bool Interprete::EstablecerVariable(Variable * var, Value ** value)
 			}
 			case PARAM_INT:
 			{
-
 				if ((*value)->getTypeValue() == PARAM_INT)
 				{
 					Value_INT * xVar = static_cast<Value_INT*>(var->valor);
@@ -850,7 +857,7 @@ bool Interprete::EstablecerVariable(Variable * var, Value ** value)
 				}
 				else
 				{
-					std::cout << "No se puede convertir expresión, la variable '" << var->nombre << "' debe ser un entero. ";
+					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, outData, var->nombre);
 						return false;
 				}
 			}
@@ -874,7 +881,7 @@ bool Interprete::EstablecerVariable(Variable * var, Value ** value)
 				}
 				else
 				{
-					std::cout << "No se puede convertir expresión, la variable " << var->nombre << " debe ser un real. ";
+					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_REAL, outData, var->nombre);
 					return false;
 				}
 			}
@@ -891,7 +898,7 @@ bool Interprete::EstablecerVariable(Variable * var, Value ** value)
 				}
 				else
 				{
-					std::cout << "No se puede convertir expresión, la variable " << var->nombre << " debe ser un string. ";
+					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_STRING, outData, var->nombre);
 					return false;
 				}
 			}
@@ -923,7 +930,7 @@ bool Interprete::EstablecerVariable(Variable * var, Value ** value)
 				}
 				else
 				{
-					std::cout << "No se puede convertir expresión, la variable " << var->nombre << " debe ser un booleano. ";
+					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_BOOL, outData, var->nombre);
 					return false;
 				}
 			}
@@ -934,7 +941,7 @@ bool Interprete::EstablecerVariable(Variable * var, Value ** value)
 }
 
 
-Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAccionType accion, Value * value2)
+Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAccionType accion, Value * value2, OutData_Parametros * outData)
 {
 	switch (value1->getTypeValue())
 	{
@@ -979,7 +986,7 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 			{
 				//Value_STRING * x2 = static_cast<Value_STRING*>(value2);
 
-				std::cout << "No se puede comparar un entero con una cadena de caracteres. "; 
+				Errores::generarError(Errores::ERROR_COMPARACION_INT_STRING, outData);
 				return NULL;
 			}
 
@@ -1041,7 +1048,7 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 			{
 				Value_STRING * x2 = static_cast<Value_STRING*>(value2);
 
-				std::cout << "No se puede comparar un entero con una cadena de caracteres. ";
+				Errores::generarError(Errores::ERROR_COMPARACION_INT_STRING, outData);
 				return NULL;
 			}
 
@@ -1069,13 +1076,13 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 		{
 		case PARAM_INT:
 		{
-			std::cout << "No se puede comparar un entero con una cadena de caracteres. ";
+			Errores::generarError(Errores::ERROR_COMPARACION_INT_STRING, outData);
 			return NULL;
 		}
 
 		case PARAM_DOUBLE:
 		{
-			std::cout << "No se puede comparar un real con una cadena de caracteres. ";
+			Errores::generarError(Errores::ERROR_COMPARACION_REAL_STRING, outData);
 			return NULL;
 		}
 
@@ -1096,7 +1103,7 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 
 		case PARAM_BOOL:
 		{
-			std::cout << "No se puede comparar un booleano con una cadena de caracteres. ";
+			Errores::generarError(Errores::ERROR_COMPARACION_BOOL_STRING, outData);
 			return NULL;
 		}
 		break;
@@ -1144,7 +1151,7 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 			{
 				Value_STRING * x2 = static_cast<Value_STRING*>(value2);
 
-				std::cout << "No se puede comparar un entero con una cadena de caracteres. ";
+				Errores::generarError(Errores::ERROR_COMPARACION_INT_STRING, outData);
 				return NULL;
 			}
 
@@ -1166,11 +1173,11 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 	}
 	}
 
-	std::cout << "Condición inválida. ";
+	Errores::generarError(Errores::ERROR_COMPARACION_DESCONOCIDO, outData);
 	return NULL;
 }
 
-Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Value * value2)
+Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Value * value2, OutData_Parametros * outData)
 {
 	if (!value1 || !value2)
 	{
@@ -1179,7 +1186,7 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 	if (value1->getTypeValue() == PARAM_VOID || value2->getTypeValue() == PARAM_VOID)
 	{
-		std::cout << "Imposible realizar la operación, uno de los valores es un 'void'. Los valores vacios no pueden tratarse operacionalmente. ";
+		Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, outData);
 		return NULL;
 	}
 
@@ -1220,7 +1227,7 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 					case MATH_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
 					case MATH_DIV:  return new Value_DOUBLE(x1->value / x2->value);
 					case MATH_EXP: return new Value_DOUBLE(pow(x1->value, x2->value));
-					case MATH_MOD: std::cout << "El valor de un módulo debe ser entero. "; return NULL;
+					case MATH_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
 					}
 
 					return NULL;
@@ -1233,12 +1240,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 					switch (accion)
 					{
 					case MATH_SUMA: return new Value_STRING(std::to_string(x1->value) + x2->value);
-					case MATH_RESTA: std::cout << "El simbolo '-' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_MULT: std::cout << "El simbolo '*' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_DIV_ENTERA: std::cout << "El simbolo 'div' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_DIV: std::cout << "El simbolo '/' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_EXP: std::cout << "El simbolo '^' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_MOD: std::cout << "El simbolo '%' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
+					case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+					case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+					case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+					case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+					case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
+					case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 					}
 
 					return NULL;
@@ -1281,7 +1288,7 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 				case MATH_DIV_ENTERA: return new Value_INT((int)(x1->value / x2->value));
 				case MATH_DIV:  return new Value_DOUBLE(x1->value / x2->value);
 				case MATH_EXP: return new Value_DOUBLE(pow(x1->value, x2->value));
-				case MATH_MOD: std::cout << "El valor de un módulo debe ser entero."; return NULL;
+				case MATH_MOD:  Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData);  return NULL;
 				}
 				return NULL;
 			}
@@ -1298,7 +1305,7 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 				case MATH_DIV_ENTERA: return new Value_INT((int)(x1->value / x2->value));
 				case MATH_DIV:  return new Value_DOUBLE(x1->value / x2->value);
 				case MATH_EXP: return new Value_DOUBLE(pow(x1->value, x2->value));
-				case MATH_MOD: std::cout << "El valor de un módulo debe ser entero."; return NULL;
+				case MATH_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
 				}
 
 				return NULL;
@@ -1311,12 +1318,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 				switch (accion)
 				{
 				case MATH_SUMA: return new Value_STRING(std::to_string(x1->value) + x2->value);
-				case MATH_RESTA: std::cout << "El simbolo '-' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-				case MATH_MULT: std::cout << "El simbolo '*' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-				case MATH_DIV_ENTERA: std::cout << "El simbolo 'div' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-				case MATH_DIV:  std::cout << "El simbolo '/' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-				case MATH_EXP: std::cout << "El simbolo '^' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-				case MATH_MOD:std::cout << "El simbolo '%' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
+				case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+				case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+				case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+				case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+				case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
+				case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 				}
 
 				return NULL;
@@ -1333,7 +1340,7 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 				case MATH_DIV_ENTERA: return new Value_INT((int)(x1->value / x2->value));
 				case MATH_DIV:  return new Value_DOUBLE(x1->value / x2->value);
 				case MATH_EXP: return new Value_DOUBLE(pow(x1->value, x2->value));
-				case MATH_MOD: std::cout << "El valor de un módulo debe ser entero."; return NULL;
+				case MATH_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
 				}
 				return NULL;
 			}
@@ -1354,12 +1361,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 					switch (accion)
 					{
 					case MATH_SUMA: return new Value_STRING(x1->value + std::to_string(x2->value));
-					case MATH_RESTA: std::cout << "El simbolo '-' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_MULT: std::cout << "El simbolo '*' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_DIV_ENTERA: std::cout << "El simbolo 'div' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_DIV: std::cout << "El simbolo '/' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_EXP: std::cout << "El simbolo '^' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_MOD: std::cout << "El simbolo '%' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
+					case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+					case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+					case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+					case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+					case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
+					case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 					}
 					return NULL;
 				}
@@ -1371,12 +1378,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 					switch (accion)
 					{
 					case MATH_SUMA: return new Value_STRING(x1->value + std::to_string(x2->value));
-					case MATH_RESTA: std::cout << "El simbolo '-' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_MULT: std::cout << "El simbolo '*' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_DIV_ENTERA: std::cout << "El simbolo 'div' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_DIV:  std::cout << "El simbolo '/' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_EXP: std::cout << "El simbolo '^' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_MOD: std::cout << "El simbolo '%' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
+					case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+					case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+					case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+					case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+					case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
+					case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 					}
 
 					return NULL;
@@ -1389,12 +1396,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 					switch (accion)
 					{
 					case MATH_SUMA: return new Value_STRING(x1->value + x2->value);
-					case MATH_RESTA: std::cout << "El simbolo '-' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_MULT: std::cout << "El simbolo '*' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_DIV_ENTERA: std::cout << "El simbolo 'div' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_DIV:  std::cout << "El simbolo '/' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_EXP: std::cout << "El simbolo '^' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_MOD: std::cout << "El simbolo '%' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
+					case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+					case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+					case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+					case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+					case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
+					case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 					}
 
 					return NULL;
@@ -1406,12 +1413,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 					switch (accion)
 					{
 					case MATH_SUMA: return new Value_STRING(x1->value + std::to_string(x2->value));
-					case MATH_RESTA: std::cout << "El simbolo '-' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_MULT: std::cout << "El simbolo '*' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_DIV_ENTERA: std::cout << "El simbolo 'div' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_DIV:  std::cout << "El simbolo '/' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-					case MATH_EXP: std::cout << "El simbolo '^' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-					case MATH_MOD: std::cout << "El simbolo '%' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
+					case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+					case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+					case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+					case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+					case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
+					case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 					}
 					return NULL;
 				}
@@ -1454,7 +1461,7 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 				case MATH_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
 				case MATH_DIV:  return new Value_DOUBLE(x1->value / x2->value);
 				case MATH_EXP: return new Value_DOUBLE(pow(x1->value, x2->value));
-				case MATH_MOD: std::cout << "El valor de un módulo debe ser entero. "; return NULL;
+				case MATH_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
 				}
 
 				return NULL;
@@ -1467,12 +1474,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 				switch (accion)
 				{
 				case MATH_SUMA: return new Value_STRING(std::to_string(x1->value) + x2->value);
-				case MATH_RESTA: std::cout << "El simbolo '-' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-				case MATH_MULT: std::cout << "El simbolo '*' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
-				case MATH_DIV_ENTERA: std::cout << "El simbolo 'div' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-				case MATH_DIV: std::cout << "El simbolo '/' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-				case MATH_EXP: std::cout << "El simbolo '^' no se puede aplicar a una operación con cadena de caracteres."; return NULL;
-				case MATH_MOD: std::cout << "El simbolo '%' no se puede aplicar a una operación con cadena de caracteres. "; return NULL;
+				case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+				case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+				case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+				case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+				case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
+				case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 				}
 
 				return NULL;
@@ -1496,13 +1503,13 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 			}
 		}
 
-		std::cout << "Operación inválida. Un miembro es nulo o no ha sido inicializado. ";
+		Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_NULL, outData);
 		return NULL;
 	}
 }
 
 
-bool Interprete::ConversionXtoBool(Value * valOp, bool& salida)
+bool Interprete::ConversionXtoBool(Value * valOp, bool& salida, OutData_Parametros * outData)
 {
 	switch (valOp->getTypeValue())
 	{
@@ -1551,7 +1558,7 @@ bool Interprete::ConversionXtoBool(Value * valOp, bool& salida)
 
 	default:
 	{
-		std::cout << "La expresión debe tener un tipo bool o una expresión compatible convertible.";
+		Errores::generarError(Errores::ERROR_EXPRESION_NO_CONVERTIBLE_BOOL, outData);
 		return false;
 	}
 	}
@@ -1631,7 +1638,7 @@ Value_BOOL * Interprete::Condicionales(Parser_Condicional * pCond, std::vector<V
 				}
 
 
-				Value_BOOL * b = CondicionalDeDosValores(op1, x->adicional_ops->at(itr + 1)->AccType, op2);
+				Value_BOOL * b = CondicionalDeDosValores(op1, x->adicional_ops->at(itr + 1)->AccType, op2, &x->adicional_ops->at(itr)->op->parametros);
 
 				if (b == NULL)
 				{
@@ -1656,7 +1663,7 @@ Value_BOOL * Interprete::Condicionales(Parser_Condicional * pCond, std::vector<V
 					return NULL;
 				}
 
-				Value_BOOL * b = CondicionalDeDosValores(valOp, x->adicional_ops->at(0)->AccType, opN);
+				Value_BOOL * b = CondicionalDeDosValores(valOp, x->adicional_ops->at(0)->AccType, opN, &x->adicional_ops->at(0)->op->parametros);
 
 				if (b == NULL)
 				{
@@ -1674,7 +1681,7 @@ Value_BOOL * Interprete::Condicionales(Parser_Condicional * pCond, std::vector<V
 		else
 		{
 			//Si es un condicional etc.
-			if (!ConversionXtoBool(valOp, res->value))
+			if (!ConversionXtoBool(valOp, res->value, &x->op1->parametros))
 			{
 				delete valOp;
 				delete res;
@@ -1734,7 +1741,7 @@ Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> *
 	return val;
 }
 
-Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables, std::vector<OperacionComp*>* componente)
+Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> * variables, std::vector<OperacionComp*>* componente)
 {
 	if (pOp->tipo == OP_REC_OP)
 	{
@@ -1782,7 +1789,7 @@ Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> *
 				if (xLit->negado)
 				{
 					bool resBol = true;
-					if (!ConversionXtoBool(xLit->value, resBol))
+					if (!ConversionXtoBool(xLit->value, resBol, &x->parametros))
 					{
 						return NULL;
 					}
@@ -1802,7 +1809,7 @@ Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> *
 					if (xID->negado)
 					{
 						bool resBol = true;
-						if (!ConversionXtoBool(var->valor, resBol))
+						if (!ConversionXtoBool(var->valor, resBol, &xID->parametros))
 						{
 							return NULL;
 						}
@@ -1812,7 +1819,7 @@ Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> *
 				}
 				else
 				{
-					std::cout << "Variable '" + xID->nombre + "' no existe. ";
+					Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &xID->parametros , xID->nombre);
 					return NULL;
 				}
 				break;
@@ -1851,7 +1858,6 @@ Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> *
 		else  return NULL;
 	}
 	else {
-		std::cout << "MAL... ";
 		return NULL;
 	}
 
@@ -1873,7 +1879,7 @@ Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> *
 	{
 		if (temp)
 		{
-			Value * v = OperacionSobreValores(temp->val, temp->oper, componente->at(itr)->val);
+			Value * v = OperacionSobreValores(temp->val, temp->oper, componente->at(itr)->val, &pOp->parametros);
 			
 			if (v)
 			{
@@ -1920,7 +1926,7 @@ Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> *
 	{
 		if (temp)
 		{
-			Value * v = OperacionSobreValores(temp->val, temp->oper, componente->at(itr)->val);
+			Value * v = OperacionSobreValores(temp->val, temp->oper, componente->at(itr)->val, &pOp->parametros);
 
 			if (v)
 			{
@@ -1963,7 +1969,7 @@ Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> *
 	{
 		if (temp)
 		{
-			Value * v = OperacionSobreValores(temp->val, temp->oper, componente->at(itr)->val);
+			Value * v = OperacionSobreValores(temp->val, temp->oper, componente->at(itr)->val, &pOp->parametros);
 
 			if (v)
 			{

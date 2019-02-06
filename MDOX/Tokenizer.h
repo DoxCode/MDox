@@ -8,6 +8,7 @@
 #include <cstring>
 #include <cstdio>
 #include "Funciones.h"
+#include "Estructuras.h"
 
 bool str_compare(std::string str, int itr, std::string busq);
 
@@ -27,11 +28,25 @@ public:
 	Linea(int a, std::string b) : linea(a), val(b) {}
 };
 
+
+class Fichero
+{
+public:
+	std::string ruta = "";
+	std::string nombre = "";
+
+	Fichero(std::string rel)
+	{
+		ruta = getAbsolutePathFromRelative(rel);
+		nombre = getFileNameAndExt(ruta);
+	}
+};
+
 class Tokenizer {
 public:
-	std::string fichero = "<interprete>";
 	std::vector<Token*> tokens;
 	Token * token_actual;
+	Fichero * fichero; //Se liberaría al finalizar el interprete/compilador
 
 	Token * getToken(int& inx)
 	{ 
@@ -51,13 +66,9 @@ public:
 		else return "<Cierre inválido>";
 	}
 
-
-
 	void agregarToken(Token * a) { tokens.push_back(a); };
 	bool GenerarTokenizerDesdeFichero(std::string ruta);
 	void generarTokens(std::vector<Linea*> str);
-
-	Tokenizer() {}
 
 	~Tokenizer()
 	{

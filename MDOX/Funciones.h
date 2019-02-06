@@ -6,6 +6,7 @@
 #include <sstream>
 #include <deque>
 
+#include <stdlib.h>
 
 #define deletePtr(x) {delete x; x = NULL;}
 
@@ -18,4 +19,6 @@ void RetirarValoresNoUtiles(std::string& str);
 bool nextStringLine(std::string& linea, std::string busqueda);
 bool is_number(const std::string& s);
 bool is_Identificador(const std::string & s);
+std::string getAbsolutePathFromRelative(std::string path);
+std::string getFileNameAndExt(std::string s);
 #endif

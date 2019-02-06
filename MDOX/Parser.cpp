@@ -3,6 +3,7 @@
 #include "Funciones.h"
 #include <string>
 #include <iomanip>
+
 // ############################################################
 // ######################## LITERALES  ######################## 
 // ############################################################
@@ -20,14 +21,18 @@ Parser_Literal * Parser::getLiteral(int& local_index)
 		{
 			Value_STRING * LS = new Value_STRING("");
 			local_index = index;
-			return new Parser_Literal(LS);
+			Parser_Literal * sif = new Parser_Literal(LS);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 
 		if (tokenizer.getTokenValue(index) == "\"")
 		{
 			Value_STRING * LS = new Value_STRING(value);
 			local_index = index;
-			return new Parser_Literal(LS);
+			Parser_Literal * sif = new Parser_Literal(LS);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 	}
 
@@ -53,7 +58,10 @@ Parser_Literal * Parser::getLiteral(int& local_index)
 
 				Value_DOUBLE * LS = new Value_DOUBLE(value);
 				local_index = l_index;
-				return new Parser_Literal(LS);
+
+				Parser_Literal * sif = new Parser_Literal(LS);
+				sif->generarPosicion(&tokenizer);
+				return sif;
 			}
 
 			//Si llegamos aquí, no es un DOUBLE; pero tampoco un INT.
@@ -64,7 +72,9 @@ Parser_Literal * Parser::getLiteral(int& local_index)
 			int value = std::stoi(token);
 			Value_INT * LS = new Value_INT(value);
 			local_index = index;
-			return new Parser_Literal(LS);
+			Parser_Literal * sif = new Parser_Literal(LS);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 	}
 
@@ -75,13 +85,17 @@ Parser_Literal * Parser::getLiteral(int& local_index)
 	{
 		Value_BOOL * LB = new Value_BOOL(true);
 		local_index = index;
-		return new Parser_Literal(LB);
+		Parser_Literal * sif = new Parser_Literal(LB);
+		sif->generarPosicion(&tokenizer);
+		return sif;
 	}
 	else if (token == "false")
 	{
 		Value_BOOL * LB = new Value_BOOL(false);
 		local_index = index;
-		return new Parser_Literal(LB);
+		Parser_Literal * sif = new Parser_Literal(LB);
+		sif->generarPosicion(&tokenizer);
+		return sif;
 	}
 
 
@@ -219,7 +233,9 @@ Parser_Identificador * Parser::getIdentificador(int& local_index)
 	if (is_Identificador(token))
 	{
 		local_index = index;
-		return new Parser_Identificador(token);
+		Parser_Identificador * sif = new Parser_Identificador(token);
+		sif->generarPosicion(&tokenizer);
+		return sif;
 	}
 
 	return NULL;
@@ -283,6 +299,7 @@ Parser_Valor * Parser::getValor(int& local_index)
 						Valor_Funcion * v = new Valor_Funcion(i, entradas);
 						local_index = i_index;
 						v->negado = negado;
+						v->generarPosicion(&tokenizer);
 						return v;
 					}
 					else
@@ -402,13 +419,17 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 				if (op2)
 				{
 					local_index = l_index2;
-					return new Operacion_Recursiva(op1, op2);
+					Operacion_Recursiva * sif = new Operacion_Recursiva(op1, op2);
+					sif->generarPosicion(&tokenizer);
+					return sif;
 				}
 				else
 				{
 					//delete op2;
 					local_index = l_index;
-					return new Operacion_Recursiva(op1);
+					Operacion_Recursiva * sif = new Operacion_Recursiva(op1);
+					sif->generarPosicion(&tokenizer);
+					return sif;
 				}
 
 			}
@@ -435,12 +456,16 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 		if (token == "++")
 		{
 			local_index = index;
-			return new Operacion_ID(id, ID_INCREMENTO);
+			Operacion_ID * sif = new Operacion_ID(id, ID_INCREMENTO);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 		else if (token == "--")
 		{
 			local_index = index;
-			return new Operacion_ID(id, ID_DECREMENTO);
+			Operacion_ID * sif = new Operacion_ID(id, ID_DECREMENTO);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 		deletePtr(id);
 	}
@@ -457,7 +482,9 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 		if (i2)
 		{
 			local_index = index;
-			return new Operacion_ID(i2, ID_INCREMENTO);
+			Operacion_ID * sif = new Operacion_ID(i2, ID_INCREMENTO);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 	}
 	else if (vl_token == "--")
@@ -467,7 +494,9 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 		if (i2)
 		{
 			local_index = index;
-			return new Operacion_ID(i2, ID_DECREMENTO);
+			Operacion_ID * sif = new Operacion_ID(i2, ID_DECREMENTO);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 	}
 
@@ -485,11 +514,15 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 		if (pMath)
 		{
 			local_index = t_valor;
-			return new Operacion_Math(pValor, pMath);
+			Operacion_Math * sif = new Operacion_Math(pValor, pMath);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 
 		local_index = index;
-		return new Operacion_Math(pValor);
+		Operacion_Math * sif = new Operacion_Math(pValor);
+		sif->generarPosicion(&tokenizer);
+		return sif;
 	}
 	return NULL;
 }
@@ -519,7 +552,10 @@ Parser_Parametro * Parser::getParametro(int& local_index)
 		if (pID)
 		{
 			local_index = index2;
-			return new Parametro_Declarativo_ID(pD1, pID);
+
+			Parametro_Declarativo_ID * sif = new Parametro_Declarativo_ID(pD1, pID);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 		
 		deletePtr(pID);
@@ -550,7 +586,9 @@ Parser_Parametro * Parser::getParametro(int& local_index)
 		if (tokenizer.getTokenValue(t_index) == ")")
 		{
 			local_index = t_index;
-			return new Parametro_Tupla(valor);
+			Parametro_Tupla * sif = new Parametro_Tupla(valor);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 
 		t_index = index;
@@ -571,7 +609,9 @@ Parser_Parametro * Parser::getParametro(int& local_index)
 				else if (token == ")")
 				{
 					local_index = t_index;
-					return new Parametro_Tupla(valor);
+					Parametro_Tupla * sif = new Parametro_Tupla(valor);
+					sif->generarPosicion(&tokenizer);
+					return sif;
 				}
 				else
 				{
@@ -644,7 +684,9 @@ Parser_Igualdad * Parser::getIgualdad(int& local_index)
 		if (pCond)
 		{
 			local_index = index;
-			return new Parser_Igualdad(pPar, pCond, tipo);
+			Parser_Igualdad * sif = new Parser_Igualdad(pPar, pCond, tipo);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 		
 
@@ -782,10 +824,16 @@ Parser_Condicional * Parser::getCondicional(int& local_index)
 					deletePtr(*it);
 				}
 				deletePtr(valor);
-				return new Condicional_Operacion(pOp, NULL, pCa);
+				Condicional_Operacion * sif = new Condicional_Operacion(pOp, NULL, pCa);
+				sif->generarPosicion(&tokenizer);
+				return sif; 
 			}
 			else
-				return new Condicional_Operacion(pOp, valor, pCa);
+			{
+				Condicional_Operacion * sif = new Condicional_Operacion(pOp, valor, pCa);
+				sif->generarPosicion(&tokenizer);
+				return sif;
+			}
 		}
 		else
 		{
@@ -797,15 +845,18 @@ Parser_Condicional * Parser::getCondicional(int& local_index)
 					deletePtr(*it);
 				}
 				deletePtr(valor);
-				return new Condicional_Operacion(pOp);
+				Condicional_Operacion * sif = new Condicional_Operacion(pOp);
+				sif->generarPosicion(&tokenizer);
+				return sif;
 			}
 			else
-				return new Condicional_Operacion(pOp, valor);
+			{
+				Condicional_Operacion * sif = new Condicional_Operacion(pOp, valor);
+				sif->generarPosicion(&tokenizer);
+				return sif;
+			}
 		}
 	}
-
-
-
 
 
 	//Comprobando RECURSIVA condicional
@@ -844,12 +895,16 @@ Parser_Condicional * Parser::getCondicional(int& local_index)
 				if (ca)
 				{
 					local_index = t_index;
-					return new Condicional_Recursiva(Negado, pCond, ca);
+					Condicional_Recursiva * sif = new Condicional_Recursiva(Negado, pCond, ca);
+					sif->generarPosicion(&tokenizer);
+					return sif;
 				}
 				else
 				{
 					local_index = index;
-					return new Condicional_Recursiva(Negado, pCond);
+					Condicional_Recursiva * sif = new Condicional_Recursiva(Negado, pCond);
+					sif->generarPosicion(&tokenizer);
+					return sif;
 				}
 			}
 
@@ -890,7 +945,9 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 				if (tokenizer.getTokenValue(t_index) == "}")
 				{
 					local_index = t_index;
-					return new Sentencia_Recursiva(valor);
+					Sentencia_Recursiva * sif = new Sentencia_Recursiva(valor);
+					sif->generarPosicion(&tokenizer);
+					return sif;
 				}
 			}
 			else
@@ -928,8 +985,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 							{
 								local_index = t_index;
 								Sentencia_IF *sif = new Sentencia_IF(pCond, pSent, pElse);
-								sif->linea = tokenizer.token_actual->linea;
-								sif->offset = tokenizer.token_actual->char_horizontal;
+								sif->generarPosicion(&tokenizer);
 								return sif;
 							}
 							else
@@ -943,8 +999,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 						{
 							local_index = index;
 							Sentencia_IF *sif = new Sentencia_IF(pCond, pSent);
-							sif->linea = tokenizer.token_actual->linea;
-							sif->offset = tokenizer.token_actual->char_horizontal;
+							sif->generarPosicion(&tokenizer);
 							return sif;
 						}
 
@@ -977,8 +1032,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 					{
 						local_index = index;
 						Sentencia_WHILE *sif = new Sentencia_WHILE(pCond, pSent);
-						sif->linea = tokenizer.token_actual->linea;
-						sif->offset = tokenizer.token_actual->char_horizontal;
+						sif->generarPosicion(&tokenizer);
 						return sif;
 					}
 					else
@@ -1018,8 +1072,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 							{
 								local_index = index;
 								Sentencia_FOR *sif = new Sentencia_FOR(pIg, pCond, pOp, pSent);
-								sif->linea = tokenizer.token_actual->linea;
-								sif->offset = tokenizer.token_actual->char_horizontal;
+								sif->generarPosicion(&tokenizer);
 								return sif;
 							}
 							else
@@ -1066,8 +1119,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 			{
 				local_index = index;
 				Sentencia_Return *sif = new Sentencia_Return(pOp);
-				sif->linea = tokenizer.token_actual->linea;
-				sif->offset = tokenizer.token_actual->char_horizontal;
+				sif->generarPosicion(&tokenizer);
 				return sif;
 			}
 			deletePtr(pOp);
@@ -1077,8 +1129,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 			if (tokenizer.getTokenValue(index) == ";")
 			{
 				Sentencia_Return *sif = new Sentencia_Return(NULL);
-				sif->linea = tokenizer.token_actual->linea;
-				sif->offset = tokenizer.token_actual->char_horizontal;
+				sif->generarPosicion(&tokenizer);
 				return sif;
 			}
 		}
@@ -1101,8 +1152,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 					{
 						local_index = index;
 						Sentencia_Print *sif = new Sentencia_Print(pOp);
-						sif->linea = tokenizer.token_actual->linea;
-						sif->offset = tokenizer.token_actual->char_horizontal;
+						sif->generarPosicion(&tokenizer);
 						return sif;
 					}
 				}
@@ -1124,8 +1174,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 
 			local_index = index;
 			Sentencia_Parametro *sif = new Sentencia_Parametro(pPar);
-			sif->linea = tokenizer.token_actual->linea;
-			sif->offset = tokenizer.token_actual->char_horizontal;
+			sif->generarPosicion(&tokenizer);
 			return sif;
 		}
 		deletePtr(pPar);
@@ -1142,8 +1191,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 		{
 			local_index = index;
 			Sentencia_Operacional *sif = new Sentencia_Operacional(pOp);
-			sif->linea = tokenizer.token_actual->linea;
-			sif->offset = tokenizer.token_actual->char_horizontal;
+			sif->generarPosicion(&tokenizer);
 			return sif;
 		}
 		deletePtr(pOp);
@@ -1161,8 +1209,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 		{
 			local_index = index;
 			Sentencia_Igualdad *sif = new Sentencia_Igualdad(pIg);
-			sif->linea = tokenizer.token_actual->linea;
-			sif->offset = tokenizer.token_actual->char_horizontal;
+			sif->generarPosicion(&tokenizer);
 			return sif;
 		}
 		deletePtr(pIg);
@@ -1281,8 +1328,7 @@ Parser_Funcion * Parser::getFuncion(int& local_index)
 						{
 							local_index = t3_index;
 							Parser_Funcion *sif = new Parser_Funcion(pID, entradas, pSent, pDecl);
-							sif->linea = tokenizer.token_actual->linea;
-							sif->offset = tokenizer.token_actual->char_horizontal;
+							sif->generarPosicion(&tokenizer);
 							return sif;
 						}
 						else
@@ -1315,8 +1361,7 @@ Parser_Funcion * Parser::getFuncion(int& local_index)
 					{
 						local_index = index;
 						Parser_Funcion *sif = new  Parser_Funcion(pID, entradas, pSent);
-						sif->linea = tokenizer.token_actual->linea;
-						sif->offset = tokenizer.token_actual->char_horizontal;
+						sif->generarPosicion(&tokenizer);
 						return sif;
 					}
 					else

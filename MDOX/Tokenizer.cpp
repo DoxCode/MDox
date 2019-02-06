@@ -240,7 +240,7 @@ bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 		}
 	}
 
-	fichero = ruta;
+	fichero = new Fichero(ruta);
 	generarTokens(raw_string);
 
 	return true;
