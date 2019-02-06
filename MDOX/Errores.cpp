@@ -134,7 +134,12 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "La entrada '" << value << "' de la función '" << value2 << "' ya fue declarada. \n ";
 		break;
 
+	case Errores::ERROR_FUNCION_ERROR_OPERACIONES_ENTRADA:
+		Errores::generarCabeceraError(node, 4004, tipo);
+		std::cout << "Se encontró un error operacional en la función '" << value << "' por lo que no pudo ser declarada. \n ";
+		break;
 
+		
 
 	}
 }

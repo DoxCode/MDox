@@ -314,6 +314,17 @@ Parser_Valor * Parser::getValor(int& local_index)
 				}
 				else
 				{
+					std::string token = tokenizer.getTokenValue(t_index);
+
+					if (token == ")")
+					{
+						Valor_Funcion * v = new Valor_Funcion(i, entradas);
+						local_index = t_index;
+						v->negado = negado;
+						v->generarPosicion(&tokenizer);
+						return v;
+					}
+
 					for (std::vector<Parser_Operacion*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
 					{
 						deletePtr(*it);
@@ -1300,7 +1311,7 @@ Parser_Funcion * Parser::getFuncion(int& local_index)
 					}
 					else 
 					{
-						if (tokenizer.getTokenValue(t_index) != ")")
+						if (tokenizer.getTokenValue(t2_index) != ")")
 						{
 							deletePtr(pID);
 
@@ -1311,6 +1322,9 @@ Parser_Funcion * Parser::getFuncion(int& local_index)
 
 							return NULL;
 						}
+
+						index = t2_index;
+						break;
 					}
 				}
 

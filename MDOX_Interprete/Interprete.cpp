@@ -3,8 +3,6 @@
 #include "../MDOX/Errores.cpp"
 #include "../MDOX/Parser.cpp"
 
-
-//TODO: FALLA AL CARGAR DOS VECES Y EJECUTAR FUNCION
 bool Interprete::CargarDatos(Parser* parser)
 {
 	//Borramos la lista de funciones existentes actualmente.
@@ -599,7 +597,9 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 		Value * val_itr = Operaciones((*it), variablesActuales);
 
 		if (val_itr == NULL)
+		{
 			break;
+		}
 
 		vec_func->push_back(val_itr);
 	}
@@ -614,11 +614,10 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 		}
 		vec_func->clear();
 
+		Errores::generarError(Errores::ERROR_FUNCION_ERROR_OPERACIONES_ENTRADA, &xFunc->parametros, ID);
 		delete vec_func;
-
 		return NULL;
 	}
-
 
 	std::vector<Variable*> variablesPublicas;
 	//Tomamos 
@@ -628,13 +627,15 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 			variablesPublicas.push_back((*it));
 	}
 
-
 	Interprete_Funcion_Entradas * xCallEnt = new Interprete_Funcion_Entradas(vec_func);
 
+	//De entre todas las funciones declaradas, buscamos la que realmente se está llamando.
 	for (std::vector<Parser_Funcion*>::iterator funcion = funciones.begin(); funcion != funciones.end(); ++funcion)
 	{
+		//Debe coincidir el nombre de la misma.
 		if ((*funcion)->pID->nombre == ID)
 		{
+			//si no tiene el mismo numero de entradas, saltamos, no es esta función.
 			if ((*funcion)->entradas.size() != xCallEnt->entradas->size())
 				continue;
 
@@ -753,7 +754,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 						}
 						else // La variable NO existe, ende la creamos.
 						{
-							Variable * _var = new Variable(ID, xCallEnt->entradas->at(ent_itr)->Clone(), false);
+							Variable * _var = new Variable(_xID->nombre, xCallEnt->entradas->at(ent_itr)->Clone(), false);
 							_var->deep = deep;
 							variablesEntorno.push_back(_var);
 						}
@@ -832,7 +833,7 @@ bool Interprete::EstablecerVariable(Variable * var, Value ** value, OutData_Para
 		if (!var->fuerte)
 		{
 			deletePtr(var->valor);
-			var->valor = (*value)->Clone();
+			var->valor = (*value)->Clone(); // ??? TODO
 			return true;
 		}
 
@@ -842,7 +843,7 @@ bool Interprete::EstablecerVariable(Variable * var, Value ** value, OutData_Para
 			case PARAM_VOID:
 			{
 				deletePtr(var->valor);
-				var->valor = (*value)->Clone();
+				var->valor = (*value)->Clone(); // ??? TODO
 				return true;
 			}
 			case PARAM_INT:
