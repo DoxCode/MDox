@@ -96,7 +96,8 @@ public:
 	//Variable de retorno actual
 	void setRetorno(Value * v) { delete _retorno; _retorno = v; }
 	Value * getRetorno() { Value * t = _retorno; _retorno = NULL; return t; }
-	void nullRetorno() { delete _retorno;  _retorno = NULL; }
+	Value * viewRetorno() { return _retorno; }
+	void nullRetorno() { if (_retorno != NULL) { delete _retorno;  _retorno = NULL; } }
 
 	int deep = 1; //Se usa para las variables.
 
@@ -117,6 +118,7 @@ public:
 	bool EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*> * variables);
 	bool EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variable*> * variables);
 	bool EstablecerVariable(Variable * var, Value ** value, OutData_Parametros * salidaError);
+	bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros * outData, std::string nombre);
 
    ~Interprete() 
     {

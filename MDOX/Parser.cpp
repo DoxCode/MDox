@@ -40,6 +40,14 @@ Parser_Literal * Parser::getLiteral(int& local_index)
 	index = local_index;
 	std::string token = tokenizer.getTokenValue(index);
 
+	bool negativo = false;
+
+	if (token == "-")
+	{
+		negativo = true;
+		token = tokenizer.getTokenValue(index);
+	}
+
 	if (is_number(token))
 	{
 		int l_index = index;
@@ -56,6 +64,8 @@ Parser_Literal * Parser::getLiteral(int& local_index)
 				double value = s2d(doub,std::locale::classic());
 				//double value = std::stold(doub);
 
+				if (negativo) value = -value;
+
 				Value_DOUBLE * LS = new Value_DOUBLE(value);
 				local_index = l_index;
 
@@ -70,6 +80,7 @@ Parser_Literal * Parser::getLiteral(int& local_index)
 		{
 			//Se trata de un ENTERO
 			int value = std::stoi(token);
+			if (negativo) value = -value;
 			Value_INT * LS = new Value_INT(value);
 			local_index = index;
 			Parser_Literal * sif = new Parser_Literal(LS);

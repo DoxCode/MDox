@@ -178,6 +178,11 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 			{
 				switch (v->getTypeValue())
 				{
+					case PARAM_VOID:
+					{
+						std::cout << "void";
+						break;
+					}
 					case PARAM_INT:
 					{
 						Value_INT * x = static_cast<Value_INT*>(v);
@@ -532,10 +537,20 @@ Variable * Interprete::Interprete_NuevaVariable(Parser_Parametro * par, std::vec
 
 				if (v)
 				{
-					Variable * var = new Variable(x->pID->nombre, v, true);
-					var->deep = deep;
-					variables->push_back(var);
-					return var;
+					if (v->getTypeValue() == PARAM_VOID)
+					{
+						Variable * v = new Variable(x->pID->nombre, NULL, false);
+						v->deep = deep;
+						variables->push_back(v);
+						return v;
+					}
+					else
+					{
+						Variable * var = new Variable(x->pID->nombre, v, true);
+						var->deep = deep;
+						variables->push_back(var);
+						return var;
+					}
 				}
 
 				Errores::generarError(Errores::ERROR_INICIALIZACION_VARIABLE, &x->pID->parametros, x->pID->nombre);
@@ -799,7 +814,47 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 				}
 				variablesEntorno.clear();	
 				deletePtr(xCallEnt);
-				return getRetorno();
+
+				//Si la salida es NULA es que no se ha especificado una, la salida será igual al valor de retorno.
+				if((*funcion)->salida == NULL)
+					return getRetorno();
+				else
+				{
+					Value* v = Transformar_Declarativo_Value((*funcion)->salida);
+					Value * ret = viewRetorno()->Clone();
+
+					if (v->getTypeValue() == PARAM_VOID)
+					{
+						if (ret == NULL)
+						{
+							return v;
+						}
+						else
+						{
+							return v;
+						}
+
+					}
+
+
+
+					if (ret != NULL)
+					{
+						if (ValueConversion(v, &ret, &(*funcion)->parametros, ID))
+						{
+							nullRetorno();
+							return v;
+						}
+						else
+						{
+							//ERROR;
+							nullRetorno();
+							return NULL;
+						}
+					}
+
+				}
+
 			}
 			else
 			{
@@ -815,7 +870,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 
 				deletePtr(xCallEnt);
 
-				return NULL;
+				return new Value();
 			}
 		}
 	}
@@ -826,6 +881,111 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 	return NULL;
 }
 
+bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros * outData, std::string nombre)
+{
+	switch (val1->getTypeValue())
+	{
+
+	case PARAM_VOID:
+	{
+		deletePtr(val1);
+		val1 = (*val2)->Clone();
+		return true;
+	}
+	case PARAM_INT:
+	{
+		if ((*val2)->getTypeValue() == PARAM_INT)
+		{
+			Value_INT * xVar = static_cast<Value_INT*>(val1);
+			Value_INT * xVal = static_cast<Value_INT*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else
+		{
+				Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, outData, nombre);
+			return false;
+		}
+	}
+	case PARAM_DOUBLE:
+	{
+		if ((*val2)->getTypeValue() == PARAM_INT)
+		{
+			Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(val1);
+			Value_INT * xVal = static_cast<Value_INT*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else if ((*val2)->getTypeValue() == PARAM_DOUBLE)
+		{
+			Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(val1);
+			Value_DOUBLE * xVal = static_cast<Value_DOUBLE*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else
+		{
+			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_REAL, outData, nombre);
+			return false;
+		}
+	}
+	case PARAM_STRING:
+	{
+		if ((*val2)->getTypeValue() == PARAM_STRING)
+		{
+			Value_STRING * xVar = static_cast<Value_STRING*>(val1);
+			Value_STRING * xVal = static_cast<Value_STRING*>(*val2);
+			xVar->value = xVal->value;
+			ReplaceAll(xVar->value, "\\n", "\n");
+			deletePtr(*val2);
+			return true;
+		}
+		else
+		{
+			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_STRING, outData,nombre);
+			return false;
+		}
+	}
+	case PARAM_BOOL:
+	{
+		if ((*val2)->getTypeValue() == PARAM_BOOL)
+		{
+			Value_BOOL * xVar = static_cast<Value_BOOL*>(val1);
+			Value_BOOL * xVal = static_cast<Value_BOOL*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else if ((*val2)->getTypeValue() == PARAM_INT)
+		{
+			Value_BOOL * xVar = static_cast<Value_BOOL*>(val1);
+			Value_INT * xVal = static_cast<Value_INT*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else if ((*val2)->getTypeValue() == PARAM_DOUBLE)
+		{
+			Value_BOOL * xVar = static_cast<Value_BOOL*>(val1);
+			Value_DOUBLE * xVal = static_cast<Value_DOUBLE*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else
+		{
+			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_BOOL, outData, nombre);
+			return false;
+		}
+	}
+	}
+	return false;
+}
+
+
 bool Interprete::EstablecerVariable(Variable * var, Value ** value, OutData_Parametros * outData)
 {
 	if (var)
@@ -833,110 +993,11 @@ bool Interprete::EstablecerVariable(Variable * var, Value ** value, OutData_Para
 		if (!var->fuerte)
 		{
 			deletePtr(var->valor);
-			var->valor = (*value)->Clone(); // ??? TODO
+			var->valor = (*value)->Clone(); 
 			return true;
 		}
 
-		switch (var->valor->getTypeValue())
-		{
-			//Si la variable es automatica, es decir, no se especifico ningún valor.
-			case PARAM_VOID:
-			{
-				deletePtr(var->valor);
-				var->valor = (*value)->Clone(); // ??? TODO
-				return true;
-			}
-			case PARAM_INT:
-			{
-				if ((*value)->getTypeValue() == PARAM_INT)
-				{
-					Value_INT * xVar = static_cast<Value_INT*>(var->valor);
-					Value_INT * xVal = static_cast<Value_INT*>(*value);
-					xVar->value = xVal->value;
-					deletePtr(*value);
-					return true;
-				}
-				else
-				{
-					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, outData, var->nombre);
-						return false;
-				}
-			}
-			case PARAM_DOUBLE:
-			{
-				if ((*value)->getTypeValue() == PARAM_INT)
-				{
-					Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(var->valor);
-					Value_INT * xVal = static_cast<Value_INT*>(*value);
-					xVar->value = xVal->value;
-					deletePtr(*value);
-					return true;
-				}
-				else if ((*value)->getTypeValue() == PARAM_DOUBLE)
-				{
-					Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(var->valor);
-					Value_DOUBLE * xVal = static_cast<Value_DOUBLE*>(*value);
-					xVar->value = xVal->value;
-					deletePtr(*value);
-					return true;
-				}
-				else
-				{
-					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_REAL, outData, var->nombre);
-					return false;
-				}
-			}
-			case PARAM_STRING:
-			{
-				if ((*value)->getTypeValue() == PARAM_STRING)
-				{
-					Value_STRING * xVar = static_cast<Value_STRING*>(var->valor);
-					Value_STRING * xVal = static_cast<Value_STRING*>(*value);
-					xVar->value = xVal->value;
-					ReplaceAll(xVar->value, "\\n", "\n");
-					deletePtr(*value);
-					return true;
-				}
-				else
-				{
-					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_STRING, outData, var->nombre);
-					return false;
-				}
-			}
-			case PARAM_BOOL:
-			{
-				if ((*value)->getTypeValue() == PARAM_BOOL)
-				{
-					Value_BOOL * xVar = static_cast<Value_BOOL*>(var->valor);
-					Value_BOOL * xVal = static_cast<Value_BOOL*>(*value);
-					xVar->value = xVal->value;
-					deletePtr(*value);
-					return true;
-				}
-				else if ((*value)->getTypeValue() == PARAM_INT)
-				{
-					Value_BOOL * xVar = static_cast<Value_BOOL*>(var->valor);
-					Value_INT * xVal = static_cast<Value_INT*>(*value);
-					xVar->value = xVal->value;
-					deletePtr(*value);
-					return true;
-				}
-				else if ((*value)->getTypeValue() == PARAM_DOUBLE)
-				{
-					Value_BOOL * xVar = static_cast<Value_BOOL*>(var->valor);
-					Value_DOUBLE * xVal = static_cast<Value_DOUBLE*>(*value);
-					xVar->value = xVal->value;
-					deletePtr(*value);
-					return true;
-				}
-				else
-				{
-					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_BOOL, outData, var->nombre);
-					return false;
-				}
-			}
-		}
-		return false;
+		return ValueConversion(var->valor, value, outData, var->nombre);
 	}
 	return false;
 }
@@ -1521,6 +1582,12 @@ bool Interprete::ConversionXtoBool(Value * valOp, bool& salida, OutData_Parametr
 		break;
 	}
 
+	case PARAM_VOID:
+	{
+		salida = false;
+		break;
+	}
+
 	case PARAM_INT:
 	{
 		Value_INT * xIn = static_cast<Value_INT*>(valOp);
@@ -1816,7 +1883,15 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 						}
 						else val = new Value_BOOL(!resBol);
 					}
-					else val = var->valor->Clone();
+					else
+					{
+						if (var->valor == NULL)
+						{
+							Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, &pOp->parametros);
+							val = NULL;
+						}
+						else val = var->valor->Clone();
+					}
 				}
 				else
 				{
