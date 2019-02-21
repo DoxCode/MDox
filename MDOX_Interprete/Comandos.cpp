@@ -1,5 +1,4 @@
-﻿
-#include "Comandos.h"
+﻿#include "Comandos.h"
 #include "../MDOX/Funciones.cpp"
 #include "../MDOX/Tokenizer.cpp"
 

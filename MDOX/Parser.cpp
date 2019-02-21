@@ -360,43 +360,75 @@ Parser_Valor * Parser::getValor(int& local_index)
 }
 
 // ############################################################
-// ######################### MATH  ############################ 
+// ##################### OPERADORES  ########################## 
 // ############################################################
 
-Parser_Math * Parser::getMath(int& local_index)
+Parser_Operador * Parser::getOperador(int& local_index)
 {
 	int index = local_index;
 	std::string tkn = tokenizer.getTokenValue(index);
-	MATH_ACCION acc;
+	OPERADORES acc;
 
+	//Operadores aritméticos
 	if (tkn == "+")
 	{
-		acc = MATH_SUMA;
+		acc = OP_ARIT_SUMA;
 	}
 	else if (tkn == "-")
 	{
-		acc = MATH_RESTA;
+		acc = OP_ARIT_RESTA;
 	}
 	else if (tkn == "/")
 	{
-		acc = MATH_DIV;
+		acc = OP_ARIT_DIV;
 	}
 	else if (tkn == "*")
 	{
-		acc = MATH_MULT;
-	}
-	else if (tkn == "^")
-	{
-		acc = MATH_EXP;
+		acc = OP_ARIT_MULT;
 	}
 	else if (tkn == "%")
 	{
-		acc = MATH_MOD;
+		acc = OP_ARIT_MOD;
 	}
 	else if (tkn == "div")
 	{
-		acc = MATH_DIV_ENTERA;
+		acc = OP_ARIT_DIV_ENTERA;
 	}
+	// Operadores relacionales
+	else if (tkn == "==")
+	{
+		acc = OP_REL_EQUAL;
+	}
+	else if (tkn == "!=")
+	{
+		acc = OP_REL_NOT_EQUAL;
+	}
+	else if (tkn == ">")
+	{
+		acc = OP_REL_MAJOR;
+	}
+	else if (tkn == "<")
+	{
+		acc = OP_REL_MINOR;
+	}
+	else if (tkn == "<=")
+	{
+		acc = OP_REL_MINOR_OR_EQUAL;
+	}
+	else if (tkn == ">=")
+	{
+		acc = OP_REL_MAJOR_OR_EQUAL;
+	}
+	// Operadores lógicos
+	else if (tkn == "&&")
+	{
+		acc = OP_LOG_ADD;
+	}
+	else if (tkn == "||")
+	{
+		acc = OP_LOG_OR;
+	}
+
 	else // No se trata de un token de acción matemática. Puede tratarse del último valor de la serie.
 	{
 		return NULL;
@@ -407,7 +439,7 @@ Parser_Math * Parser::getMath(int& local_index)
 	if (op)
 	{
 		local_index = index;
-		return new Parser_Math(acc, op);
+		return new Parser_Operador(acc, op);
 	}
 
 	return NULL;
@@ -425,7 +457,15 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 
 	std::string token = tokenizer.getTokenValue(index);
 
+
+	bool negado = false;
 	//Comprobamos si se trata de una operación binaria con prioridades de paréntesis.
+	if (token == "!")
+	{
+		negado = true;
+		token = tokenizer.getTokenValue(index);
+	}
+
 	if (token == "(")
 	{
 		int l_index = index;
@@ -436,13 +476,14 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 			if (tokenizer.getTokenValue(l_index) == ")")
 			{
 				int l_index2 = l_index;
-				Parser_Math * op2 = getMath(l_index2);
+				Parser_Operador * op2 = getOperador(l_index2);
 
 				if (op2)
 				{
 					local_index = l_index2;
 					Operacion_Recursiva * sif = new Operacion_Recursiva(op1, op2);
 					sif->generarPosicion(&tokenizer);
+					sif->negado = negado;
 					return sif;
 				}
 				else
@@ -451,6 +492,7 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 					local_index = l_index;
 					Operacion_Recursiva * sif = new Operacion_Recursiva(op1);
 					sif->generarPosicion(&tokenizer);
+					sif->negado = negado;
 					return sif;
 				}
 
@@ -479,6 +521,7 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 		{
 			local_index = index;
 			Operacion_ID * sif = new Operacion_ID(id, ID_INCREMENTO);
+			sif->ID->negado = negado;
 			sif->generarPosicion(&tokenizer);
 			return sif;
 		}
@@ -486,6 +529,7 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 		{
 			local_index = index;
 			Operacion_ID * sif = new Operacion_ID(id, ID_DECREMENTO);
+			sif->ID->negado = negado;
 			sif->generarPosicion(&tokenizer);
 			return sif;
 		}
@@ -505,6 +549,7 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 		{
 			local_index = index;
 			Operacion_ID * sif = new Operacion_ID(i2, ID_INCREMENTO);
+			sif->ID->negado = negado;
 			sif->generarPosicion(&tokenizer);
 			return sif;
 		}
@@ -517,6 +562,7 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 		{
 			local_index = index;
 			Operacion_ID * sif = new Operacion_ID(i2, ID_DECREMENTO);
+			sif->ID->negado = negado;
 			sif->generarPosicion(&tokenizer);
 			return sif;
 		}
@@ -531,18 +577,18 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 	if (pValor)
 	{
 		int t_valor = index;
-		Parser_Math* pMath = getMath(t_valor);
+		Parser_Operador* pMath = getOperador(t_valor);
 
 		if (pMath)
 		{
 			local_index = t_valor;
-			Operacion_Math * sif = new Operacion_Math(pValor, pMath);
+			Operacion_Operador * sif = new Operacion_Operador(pValor, pMath);
 			sif->generarPosicion(&tokenizer);
 			return sif;
 		}
 
 		local_index = index;
-		Operacion_Math * sif = new Operacion_Math(pValor);
+		Operacion_Operador * sif = new Operacion_Operador(pValor);
 		sif->generarPosicion(&tokenizer);
 		return sif;
 	}
@@ -701,7 +747,7 @@ Parser_Igualdad * Parser::getIgualdad(int& local_index)
 			return new Parser_Igualdad(pPar, pOp, tipo);
 		}
 */
-		Parser_Condicional * pCond = getCondicional(index);
+		Parser_Operacion * pCond = getOperacion(index);
 
 		if (pCond)
 		{
@@ -715,227 +761,6 @@ Parser_Igualdad * Parser::getIgualdad(int& local_index)
 		deletePtr(pPar);
 		return NULL;
 	}
-
-	return NULL;
-}
-
-
-// ############################################################
-// ##################### CONDICIONAL  #########################
-// ############################################################
-
-Condicional_Agregada * Parser::getCondAgregada(int& local_index)
-{
-	int index = local_index;
-
-	std::string token = tokenizer.getTokenValue(index);
-	CondicionalAgregadoType act;
-
-	if (token == "&&")
-	{
-		act = COND_AG_AND;
-	}
-	else if (token == "||")
-	{
-		act = COND_AG_OR;
-	}
-	else
-	{
-		return NULL;
-	}
-
-	Parser_Condicional * pCond = getCondicional(index);
-
-	if (pCond)
-	{
-		local_index = index;
-		return new Condicional_Agregada(act, pCond);
-	}
-
-	return NULL;
-}
-
-Condicional_Agregada_Operacional* Parser::getCondAgregadaOperacional(int& local_index)
-{
-	int index = local_index;
-
-	std::string token = tokenizer.getTokenValue(index);
-	CondicionalAccionType act;
-
-	if (token == "==")
-	{
-		act = COND_ACC_EQUAL;
-	}
-	else if (token == "!=")
-	{
-		act = COND_ACC_NOT_EQUAL;
-	}
-	else if (token == ">")
-	{
-		act = COND_ACC_MAJOR;
-	}
-	else if (token == "<")
-	{
-		act = COND_ACC_MINOR;
-	}
-	else if (token == "<=")
-	{
-		act = COND_ACC_MINOR_OR_EQUAL;
-	}
-	else if (token == ">=")
-	{
-		act = COND_ACC_MAJOR_OR_EQUAL;
-	}
-	else
-		return NULL;
-
-	Parser_Operacion * pOp = getOperacion(index);
-
-	if (pOp)
-	{
-		local_index = index;
-		return new Condicional_Agregada_Operacional(act, pOp);
-	}
-
-	return NULL;
-}
-
-Parser_Condicional * Parser::getCondicional(int& local_index)
-{
-	//Comprobando condicional OPERACIONAL
-	int index = local_index;
-
-	Parser_Operacion * pOp = getOperacion(index);
-
-	if (pOp)
-	{
-		std::vector<Condicional_Agregada_Operacional*>* valor = new std::vector<Condicional_Agregada_Operacional*>();
-		int t_index = index;
-
-		while (true)
-		{
-			int t2_index = t_index;
-			Condicional_Agregada_Operacional * pCao = getCondAgregadaOperacional(t2_index);
-
-			if (pCao)
-			{
-				valor->push_back(pCao);
-				t_index = t2_index;
-				continue;
-			}
-			else
-				break;
-		}
-
-		/*if (valor->size() == 0)
-		{
-		local_index = index;
-		return new Condicional_Operacion(pOp);
-		}*/
-
-		int t2_index = t_index;
-		Condicional_Agregada * pCa = getCondAgregada(t2_index);
-
-		if (pCa)
-		{
-			local_index = t2_index;
-			if (valor->size() == 0)
-			{
-				for (std::vector<Condicional_Agregada_Operacional*>::iterator it = valor->begin(); it != valor->end(); ++it)
-				{
-					deletePtr(*it);
-				}
-				deletePtr(valor);
-				Condicional_Operacion * sif = new Condicional_Operacion(pOp, NULL, pCa);
-				sif->generarPosicion(&tokenizer);
-				return sif; 
-			}
-			else
-			{
-				Condicional_Operacion * sif = new Condicional_Operacion(pOp, valor, pCa);
-				sif->generarPosicion(&tokenizer);
-				return sif;
-			}
-		}
-		else
-		{
-			local_index = t_index;
-			if (valor->size() == 0)
-			{
-				for (std::vector<Condicional_Agregada_Operacional*>::iterator it = valor->begin(); it != valor->end(); ++it)
-				{
-					deletePtr(*it);
-				}
-				deletePtr(valor);
-				Condicional_Operacion * sif = new Condicional_Operacion(pOp);
-				sif->generarPosicion(&tokenizer);
-				return sif;
-			}
-			else
-			{
-				Condicional_Operacion * sif = new Condicional_Operacion(pOp, valor);
-				sif->generarPosicion(&tokenizer);
-				return sif;
-			}
-		}
-	}
-
-
-	//Comprobando RECURSIVA condicional
-	index = local_index;
-	std::string tk1 = tokenizer.getTokenValue(index);
-
-	bool called = false;
-	bool Negado = false;
-
-	if (tk1 == "!")
-	{
-		Negado = true;
-
-		if (tokenizer.getTokenValue(index) == "(")
-		{
-			called = true;
-		}
-	}
-	else if (tk1 == "(")
-	{
-		called = true;
-	}
-
-
-	if (called)
-	{
-		Parser_Condicional * pCond = getCondicional(index);
-
-		if (pCond)
-		{
-			if (tokenizer.getTokenValue(index) == ")")
-			{
-				int t_index = index;
-				Condicional_Agregada * ca = getCondAgregada(t_index);
-				
-				if (ca)
-				{
-					local_index = t_index;
-					Condicional_Recursiva * sif = new Condicional_Recursiva(Negado, pCond, ca);
-					sif->generarPosicion(&tokenizer);
-					return sif;
-				}
-				else
-				{
-					local_index = index;
-					Condicional_Recursiva * sif = new Condicional_Recursiva(Negado, pCond);
-					sif->generarPosicion(&tokenizer);
-					return sif;
-				}
-			}
-
-			deletePtr(pCond);
-		}
-	}
-
-	
-
 
 	return NULL;
 }
@@ -987,7 +812,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 	{
 		if (tokenizer.getTokenValue(index) == "(")
 		{
-			Parser_Condicional * pCond = getCondicional(index);
+			Parser_Operacion * pCond = getOperacion(index);
 
 			if (pCond)
 			{
@@ -1042,7 +867,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 	{
 		if (tokenizer.getTokenValue(index) == "(")
 		{
-			Parser_Condicional * pCond = getCondicional(index);
+			Parser_Operacion * pCond = getOperacion(index);
 
 			if (pCond)
 			{
@@ -1080,7 +905,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 			Parser_Igualdad * pIg = getIgualdad(index);
 			if (tokenizer.getTokenValue(index) == ";")
 			{
-				Parser_Condicional * pCond = getCondicional(index);
+				Parser_Operacion * pCond = getOperacion(index);
 
 				if (tokenizer.getTokenValue(index) == ";")
 				{

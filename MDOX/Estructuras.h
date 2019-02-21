@@ -5,8 +5,11 @@
 #include <vector>
 #include <list>
 #include <tuple>
-#include "Funciones.h"
+
 #include "Tokenizer.h"
+#include "Funciones.h"
+
+
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -104,25 +107,25 @@ enum tipos_parametros
 
 	//ENTEROS
 	PARAM_INT,	 // -2.147.483.647 a 2.147.483.647   (4 bytes)
-	PARAM_UINT,	 // 0 a 4.294.967.295				 (4 bytes)
-	PARAM_INT16,   // De –32.768 a 32.767              (2 bytes)
-	PARAM_UINT16,  // De 0 a 65.535                    (2 bytes)
-	PARAM_INT64,   // De –9.223.372.036.854.775.808 a 9.223.372.036.854.775.807  (8 bytes)
-	PARAM_UINT64,   // De 0 a 18.446.744.073.709.551.615  (8 bytes)
+	//PARAM_UINT,	 // 0 a 4.294.967.295				 (4 bytes)
+	//PARAM_INT16,   // De –32.768 a 32.767              (2 bytes)
+	//PARAM_UINT16,  // De 0 a 65.535                    (2 bytes)
+	//PARAM_INT64,   // De –9.223.372.036.854.775.808 a 9.223.372.036.854.775.807  (8 bytes)
+	//PARAM_UINT64,   // De 0 a 18.446.744.073.709.551.615  (8 bytes)
 
 	PARAM_CHAR,
 
 	PARAM_FLOAT,   // 7 digitos						 (4 bytes)
 	PARAM_DOUBLE,  // 15 digitos						 (8 bytes)
 	PARAM_BOOL,   //  true/false                       (1 byte)
-	PARAM_STRUCT, //Diseñado por el usuario.
+	//PARAM_STRUCT, //Diseñado por el usuario.
 
 
-	PARAM_ENUM,
+	//PARAM_ENUM,
 	PARAM_STRING,
-	PARAM_LIST,
-	PARAM_VECTOR,
-	PARAM_DEQUE,
+	//PARAM_LIST,
+	//PARAM_VECTOR,
+	//PARAM_DEQUE,
 	PARAM_TUPLA,
 };
 
@@ -350,30 +353,52 @@ public:
 	};
 };
 // ############################################################
-// ########################## MATH ############################ 
+// ####################### OPERADORES ######################### 
 // ############################################################
 
-enum MATH_ACCION {
-
-	MATH_NONE,
-	MATH_SUMA,
-	MATH_MULT,
-	MATH_DIV,
-	MATH_DIV_ENTERA,
-	MATH_RESTA,
-	MATH_EXP,
-	MATH_MOD,
+enum OPERADORES_TIPOS {
+	OPERADOR_ARITMETICO,
+	OPERADOR_RELACIONAL,
+	OPERADOR_LOGICO,
 };
 
-class Parser_Math
+// Operadores binarios
+enum OPERADORES {
+
+	OP_NONE,
+
+	//Operadores aritméticos
+	OP_ARIT_SUMA,
+	OP_ARIT_MULT,
+	OP_ARIT_DIV,
+	OP_ARIT_DIV_ENTERA,
+	OP_ARIT_RESTA,
+	OP_ARIT_MOD,
+
+	//Operadores relacionales
+	OP_REL_EQUAL, //NO MOD
+	OP_REL_NOT_EQUAL,
+	OP_REL_MINOR,
+	OP_REL_MAJOR,
+	OP_REL_MINOR_OR_EQUAL,
+	OP_REL_MAJOR_OR_EQUAL, //NO MOD
+
+	//Operadores lógicos
+	OP_LOG_ADD,
+	OP_LOG_OR,
+};
+
+static bool isRelationalOperator(OPERADORES a) { return (a >= OP_REL_EQUAL && a <= OP_REL_MAJOR_OR_EQUAL); }
+
+class Parser_Operador
 {
 public:
-	MATH_ACCION accion;
+	OPERADORES accion;
 	Parser_Operacion * op;
 
-	Parser_Math(MATH_ACCION a, Parser_Operacion * b) : accion(a), op(b) {}
+	Parser_Operador(OPERADORES a, Parser_Operacion * b) : accion(a), op(b) {}
 
-	virtual ~Parser_Math() {
+	virtual ~Parser_Operador() {
 		delete op;
 	};
 };
@@ -386,9 +411,11 @@ class Operacion_Recursiva : public Parser_Operacion
 {
 public:
 	Parser_Operacion* op1 = NULL;
-	Parser_Math* op2 = NULL;
+	Parser_Operador* op2 = NULL;
 
-	Operacion_Recursiva(Parser_Operacion * a, Parser_Math * b) : op1(a), op2(b), Parser_Operacion(OP_REC_OP) {}
+	bool negado = false;
+
+	Operacion_Recursiva(Parser_Operacion * a, Parser_Operador * b) : op1(a), op2(b), Parser_Operacion(OP_REC_OP) {}
 	Operacion_Recursiva(Parser_Operacion * a) : op1(a), op2(NULL), Parser_Operacion(OP_REC_OP) {}
 
 	//Aseguramos el borrado de la memoria cuando se libere el objeto.
@@ -399,17 +426,17 @@ public:
 	}
 };
 
-class Operacion_Math : public Parser_Operacion
+class Operacion_Operador : public Parser_Operacion
 {
 public:
 	Parser_Valor * op1;
-	Parser_Math * op2;
+	Parser_Operador * op2;
 
-	Operacion_Math(Parser_Valor * a, Parser_Math * b) : op1(a), op2(b), Parser_Operacion(OP_MATH) {}
-	Operacion_Math(Parser_Valor * a) : op1(a), op2(NULL), Parser_Operacion(OP_MATH) {}
+	Operacion_Operador(Parser_Valor * a, Parser_Operador * b) : op1(a), op2(b), Parser_Operacion(OP_MATH) {}
+	Operacion_Operador(Parser_Valor * a) : op1(a), op2(NULL), Parser_Operacion(OP_MATH) {}
 
 	//Aseguramos el borrado de la memoria cuando se libere el objeto.
-	virtual ~Operacion_Math()
+	virtual ~Operacion_Operador()
 	{
 		delete op1;
 		delete op2;
@@ -525,114 +552,6 @@ public:
 };
 
 // ############################################################
-// ###################### CONDICIONAL ######################### 
-// ############################################################
-
-enum CondicionalType {
-	COND_REC,
-	COND_OP,
-};
-
-enum CondicionalAgregadoType {
-	COND_NONE,
-	COND_AG_AND,
-	COND_AG_OR,
-};
-
-enum CondicionalAccionType {
-	COND_ACC_NONE,
-	COND_ACC_EQUAL,
-	COND_ACC_NOT_EQUAL,
-	COND_ACC_MINOR,
-	COND_ACC_MAJOR,
-	COND_ACC_MINOR_OR_EQUAL,
-	COND_ACC_MAJOR_OR_EQUAL,
-};
-
-
-class Parser_Condicional : public Parser_NODE {
-public:
-	CondicionalType tipo;
-
-	Parser_Condicional(CondicionalType a) : tipo(a) {};
-
-	//Aseguramos el borrado de la memoria
-	virtual ~Parser_Condicional() {
-	};
-};
-
-//Condición agregada a otra condición para formar cadenas condicionales AND, OR ->   &&/|| <COND>
-class Condicional_Agregada {
-public:
-	CondicionalAgregadoType accion;
-	Parser_Condicional* cond;
-
-	Condicional_Agregada(CondicionalAgregadoType a, Parser_Condicional* b) : accion(a), cond(b) {};
-	virtual ~Condicional_Agregada() {
-		delete cond;
-	}
-};
-
-class Condicional_Agregada_Operacional {
-public:
-	CondicionalAccionType AccType;
-	Parser_Operacion* op;
-
-	Condicional_Agregada_Operacional(CondicionalAccionType a, Parser_Operacion* b) : AccType(a), op(b) {};
-	virtual ~Condicional_Agregada_Operacional() {
-		delete op;
-	}
-};
-
-class Condicional_Recursiva : public Parser_Condicional {
-public:
-	bool negada;
-	Parser_Condicional * c1;
-	Condicional_Agregada * ca;
-
-	//Ruta sin el segundo condicional: !(<COND>)
-	Condicional_Recursiva(bool a, Parser_Condicional * b) : negada(a), c1(b), ca(NULL), Parser_Condicional(COND_REC) {};
-	//Ruta con una condicional adicional agregada:   !(<COND>) &&/|| <COND>
-	Condicional_Recursiva(bool a, Parser_Condicional * b, Condicional_Agregada * c) : negada(a), c1(b), ca(c), Parser_Condicional(COND_REC) {};
-
-	//Aseguramos el borrado de la memoria
-	virtual ~Condicional_Recursiva() {
-		delete c1;
-		delete ca;
-	}
-};
-
-class Condicional_Operacion : public Parser_Condicional {
-public:
-	Parser_Operacion * op1;
-	std::vector<Condicional_Agregada_Operacional*>* adicional_ops;
-	Condicional_Agregada * ca;
-
-	//Ruta de salida simple, solamente valor de operación:  <OP>
-	Condicional_Operacion(Parser_Operacion * a) : op1(a), adicional_ops(NULL), ca(NULL), Parser_Condicional(COND_OP) {};
-	//Ruta de salida con más de un valor operacional: <OP> <= <OP> < <OP> == <OP> ->  (a <= 5 < b == c)
-	Condicional_Operacion(Parser_Operacion * a, std::vector<Condicional_Agregada_Operacional*>* b) : op1(a), adicional_ops(b), ca(NULL), Parser_Condicional(COND_OP) {};
-	//Ruta de salida con más de un valor operacional y una condición agregada: <OP> <= <OP> < <OP> || <COND> ->  (a <= 5 < b) || c
-	Condicional_Operacion(Parser_Operacion * a, std::vector<Condicional_Agregada_Operacional*>* b, Condicional_Agregada* c) : op1(a), adicional_ops(b), ca(c), Parser_Condicional(COND_OP) {};
-
-	//Aseguramos el borrado de la memoria
-	virtual ~Condicional_Operacion() {
-		delete op1;
-		delete ca;
-
-		if (adicional_ops)
-		{
-			for (std::vector<Condicional_Agregada_Operacional*>::iterator it = adicional_ops->begin(); it != adicional_ops->end(); ++it)
-			{
-				delete (*it);
-			}
-			adicional_ops->clear();
-			delete adicional_ops;
-		}
-	}
-};
-
-// ############################################################
 // ####################### IGUALDAD ########################### 
 // ############################################################
 
@@ -645,11 +564,11 @@ enum IgualdadType {
 class Parser_Igualdad : public Parser_NODE {
 public:
 	Parser_Parametro* param;
-	Parser_Condicional* cond;
+	Parser_Operacion* cond;
 	IgualdadType valor;
 
 	//Igualdad con valor en la derecha CONDICIONAL si es OPERACIONAL, COND solo tendrá el valor de la operacion.
-	Parser_Igualdad(Parser_Parametro* a, Parser_Condicional* b, IgualdadType c) : param(a), cond(b), valor(c) {};
+	Parser_Igualdad(Parser_Parametro* a, Parser_Operacion* b, IgualdadType c) : param(a), cond(b), valor(c) {};
 
 	//Aseguramos el borrado de la memoria
 	~Parser_Igualdad() {
@@ -707,14 +626,14 @@ public:
 
 class Sentencia_IF : public Parser_Sentencia {
 public:
-	Parser_Condicional * pCond;
+	Parser_Operacion * pCond;
 	Parser_Sentencia * pS;
 	Parser_Sentencia * pElse;
 
 	// Sentencia IF sin ELSE asignado.
-	Sentencia_IF(Parser_Condicional * a, Parser_Sentencia* b) : pCond(a), pS(b), pElse(NULL), Parser_Sentencia(SENT_IF) {}
+	Sentencia_IF(Parser_Operacion * a, Parser_Sentencia* b) : pCond(a), pS(b), pElse(NULL), Parser_Sentencia(SENT_IF) {}
 	// Sentencia IF con ELSE asignado
-	Sentencia_IF(Parser_Condicional * a, Parser_Sentencia* b, Parser_Sentencia* c) : pCond(a), pS(b), pElse(c), Parser_Sentencia(SENT_IF) {}
+	Sentencia_IF(Parser_Operacion * a, Parser_Sentencia* b, Parser_Sentencia* c) : pCond(a), pS(b), pElse(c), Parser_Sentencia(SENT_IF) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_IF() {
@@ -726,10 +645,10 @@ public:
 
 class Sentencia_WHILE : public Parser_Sentencia {
 public:
-	Parser_Condicional * pCond;
+	Parser_Operacion * pCond;
 	Parser_Sentencia * pS;
 
-	Sentencia_WHILE(Parser_Condicional * a, Parser_Sentencia* b) : pCond(a), pS(b), Parser_Sentencia(SENT_WHILE) {}
+	Sentencia_WHILE(Parser_Operacion * a, Parser_Sentencia* b) : pCond(a), pS(b), Parser_Sentencia(SENT_WHILE) {}
 	
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_WHILE() {
@@ -741,11 +660,11 @@ public:
 class Sentencia_FOR : public Parser_Sentencia {
 public:
 	Parser_Igualdad * pIguald;
-	Parser_Condicional * pCond;
+	Parser_Operacion * pCond;
 	Parser_Operacion * pOp;
 	Parser_Sentencia * pS;
 
-	Sentencia_FOR(Parser_Igualdad * a, Parser_Condicional * b, Parser_Operacion * c, Parser_Sentencia * d) : pIguald(a), pCond(b), pOp(c), pS(d), Parser_Sentencia(SENT_FOR) {};
+	Sentencia_FOR(Parser_Igualdad * a, Parser_Operacion * b, Parser_Operacion * c, Parser_Sentencia * d) : pIguald(a), pCond(b), pOp(c), pS(d), Parser_Sentencia(SENT_FOR) {};
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_FOR() {

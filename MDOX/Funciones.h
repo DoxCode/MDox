@@ -5,8 +5,8 @@
 #include <vector>
 #include <sstream>
 #include <deque>
-
 #include <stdlib.h>
+
 
 #define deletePtr(x) {delete x; x = NULL;}
 
@@ -21,4 +21,5 @@ bool is_number(const std::string& s);
 bool is_Identificador(const std::string & s);
 std::string getAbsolutePathFromRelative(std::string path);
 std::string getFileNameAndExt(std::string s);
+
 #endif

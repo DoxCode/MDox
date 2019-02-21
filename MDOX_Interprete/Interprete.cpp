@@ -240,16 +240,19 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 		{
 			Sentencia_IF * x = static_cast<Sentencia_IF*>(sentencia);
 			
-			Value_BOOL * b = Condicionales(x->pCond, variables);
+			Value * b = Operaciones(x->pCond, variables);
 
 			if (b == NULL)
 				return false;
 
-			if (b->value)
+			bool value_bool = this->ConversionXtoBool(b);
+			delete b; // No necesitamos más la operación
+
+			if (value_bool)
 			{
 				if (x->pS)
 				{
-					delete b;
+			
 					if (!Interprete_Sentencia(x->pS, variables))
 					{
 						//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
@@ -260,7 +263,6 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 			}
 			else
 			{
-				delete b;
 				if (x->pElse)
 				{
 					if (!Interprete_Sentencia(x->pElse, variables))
@@ -268,7 +270,6 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 						//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 						return false;
 					}
-
 					return true;
 				}
 			}
@@ -284,15 +285,16 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 
 			while (true)
 			{
-				Value_BOOL * b = Condicionales(x->pCond, variables);
+				Value * b = Operaciones(x->pCond, variables);
 
 				if (b == NULL)
 					return false;
 
-				if (b->value)
-				{
-					delete b;
+				bool value_bool = this->ConversionXtoBool(b);
+				delete b;
 
+				if (value_bool)
+				{
 					if (x->pS)
 					{
 						if (!Interprete_Sentencia(x->pS, variables))
@@ -304,7 +306,6 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 				}
 				else
 				{
-					delete b;
 					return true;
 				}
 			}
@@ -332,7 +333,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 
 				if (x->pCond)
 				{
-					Value_BOOL * b = Condicionales(x->pCond, variables);
+					Value * b = Operaciones(x->pCond, variables);
 
 					if (b == NULL)
 					{
@@ -340,8 +341,10 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 						return false;
 					}
 
-					res = b->value;
+					bool value_bool = this->ConversionXtoBool(b);
 					delete b;
+
+					res = value_bool;
 				}
 
 				if (res)
@@ -373,6 +376,9 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 
 }
 
+
+
+//Establece una operación, una operación puede ser el incremento/decremento de una variable o una operación matemática
 bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variable*> * variables)
 {
 	if (pOp->tipo == OP_ID)
@@ -413,7 +419,10 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 				
 
 			}
-			else return false;
+			else {
+				Errores::generarError(Errores::ERROR_INCREMENTO_VARIABLE_DESCONOCIDA, &x2->parametros, x2->ID->nombre);
+				return false;
+			}
 		}
 		else  if (x2->accion == ID_DECREMENTO)
 		{
@@ -445,11 +454,18 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 					}
 					return true;
 				}
-				else return false;
-
+				else 
+				{
+					Errores::generarError(Errores::ERROR_INC_DEC_VARIABLE_INVALIDA, &x2->parametros, x2->ID->nombre);
+					return false;
+				}
+				
 
 			}
-			else return false;
+			else {
+				Errores::generarError(Errores::ERROR_INCREMENTO_VARIABLE_DESCONOCIDA, &x2->parametros, x2->ID->nombre);
+				return false;
+			}
 			
 		}
 		else return false;
@@ -479,7 +495,8 @@ bool Interprete::EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*
 	{
 		if (pIg->cond)
 		{
-			if (pIg->cond->tipo == COND_OP)
+			//TODO BORRAR
+			/*if (pIg->cond->tipo == COND_OP)
 			{
 				Condicional_Operacion * xOp = static_cast<Condicional_Operacion*>(pIg->cond);
 				if (xOp->ca == NULL && xOp->adicional_ops == NULL)
@@ -500,9 +517,9 @@ bool Interprete::EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*
 					delete v;
 					return true;
 				}
-			}
+			}*/
 
-			Value * v_bol = Condicionales(pIg->cond, variables);
+			Value * v_bol = Operaciones(pIg->cond, variables);
 
 			if (v_bol == NULL)
 			{
@@ -679,7 +696,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 					}
 
 					//Comprobamos el valor de entrada con el operacional.
-					Value_BOOL * _Cond = CondicionalDeDosValores(valor_operacion, COND_ACC_EQUAL, xCallEnt->entradas->at(ent_itr), &xOperacion->parametros);
+					Value_BOOL * _Cond = CondicionalDeDosValores(valor_operacion, OP_REL_EQUAL, xCallEnt->entradas->at(ent_itr), &xOperacion->parametros);
 
 					//De no poder convertir la operación correctamente, nos saltamos esta función. Pues no es posible realizarla.
 					if (_Cond == NULL)
@@ -747,7 +764,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 						//La variable YA existe, ende no estamos inicializándola, si no más bien comparándola.
 						if (_var)
 						{
-							Value_BOOL * _Cond = CondicionalDeDosValores(_var->valor, COND_ACC_EQUAL, xCallEnt->entradas->at(ent_itr), &_xID->parametros);
+							Value_BOOL * _Cond = CondicionalDeDosValores(_var->valor, OP_REL_EQUAL, xCallEnt->entradas->at(ent_itr), &_xID->parametros);
 
 							//De no poder convertir la operación correctamente, nos saltamos esta función. Pues no es posible realizarla.
 							if (_Cond == NULL)
@@ -1003,7 +1020,7 @@ bool Interprete::EstablecerVariable(Variable * var, Value ** value, OutData_Para
 }
 
 
-Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAccionType accion, Value * value2, OutData_Parametros * outData)
+Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, OPERADORES accion, Value * value2, OutData_Parametros * outData)
 {
 	switch (value1->getTypeValue())
 	{
@@ -1018,12 +1035,12 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 
 				switch (accion)
 				{
-				case COND_ACC_EQUAL: if (x1->value == x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_NOT_EQUAL:  if (x1->value != x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR:  if (x1->value < x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR:  if (x1->value > x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR_OR_EQUAL:  if (x1->value <= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR_OR_EQUAL:  if (x1->value >= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_EQUAL: if (x1->value == x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_NOT_EQUAL:  if (x1->value != x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR:  if (x1->value < x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR:  if (x1->value > x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
 				}
 				break;
 			}
@@ -1034,12 +1051,12 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 
 				switch (accion)
 				{
-				case COND_ACC_EQUAL: if (x1->value == x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_NOT_EQUAL:  if (x1->value != x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR:  if (x1->value < x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR:  if (x1->value > x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR_OR_EQUAL:  if (x1->value <= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_EQUAL: if (x1->value == x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_NOT_EQUAL:  if (x1->value != x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR:  if (x1->value < x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR:  if (x1->value > x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				}
 				break;
 			}
@@ -1057,12 +1074,12 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 				Value_BOOL * x2 = static_cast<Value_BOOL*>(value2);
 				switch (accion)
 				{
-					case COND_ACC_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-					case COND_ACC_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-					case COND_ACC_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-					case COND_ACC_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-					case COND_ACC_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-					case COND_ACC_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+					case OP_REL_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+					case OP_REL_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+					case OP_REL_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+					case OP_REL_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+					case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+					case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				}
 				break;
 			}
@@ -1080,12 +1097,12 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 
 				switch (accion)
 				{
-				case COND_ACC_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				}
 				break;
 			}
@@ -1096,12 +1113,12 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 
 				switch (accion)
 				{
-				case COND_ACC_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				}
 				break;
 			}
@@ -1119,12 +1136,12 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 				Value_BOOL * x2 = static_cast<Value_BOOL*>(value2);
 				switch (accion)
 				{
-				case COND_ACC_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				}
 				break;
 			}
@@ -1154,12 +1171,12 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 
 			switch (accion)
 			{
-			case COND_ACC_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-			case COND_ACC_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-			case COND_ACC_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-			case COND_ACC_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-			case COND_ACC_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-			case COND_ACC_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 			}
 		}
 
@@ -1183,12 +1200,12 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 
 				switch (accion)
 				{
-				case COND_ACC_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				}
 				break;
 			}
@@ -1199,12 +1216,12 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 
 				switch (accion)
 				{
-				case COND_ACC_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				}
 				break;
 			}
@@ -1222,12 +1239,12 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 				Value_BOOL * x2 = static_cast<Value_BOOL*>(value2);
 				switch (accion)
 				{
-				case COND_ACC_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
-				case COND_ACC_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				}
 				return NULL;
 			}
@@ -1239,7 +1256,7 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, CondicionalAcc
 	return NULL;
 }
 
-Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Value * value2, OutData_Parametros * outData)
+Value * Interprete::OperacionSobreValores(Value * value1, OPERADORES accion, Value * value2, OutData_Parametros * outData)
 {
 	if (!value1 || !value2)
 	{
@@ -1266,13 +1283,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 					switch (accion)
 					{
-					case MATH_SUMA: return new Value_INT(x1->value + x2->value);
-					case MATH_RESTA: return new Value_INT(x1->value - x2->value);
-					case MATH_MULT: return new Value_INT(x1->value * x2->value);
-					case MATH_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
-					case MATH_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
-					case MATH_EXP: return new Value_INT(pow(x1->value, x2->value));
-					case MATH_MOD: return new Value_INT(x1->value % x2->value);
+					case OP_ARIT_SUMA: return new Value_INT(x1->value + x2->value);
+					case OP_ARIT_RESTA: return new Value_INT(x1->value - x2->value);
+					case OP_ARIT_MULT: return new Value_INT(x1->value * x2->value);
+					case OP_ARIT_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
+					case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
+					case OP_ARIT_MOD: return new Value_INT(x1->value % x2->value);
 					}
 					return NULL;
 				}
@@ -1283,13 +1299,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 					switch (accion)
 					{
-					case MATH_SUMA: return new Value_DOUBLE(x1->value + x2->value);
-					case MATH_RESTA: return new Value_DOUBLE(x1->value - x2->value);
-					case MATH_MULT: return new Value_DOUBLE(x1->value * x2->value);
-					case MATH_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
-					case MATH_DIV:  return new Value_DOUBLE(x1->value / x2->value);
-					case MATH_EXP: return new Value_DOUBLE(pow(x1->value, x2->value));
-					case MATH_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
+					case OP_ARIT_SUMA: return new Value_DOUBLE(x1->value + x2->value);
+					case OP_ARIT_RESTA: return new Value_DOUBLE(x1->value - x2->value);
+					case OP_ARIT_MULT: return new Value_DOUBLE(x1->value * x2->value);
+					case OP_ARIT_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
+					case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / x2->value);
+					case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
 					}
 
 					return NULL;
@@ -1301,13 +1316,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 					switch (accion)
 					{
-					case MATH_SUMA: return new Value_STRING(std::to_string(x1->value) + x2->value);
-					case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
-					case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
-					case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
-					case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
-					case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
-					case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
+					case OP_ARIT_SUMA: return new Value_STRING(std::to_string(x1->value) + x2->value);
+					case OP_ARIT_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+					case OP_ARIT_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+					case OP_ARIT_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+					case OP_ARIT_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+					case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 					}
 
 					return NULL;
@@ -1318,13 +1332,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 					switch (accion)
 					{
-					case MATH_SUMA: return new Value_INT(x1->value + x2->value);
-					case MATH_RESTA: return new Value_INT(x1->value - x2->value);
-					case MATH_MULT: return new Value_INT(x1->value * x2->value);
-					case MATH_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
-					case MATH_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
-					case MATH_EXP: return new Value_INT(pow(x1->value, x2->value));
-					case MATH_MOD: return new Value_INT(x1->value % x2->value);
+					case OP_ARIT_SUMA: return new Value_INT(x1->value + x2->value);
+					case OP_ARIT_RESTA: return new Value_INT(x1->value - x2->value);
+					case OP_ARIT_MULT: return new Value_INT(x1->value * x2->value);
+					case OP_ARIT_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
+					case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
+					case OP_ARIT_MOD: return new Value_INT(x1->value % x2->value);
 					}
 					return NULL;
 				}
@@ -1344,13 +1357,13 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 				switch (accion)
 				{
-				case MATH_SUMA: return new Value_DOUBLE(x1->value + x2->value);
-				case MATH_RESTA: return new Value_DOUBLE(x1->value - x2->value);
-				case MATH_MULT: return new Value_DOUBLE(x1->value * x2->value);
-				case MATH_DIV_ENTERA: return new Value_INT((int)(x1->value / x2->value));
-				case MATH_DIV:  return new Value_DOUBLE(x1->value / x2->value);
-				case MATH_EXP: return new Value_DOUBLE(pow(x1->value, x2->value));
-				case MATH_MOD:  Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData);  return NULL;
+				case OP_ARIT_SUMA: return new Value_DOUBLE(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_DOUBLE(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_DOUBLE(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_INT((int)(x1->value / x2->value));
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / x2->value);
+
+				case OP_ARIT_MOD:  Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData);  return NULL;
 				}
 				return NULL;
 			}
@@ -1361,13 +1374,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 				switch (accion)
 				{
-				case MATH_SUMA: return new Value_DOUBLE(x1->value + x2->value);
-				case MATH_RESTA: return new Value_DOUBLE(x1->value - x2->value);
-				case MATH_MULT: return new Value_DOUBLE(x1->value * x2->value);
-				case MATH_DIV_ENTERA: return new Value_INT((int)(x1->value / x2->value));
-				case MATH_DIV:  return new Value_DOUBLE(x1->value / x2->value);
-				case MATH_EXP: return new Value_DOUBLE(pow(x1->value, x2->value));
-				case MATH_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
+				case OP_ARIT_SUMA: return new Value_DOUBLE(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_DOUBLE(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_DOUBLE(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_INT((int)(x1->value / x2->value));
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / x2->value);
+				case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
 				}
 
 				return NULL;
@@ -1379,13 +1391,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 				switch (accion)
 				{
-				case MATH_SUMA: return new Value_STRING(std::to_string(x1->value) + x2->value);
-				case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
-				case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
-				case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
-				case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
-				case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
-				case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
+				case OP_ARIT_SUMA: return new Value_STRING(std::to_string(x1->value) + x2->value);
+				case OP_ARIT_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+				case OP_ARIT_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+				case OP_ARIT_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+				case OP_ARIT_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+				case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 				}
 
 				return NULL;
@@ -1396,13 +1407,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 				switch (accion)
 				{
-				case MATH_SUMA: return new Value_DOUBLE(x1->value + x2->value);
-				case MATH_RESTA: return new Value_DOUBLE(x1->value - x2->value);
-				case MATH_MULT: return new Value_DOUBLE(x1->value * x2->value);
-				case MATH_DIV_ENTERA: return new Value_INT((int)(x1->value / x2->value));
-				case MATH_DIV:  return new Value_DOUBLE(x1->value / x2->value);
-				case MATH_EXP: return new Value_DOUBLE(pow(x1->value, x2->value));
-				case MATH_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
+				case OP_ARIT_SUMA: return new Value_DOUBLE(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_DOUBLE(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_DOUBLE(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_INT((int)(x1->value / x2->value));
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / x2->value);
+				case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
 				}
 				return NULL;
 			}
@@ -1422,13 +1432,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 					switch (accion)
 					{
-					case MATH_SUMA: return new Value_STRING(x1->value + std::to_string(x2->value));
-					case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
-					case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
-					case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
-					case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
-					case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
-					case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
+					case OP_ARIT_SUMA: return new Value_STRING(x1->value + std::to_string(x2->value));
+					case OP_ARIT_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+					case OP_ARIT_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+					case OP_ARIT_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+					case OP_ARIT_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+					case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 					}
 					return NULL;
 				}
@@ -1439,13 +1448,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 					switch (accion)
 					{
-					case MATH_SUMA: return new Value_STRING(x1->value + std::to_string(x2->value));
-					case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
-					case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
-					case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
-					case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
-					case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
-					case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
+					case OP_ARIT_SUMA: return new Value_STRING(x1->value + std::to_string(x2->value));
+					case OP_ARIT_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+					case OP_ARIT_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+					case OP_ARIT_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+					case OP_ARIT_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+					case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 					}
 
 					return NULL;
@@ -1457,13 +1465,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 					switch (accion)
 					{
-					case MATH_SUMA: return new Value_STRING(x1->value + x2->value);
-					case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
-					case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
-					case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
-					case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
-					case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
-					case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
+					case OP_ARIT_SUMA: return new Value_STRING(x1->value + x2->value);
+					case OP_ARIT_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+					case OP_ARIT_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+					case OP_ARIT_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+					case OP_ARIT_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+					case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 					}
 
 					return NULL;
@@ -1474,13 +1481,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 					switch (accion)
 					{
-					case MATH_SUMA: return new Value_STRING(x1->value + std::to_string(x2->value));
-					case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
-					case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
-					case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
-					case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
-					case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
-					case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
+					case OP_ARIT_SUMA: return new Value_STRING(x1->value + std::to_string(x2->value));
+					case OP_ARIT_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+					case OP_ARIT_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+					case OP_ARIT_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+					case OP_ARIT_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+					case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 					}
 					return NULL;
 				}
@@ -1500,13 +1506,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 				switch (accion)
 				{
-				case MATH_SUMA: return new Value_INT(x1->value + x2->value);
-				case MATH_RESTA: return new Value_INT(x1->value - x2->value);
-				case MATH_MULT: return new Value_INT(x1->value * x2->value);
-				case MATH_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
-				case MATH_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
-				case MATH_EXP: return new Value_INT(pow(x1->value, x2->value));
-				case MATH_MOD: return new Value_INT(x1->value % x2->value);
+				case OP_ARIT_SUMA: return new Value_INT(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_INT(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_INT(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
+				case OP_ARIT_MOD: return new Value_INT(x1->value % x2->value);
 				}
 				return NULL;
 			}
@@ -1517,13 +1522,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 				switch (accion)
 				{
-				case MATH_SUMA: return new Value_DOUBLE(x1->value + x2->value);
-				case MATH_RESTA: return new Value_DOUBLE(x1->value - x2->value);
-				case MATH_MULT: return new Value_DOUBLE(x1->value * x2->value);
-				case MATH_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
-				case MATH_DIV:  return new Value_DOUBLE(x1->value / x2->value);
-				case MATH_EXP: return new Value_DOUBLE(pow(x1->value, x2->value));
-				case MATH_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
+				case OP_ARIT_SUMA: return new Value_DOUBLE(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_DOUBLE(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_DOUBLE(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / x2->value);
+				case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
 				}
 
 				return NULL;
@@ -1535,13 +1539,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 				switch (accion)
 				{
-				case MATH_SUMA: return new Value_STRING(std::to_string(x1->value) + x2->value);
-				case MATH_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
-				case MATH_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
-				case MATH_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
-				case MATH_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
-				case MATH_EXP: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "^"); return NULL;
-				case MATH_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
+				case OP_ARIT_SUMA: return new Value_STRING(std::to_string(x1->value) + x2->value);
+				case OP_ARIT_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+				case OP_ARIT_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+				case OP_ARIT_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+				case OP_ARIT_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+				case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
 				}
 
 				return NULL;
@@ -1552,13 +1555,12 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 
 				switch (accion)
 				{
-				case MATH_SUMA: return new Value_INT(x1->value + x2->value);
-				case MATH_RESTA: return new Value_INT(x1->value - x2->value);
-				case MATH_MULT: return new Value_INT(x1->value * x2->value);
-				case MATH_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
-				case MATH_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
-				case MATH_EXP: return new Value_INT(pow(x1->value, x2->value));
-				case MATH_MOD: return new Value_INT(x1->value % x2->value);
+				case OP_ARIT_SUMA: return new Value_INT(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_INT(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_INT(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
+				case OP_ARIT_MOD: return new Value_INT(x1->value % x2->value);
 				}
 				return NULL;
 			}
@@ -1571,20 +1573,14 @@ Value * Interprete::OperacionSobreValores(Value * value1, MATH_ACCION accion, Va
 }
 
 
-bool Interprete::ConversionXtoBool(Value * valOp, bool& salida, OutData_Parametros * outData)
+bool Interprete::ConversionXtoBool(Value * valOp)
 {
 	switch (valOp->getTypeValue())
 	{
 	case PARAM_BOOL:
 	{
 		Value_BOOL * xIn = static_cast<Value_BOOL*>(valOp);
-		salida = xIn->value;
-		break;
-	}
-
-	case PARAM_VOID:
-	{
-		salida = false;
+		return xIn->value;
 		break;
 	}
 
@@ -1592,12 +1588,11 @@ bool Interprete::ConversionXtoBool(Value * valOp, bool& salida, OutData_Parametr
 	{
 		Value_INT * xIn = static_cast<Value_INT*>(valOp);
 
-		if (xIn->value)
-			salida = true;
-		else
-			salida = false;
 
-		break;
+		if (xIn->value)
+			return true;
+		else
+			return false;
 	}
 
 	case PARAM_DOUBLE:
@@ -1605,11 +1600,9 @@ bool Interprete::ConversionXtoBool(Value * valOp, bool& salida, OutData_Parametr
 		Value_DOUBLE * xIn = static_cast<Value_DOUBLE*>(valOp);
 
 		if (xIn->value)
-			salida = true;
+			return true;
 		else
-			salida = false;
-
-		break;
+			return false;
 	}
 
 	case PARAM_STRING:
@@ -1617,176 +1610,19 @@ bool Interprete::ConversionXtoBool(Value * valOp, bool& salida, OutData_Parametr
 		Value_STRING * xIn = static_cast<Value_STRING*>(valOp);
 
 		if (xIn->value != "")
-			salida = true;
+			return true;
 		else
-			salida = false;
-
-		break;
+			return false;
 	}
 
 	default:
 	{
-		Errores::generarError(Errores::ERROR_EXPRESION_NO_CONVERTIBLE_BOOL, outData);
+		//Errores::generarError(Errores::ERROR_EXPRESION_NO_CONVERTIBLE_BOOL, outData);
 		return false;
 	}
 	}
 
-	return true;
-}
-
-
-Value_BOOL * Interprete::Condicionales(Parser_Condicional * pCond, std::vector<Variable*> * variables)
-{
-	if (pCond->tipo == COND_REC)
-	{
-		Condicional_Recursiva * x = static_cast<Condicional_Recursiva*>(pCond);
-		Value_BOOL * val = Condicionales(x->c1, variables);
-
-		if (x->ca)
-		{
-			if(x->ca->accion == COND_AG_AND)
-			{
-				Value_BOOL * val2 = Condicionales(x->ca->cond, variables);
-				val->value = val->value && val2->value;
-				delete val2;
-				
-				if (x->negada)
-					val->value = !val->value;
-
-			    return val;
-			}
-			else if (x->ca->accion == COND_AG_OR)
-			{
-				Value_BOOL * val2 = Condicionales(x->ca->cond, variables);
-				val->value = val->value || val2->value;
-				delete val2;
-
-				if (x->negada)
-					val->value = !val->value;
-
-				return val;
-			}
-			else
-			{
-				delete val;
-				return NULL;
-			}
-		}
-		else
-		{
-			if (x->negada)
-				val->value = !val->value;
-
-			return val;
-		}
-	}
-	else if (pCond->tipo == COND_OP)
-	{
-		Condicional_Operacion * x = static_cast<Condicional_Operacion*>(pCond);
-
-		Value * valOp = Operaciones(x->op1, variables);
-
-		if (valOp == NULL)
-			return NULL;
-
-		Value_BOOL * res = new Value_BOOL(true);
-
-		if (x->adicional_ops)
-		{
-			for (unsigned itr = 0; (itr+1) < x->adicional_ops->size(); itr++)
-			{
-				Value * op1 = Operaciones(x->adicional_ops->at(itr)->op, variables);
-				Value * op2 = Operaciones(x->adicional_ops->at(itr+1)->op, variables);
-
-				if (!op1 || !op2)
-				{
-					delete op1;
-					delete op2;
-					return NULL;
-				}
-
-
-				Value_BOOL * b = CondicionalDeDosValores(op1, x->adicional_ops->at(itr + 1)->AccType, op2, &x->adicional_ops->at(itr)->op->parametros);
-
-				if (b == NULL)
-				{
-					delete op1;
-					delete op2;
-					return NULL;
-				}
-
-				res->value = b->value;
-
-				delete b;
-				delete op1;
-				delete op2;
-			}	
-
-			if (res->value)
-			{
-				Value * opN = Operaciones(x->adicional_ops->at(0)->op, variables);
-
-				if (!opN)
-				{
-					return NULL;
-				}
-
-				Value_BOOL * b = CondicionalDeDosValores(valOp, x->adicional_ops->at(0)->AccType, opN, &x->adicional_ops->at(0)->op->parametros);
-
-				if (b == NULL)
-				{
-					delete opN;
-					return NULL;
-				}
-
-				res->value = b->value;
-	
-				delete b;
-				delete opN;
-			}
-			delete valOp;
-		}
-		else
-		{
-			//Si es un condicional etc.
-			if (!ConversionXtoBool(valOp, res->value, &x->op1->parametros))
-			{
-				delete valOp;
-				delete res;
-				return NULL;
-			}
-
-			delete valOp;
-		}
-
-		if (x->ca)
-		{
-			if (x->ca->accion == COND_AG_AND)
-			{
-				Value_BOOL * val2 = Condicionales(x->ca->cond, variables);
-				res->value = res->value && val2->value;
-				delete val2;
-				return res;
-			}
-			else if (x->ca->accion == COND_AG_OR)
-			{
-				Value_BOOL * val2 = Condicionales(x->ca->cond, variables);
-				res->value = res->value || val2->value;
-				delete val2;
-				return res;
-			}
-			else
-			{
-				delete res;
-				return NULL;
-			}
-		}
-
-		return res;
-	}
-
-	return NULL;
-
+	return false;
 }
 
 Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables)
@@ -1818,6 +1654,13 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 		std::vector<OperacionComp*>* componenteInterno = new std::vector<OperacionComp*>();
 		Value * val = Operaciones(x->op1, variables, componenteInterno);
 
+		if (x->negado)
+		{
+			bool b = ConversionXtoBool(val);
+			delete val;
+			val = new Value_BOOL(!b);
+		}
+
 		for (std::vector<OperacionComp*>::iterator it = componenteInterno->begin(); it != componenteInterno->end(); ++it)
 		{
 			delete (*it);
@@ -1840,12 +1683,12 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 		}
 		else
 		{
-			componente->push_back(new OperacionComp(val, MATH_NONE));	
+			componente->push_back(new OperacionComp(val, OP_NONE));	
 		}
 	}
 	else if (pOp->tipo == OP_MATH)
 	{
-		Operacion_Math * x = static_cast<Operacion_Math*>(pOp);
+		Operacion_Operador * x = static_cast<Operacion_Operador*>(pOp);
 		
 		Value * val = NULL;
 		switch (x->op1->tipo)
@@ -1856,12 +1699,8 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 
 				if (xLit->negado)
 				{
-					bool resBol = true;
-					if (!ConversionXtoBool(xLit->value, resBol, &x->parametros))
-					{
-						return NULL;
-					}
-					else val = new Value_BOOL(!resBol);
+					bool resBol = ConversionXtoBool(xLit->value);
+					val = new Value_BOOL(!resBol);
 				}
 				else
 					val = xLit->value->Clone();
@@ -1876,12 +1715,9 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 				{
 					if (xID->negado)
 					{
-						bool resBol = true;
-						if (!ConversionXtoBool(var->valor, resBol, &xID->parametros))
-						{
-							return NULL;
-						}
-						else val = new Value_BOOL(!resBol);
+
+						bool resBol = ConversionXtoBool(var->valor);
+						val = new Value_BOOL(!resBol);
 					}
 					else
 					{
@@ -1927,7 +1763,7 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 			}
 			else
 			{
-				componente->push_back(new OperacionComp(val, MATH_NONE));
+				componente->push_back(new OperacionComp(val, OP_NONE));
 				//deletePtr(val);
 			}
 		}
@@ -1946,48 +1782,13 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 	// Preparamos devolver los componentes.
 	//Teniendo en cuenta las siguientes premisas:
 	// Por orden de operaciones, de más relevante a menos.
-	// ^ sqr   >   * / div %    >    + -
+	//  * / div %    mayor que    + -    mayor que   == >= < > <=   mayor que   &&  ||
 
-	//###### PRIORIDAD 1 -> Exponenciales y raices cuadradas
-	OperacionComp * temp = NULL;
-
-	for (unsigned itr = 0; itr < componente->size(); itr++)
-	{
-		if (temp)
-		{
-			Value * v = OperacionSobreValores(temp->val, temp->oper, componente->at(itr)->val, &pOp->parametros);
-			
-			if (v)
-			{
-				delete componente->at(itr)->val;
-				componente->at(itr)->val = v;
-			}
-			else
-			{
-				delete temp;
-				return NULL;
-			}
-
-			temp = NULL;
-		}
-
-		if (componente->at(itr)->oper == MATH_EXP)
-		{
-			componente->at(itr)->delete_ready = true;
-			temp = componente->at(itr);
-		}
-	}
-
-	//Borramos datos marcados
-	for (std::vector<OperacionComp*>::iterator it = componente->begin(); it != componente->end(); )
-	{
-		if ((*it)->delete_ready)
-		{
-			delete(*it);
-			it = componente->erase(it);
-		}
-		else it++;
-	}
+	// ################## PRIORIDAD 1 -> Multiplicaciones, Divisiones, Divisiones enteras, Modulos  ##################
+	std::vector<OPERADORES> operadores = { OP_ARIT_DIV, OP_ARIT_DIV_ENTERA, OP_ARIT_MOD, OP_ARIT_MULT };
+	
+	if (!this->GestionarOperacionesPorPrioridad(pOp, componente, &operadores, OPERADOR_ARITMETICO))
+		return NULL;
 
 	//En el caso de que ya no se puedan realizar más operaciones, devolvemos resultado.
 	if (componente->size() == 1)
@@ -1996,41 +1797,11 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 		return res;
 	}
 
-	// ###### PRIORIDAD 2 -> Multiplicaciones, Divisiones, Divisiones enteras, Modulos
-	temp = NULL;
-	for (unsigned itr = 0; itr < componente->size(); itr++)
-	{
-		if (temp)
-		{
-			Value * v = OperacionSobreValores(temp->val, temp->oper, componente->at(itr)->val, &pOp->parametros);
+	// ################## PRIORIDAD 2 -> Sumas, Restas ##################
+	operadores = { OP_ARIT_SUMA, OP_ARIT_RESTA };
 
-			if (v)
-			{
-				delete componente->at(itr)->val;
-				componente->at(itr)->val = v;
-			}
-			else return NULL;
-
-			temp = NULL;
-		}
-
-		if (componente->at(itr)->oper == MATH_DIV || componente->at(itr)->oper == MATH_DIV_ENTERA || componente->at(itr)->oper == MATH_MOD || componente->at(itr)->oper == MATH_MULT)
-		{
-			componente->at(itr)->delete_ready = true;
-			temp = componente->at(itr);
-		}
-	}
-
-	//Borramos datos marcados
-	for (std::vector<OperacionComp*>::iterator it = componente->begin(); it != componente->end(); )
-	{
-		if ((*it)->delete_ready)
-		{
-			delete(*it);
-			it = componente->erase(it);
-		}
-		else it++;
-	}
+	if (!this->GestionarOperacionesPorPrioridad(pOp, componente, &operadores, OPERADOR_ARITMETICO))
+		return NULL;
 
 	//En el caso de que ya no se puedan realizar más operaciones, devolvemos resultado.
 	if (componente->size() == 1)
@@ -2039,41 +1810,24 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 		return res;
 	}
 
-	// ###### PRIORIDAD 3 -> Sumas, Restas
-	temp = NULL;
-	for (unsigned itr = 0; itr < componente->size(); itr++)
+	// ################## PRIORIDAD 3 -> OPERACIONES RELACIONALES  ##################
+	operadores = { OP_REL_EQUAL, OP_REL_MAJOR, OP_REL_MAJOR_OR_EQUAL , OP_REL_MINOR, OP_REL_MINOR_OR_EQUAL, OP_REL_NOT_EQUAL };
+
+	if (!this->GestionarOperacionesPorPrioridad(pOp, componente, &operadores, OPERADOR_RELACIONAL))
+		return NULL;
+
+	//En el caso de que ya no se puedan realizar más operaciones, devolvemos resultado.
+	if (componente->size() == 1)
 	{
-		if (temp)
-		{
-			Value * v = OperacionSobreValores(temp->val, temp->oper, componente->at(itr)->val, &pOp->parametros);
-
-			if (v)
-			{
-				delete componente->at(itr)->val;
-				componente->at(itr)->val = v;
-			}
-			else return NULL;
-
-			temp = NULL;
-		}
-
-		if (componente->at(itr)->oper == MATH_SUMA || componente->at(itr)->oper == MATH_RESTA)
-		{
-			componente->at(itr)->delete_ready = true;
-			temp = componente->at(itr);
-		}
+		Value * res = componente->at(0)->val->Clone();
+		return res;
 	}
 
-	//Borramos datos marcados
-	for (std::vector<OperacionComp*>::iterator it = componente->begin(); it != componente->end(); )
-	{
-		if ((*it)->delete_ready)
-		{
-			delete(*it);
-			it = componente->erase(it);
-		}
-		else it++;
-	}
+	// ################## PRIORIDAD 4 -> OPERACIONES LOGICAS  ##################
+	operadores = { OP_LOG_ADD, OP_LOG_OR };
+
+	if (!this->GestionarOperacionesPorPrioridad(pOp, componente, &operadores, OPERADOR_LOGICO))
+		return NULL;
 
 	//En el caso de que ya no se puedan realizar más operaciones, devolvemos resultado.
 	if (componente->size() == 1)
@@ -2084,6 +1838,114 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 
 	return NULL;
 }
+
+
+
+Value_BOOL *  Interprete::CondicionalLogico(Value * value1, OPERADORES accion, Value * value2)
+{
+	switch (accion)
+	{
+		case OP_LOG_ADD:
+		{
+			bool b1 = ConversionXtoBool(value1);
+			bool b2 = ConversionXtoBool(value2);
+			return new Value_BOOL(b1 && b2);
+		}
+
+		case OP_LOG_OR:
+		{
+			bool b1 = ConversionXtoBool(value1);
+			bool b2 = ConversionXtoBool(value2);
+			return new Value_BOOL(b1 || b2);
+		}
+	}
+	return new Value_BOOL(false);
+}
+
+
+bool Interprete::GestionarOperacionesPorPrioridad(Parser_Operacion * pOp, std::vector<OperacionComp*>* componente, std::vector<OPERADORES> * operators, OPERADORES_TIPOS tipo)
+{
+	OperacionComp * temp = NULL;
+
+	bool res_f = true; // Solo usado en relacionales
+
+	for (unsigned itr = 0; itr < componente->size(); itr++)
+	{
+		if (temp)
+		{
+			Value * v = NULL;
+			if (tipo == OPERADOR_ARITMETICO)
+				v = this->OperacionSobreValores(temp->val, temp->oper, componente->at(itr)->val, &pOp->parametros);
+			else if (tipo == OPERADOR_RELACIONAL)
+				v = this->CondicionalDeDosValores(temp->val, temp->oper, componente->at(itr)->val, &pOp->parametros);
+			else 
+				v = this->CondicionalLogico(temp->val, temp->oper, componente->at(itr)->val);
+
+			if (v)
+			{
+				if (tipo == OPERADOR_RELACIONAL)
+				{
+					if (!isRelationalOperator(componente->at(itr)->oper))
+					{
+						delete componente->at(itr)->val;
+
+						Value_BOOL * b_r = static_cast<Value_BOOL*>(v);
+						if (!res_f)
+						{
+							b_r->value = false;
+						}
+
+						componente->at(itr)->val = b_r;
+						res_f = true;
+					}				
+					else
+					{
+						if (res_f)
+						{
+							Value_BOOL * b_r = static_cast<Value_BOOL*>(v);
+							res_f = b_r->value;
+						}
+						delete v;
+					}
+				}
+				else
+				{
+					delete componente->at(itr)->val;
+					componente->at(itr)->val = v;
+				}
+			}
+			else return false;
+
+			temp = NULL;
+		}
+
+		for (std::vector<OPERADORES>::iterator it = operators->begin(); it != operators->end(); it++)
+		{
+			if (componente->at(itr)->oper == *it)
+			{
+				componente->at(itr)->delete_ready = true;
+				temp = componente->at(itr);
+				break;
+			}
+		}
+	}
+
+	//Borramos datos marcados
+	for (std::vector<OperacionComp*>::iterator it = componente->begin(); it != componente->end(); )
+	{
+		if ((*it)->delete_ready)
+		{
+			delete(*it);
+			it = componente->erase(it);
+		}
+		else it++;
+	}
+	return true;
+}
+
+
+
+
 
 Value* Interprete::Transformar_Declarativo_Value(Parser_Declarativo * dec)
 {

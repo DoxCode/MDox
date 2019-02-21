@@ -11,34 +11,16 @@ class OperacionComp
 {
 public:
 	Value * val;
-	MATH_ACCION oper;
+	OPERADORES oper;
 	bool delete_ready = false;
 
-	OperacionComp( Value* a, MATH_ACCION b) : val(a), oper(b) {}
+	OperacionComp( Value* a, OPERADORES b) : val(a), oper(b) {}
 
 	virtual ~OperacionComp()
 	{
 		delete val;
 	};
 };
-
-
-class OperacionCompCond
-{
-public:
-	Value_BOOL * val;
-	CondicionalAccionType oper;
-	bool delete_ready = false;
-
-	OperacionCompCond(Value_BOOL* a, CondicionalAccionType b) : val(a), oper(b) {}
-
-	virtual ~OperacionCompCond()
-	{
-		delete val;
-	};
-
-};
-
 
 class Variable 
 {
@@ -107,18 +89,19 @@ public:
 	Variable * Interprete_NuevaVariable(Parser_Parametro * par, std::vector<Variable*> * variables, bool existe);
 
 	Value* ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vector<Variable*> * variables);
-	bool ConversionXtoBool(Value * valOp, bool& salida, OutData_Parametros * outData);
-	Value_BOOL * Condicionales(Parser_Condicional * pCond, std::vector<Variable*> * variables);
-	Value_BOOL * CondicionalDeDosValores(Value * value1, CondicionalAccionType accion, Value * value2, OutData_Parametros * outData);
+	bool ConversionXtoBool(Value * valOp);
+	Value_BOOL * CondicionalDeDosValores(Value * value1, OPERADORES accion, Value * value2, OutData_Parametros * outData);
 	Value * Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables);
 	Value * Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables, std::vector<OperacionComp*>* componente);
-	Value * OperacionSobreValores(Value * value1, MATH_ACCION accion, Value * value2, OutData_Parametros * outData);
+	Value * OperacionSobreValores(Value * value1, OPERADORES accion, Value * value2, OutData_Parametros * outData);
 	Value* Transformar_Declarativo_Value(Parser_Declarativo * dec);
 	Variable* BusquedaVariable(std::string ID, std::vector<Variable*> * variables);
 	bool EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*> * variables);
 	bool EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variable*> * variables);
 	bool EstablecerVariable(Variable * var, Value ** value, OutData_Parametros * salidaError);
-	bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros * outData, std::string nombre);
+	bool ValueConversion(Value * val1, Value ** val2, OutData_Parametros * outData, std::string nombre);
+	bool GestionarOperacionesPorPrioridad(Parser_Operacion * pOp, std::vector<OperacionComp*>* componente, std::vector<OPERADORES> * operators, OPERADORES_TIPOS op);
+	Value_BOOL *  CondicionalLogico(Value * value1, OPERADORES accion, Value * value2);
 
    ~Interprete() 
     {

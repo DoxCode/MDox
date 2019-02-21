@@ -7,8 +7,10 @@
 #include <fstream>
 #include <cstring>
 #include <cstdio>
+
 #include "Funciones.h"
 #include "Estructuras.h"
+
 
 bool str_compare(std::string str, int itr, std::string busq);
 
