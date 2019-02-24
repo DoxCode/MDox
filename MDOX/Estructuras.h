@@ -107,11 +107,7 @@ enum tipos_parametros
 
 	//ENTEROS
 	PARAM_INT,	 // -2.147.483.647 a 2.147.483.647   (4 bytes)
-	//PARAM_UINT,	 // 0 a 4.294.967.295				 (4 bytes)
-	//PARAM_INT16,   // De –32.768 a 32.767              (2 bytes)
-	//PARAM_UINT16,  // De 0 a 65.535                    (2 bytes)
-	//PARAM_INT64,   // De –9.223.372.036.854.775.808 a 9.223.372.036.854.775.807  (8 bytes)
-	//PARAM_UINT64,   // De 0 a 18.446.744.073.709.551.615  (8 bytes)
+	PARAM_LINT,	 // -9.223.372.036.854.775.807 a 9.223.372.036.854.775.807 (8 bytes)
 
 	PARAM_CHAR,
 
@@ -512,6 +508,16 @@ public:
 	Value_INT() {}
 	Value_INT(int a) : value(a) {}
 	virtual Value * Clone() { return new Value_INT(*this); }
+};
+
+class Value_LINT : public Value
+{
+public:
+	long long value = 0;
+	virtual tipos_parametros getTypeValue() { return PARAM_LINT; };
+	Value_LINT() {}
+	Value_LINT(long long a) : value(a) {}
+	virtual Value * Clone() { return new Value_LINT(*this); }
 };
 
 class Value_STRING : public Value

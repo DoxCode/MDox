@@ -79,9 +79,15 @@ Parser_Literal * Parser::getLiteral(int& local_index)
 		else
 		{
 			//Se trata de un ENTERO
-			int value = std::stoi(token);
+			long long value = std::stoll(token);
 			if (negativo) value = -value;
-			Value_INT * LS = new Value_INT(value);
+
+			Value * LS;
+			if(value > INT_MAX)
+				LS = new Value_LINT(value);
+			else
+				LS = new Value_INT(value);
+
 			local_index = index;
 			Parser_Literal * sif = new Parser_Literal(LS);
 			sif->generarPosicion(&tokenizer);
@@ -133,6 +139,12 @@ Parser_Declarativo * Parser::getDeclarativo(int& local_index)
 	else if (token == "int")
 	{
 		Declarativo_SingleValue * p = new Declarativo_SingleValue(PARAM_INT);
+		local_index = index;
+		return new Parser_Declarativo(DEC_SINGLE, p);
+	}
+	else if (token == "lint")
+	{
+		Declarativo_SingleValue * p = new Declarativo_SingleValue(PARAM_LINT);
 		local_index = index;
 		return new Parser_Declarativo(DEC_SINGLE, p);
 	}

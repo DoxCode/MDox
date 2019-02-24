@@ -183,6 +183,12 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 						std::cout << "void";
 						break;
 					}
+					case PARAM_LINT:
+					{
+						Value_LINT * x = static_cast<Value_LINT*>(v);
+						std::cout << x->value;
+						break;
+					}
 					case PARAM_INT:
 					{
 						Value_INT * x = static_cast<Value_INT*>(v);
@@ -403,6 +409,18 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 					}
 					return true;
 				}
+				else if (v1->valor->getTypeValue() == PARAM_LINT)
+				{
+					Value_LINT * x3 = static_cast<Value_LINT*>(v1->valor);
+					Value * xR = new Value_LINT(x3->value + 1);
+
+					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
+					{
+						delete xR;
+						return false;
+					}
+					return true;
+				}
 				else if (v1->valor->getTypeValue() == PARAM_DOUBLE)
 				{
 					Value_DOUBLE * x3 = static_cast<Value_DOUBLE*>(v1->valor);
@@ -434,6 +452,18 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 				{
 					Value_INT * x3 = static_cast<Value_INT*>(v1->valor);
 					Value * xR = new Value_INT(x3->value - 1);
+
+					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
+					{
+						delete xR;
+						return false;
+					}
+					return true;
+				}
+				else if (v1->valor->getTypeValue() == PARAM_LINT)
+				{
+					Value_LINT * x3 = static_cast<Value_LINT*>(v1->valor);
+					Value * xR = new Value_LINT(x3->value - 1);
 
 					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
 					{
@@ -919,9 +949,41 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 			deletePtr(*val2);
 			return true;
 		}
+		else if ((*val2)->getTypeValue() == PARAM_LINT)
+		{
+			Value_INT * xVar = static_cast<Value_INT*>(val1);
+			Value_LINT * xVal = static_cast<Value_LINT*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
 		else
 		{
 				Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, outData, nombre);
+			return false;
+		}
+	}
+	case PARAM_LINT:
+	{
+		if ((*val2)->getTypeValue() == PARAM_INT)
+		{
+			Value_LINT * xVar = static_cast<Value_LINT*>(val1);
+			Value_INT * xVal = static_cast<Value_INT*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else if ((*val2)->getTypeValue() == PARAM_LINT)
+		{
+			Value_LINT * xVar = static_cast<Value_LINT*>(val1);
+			Value_LINT * xVal = static_cast<Value_LINT*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else
+		{
+			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, outData, nombre);
 			return false;
 		}
 	}
@@ -931,6 +993,14 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 		{
 			Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(val1);
 			Value_INT * xVal = static_cast<Value_INT*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else if ((*val2)->getTypeValue() == PARAM_LINT)
+		{
+			Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(val1);
+			Value_LINT * xVal = static_cast<Value_LINT*>(*val2);
 			xVar->value = xVal->value;
 			deletePtr(*val2);
 			return true;
@@ -980,6 +1050,14 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 		{
 			Value_BOOL * xVar = static_cast<Value_BOOL*>(val1);
 			Value_INT * xVal = static_cast<Value_INT*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else if ((*val2)->getTypeValue() == PARAM_LINT)
+		{
+			Value_BOOL * xVar = static_cast<Value_BOOL*>(val1);
+			Value_LINT * xVal = static_cast<Value_LINT*>(*val2);
 			xVar->value = xVal->value;
 			deletePtr(*val2);
 			return true;
@@ -1045,6 +1123,22 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, OPERADORES acc
 				break;
 			}
 
+			case PARAM_LINT:
+			{
+				Value_LINT * x2 = static_cast<Value_LINT*>(value2);
+
+				switch (accion)
+				{
+				case OP_REL_EQUAL: if (x1->value == x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_NOT_EQUAL:  if (x1->value != x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR:  if (x1->value < x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR:  if (x1->value > x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				}
+				break;
+			}
+
 			case PARAM_DOUBLE:
 			{
 				Value_DOUBLE * x2 = static_cast<Value_DOUBLE*>(value2);
@@ -1086,6 +1180,84 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, OPERADORES acc
 		}
 	}
 
+	case PARAM_LINT:
+	{
+		Value_LINT * x1 = static_cast<Value_LINT*>(value1);
+		switch (value2->getTypeValue())
+		{
+		case PARAM_INT:
+		{
+			Value_INT * x2 = static_cast<Value_INT*>(value2);
+
+			switch (accion)
+			{
+			case OP_REL_EQUAL: if (x1->value == x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_NOT_EQUAL:  if (x1->value != x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MINOR:  if (x1->value < x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MAJOR:  if (x1->value > x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			}
+			break;
+		}
+
+		case PARAM_LINT:
+		{
+			Value_LINT * x2 = static_cast<Value_LINT*>(value2);
+
+			switch (accion)
+			{
+			case OP_REL_EQUAL: if (x1->value == x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_NOT_EQUAL:  if (x1->value != x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MINOR:  if (x1->value < x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MAJOR:  if (x1->value > x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			}
+			break;
+		}
+
+		case PARAM_DOUBLE:
+		{
+			Value_DOUBLE * x2 = static_cast<Value_DOUBLE*>(value2);
+
+			switch (accion)
+			{
+			case OP_REL_EQUAL: if (x1->value == x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_NOT_EQUAL:  if (x1->value != x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MINOR:  if (x1->value < x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MAJOR:  if (x1->value > x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			}
+			break;
+		}
+
+		case PARAM_STRING:
+		{
+			//Value_STRING * x2 = static_cast<Value_STRING*>(value2);
+
+			Errores::generarError(Errores::ERROR_COMPARACION_INT_STRING, outData);
+			return NULL;
+		}
+
+		case PARAM_BOOL:
+		{
+			Value_BOOL * x2 = static_cast<Value_BOOL*>(value2);
+			switch (accion)
+			{
+			case OP_REL_EQUAL: if (x1->value == x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_NOT_EQUAL:  if (x1->value != x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MINOR:  if (x1->value < x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+			}
+			break;
+		}
+		}
+	}
+
 	case PARAM_DOUBLE:
 	{
 		Value_DOUBLE * x1 = static_cast<Value_DOUBLE*>(value1);
@@ -1103,6 +1275,22 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, OPERADORES acc
 				case OP_REL_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				}
+				break;
+			}
+
+			case PARAM_LINT:
+			{
+				Value_LINT * x2 = static_cast<Value_LINT*>(value2);
+
+				switch (accion)
+				{
+				case OP_REL_EQUAL: if (x1->value == x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_NOT_EQUAL:  if (x1->value != x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR:  if (x1->value < x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR:  if (x1->value > x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
 				}
 				break;
 			}
@@ -1153,6 +1341,7 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, OPERADORES acc
 		Value_STRING * x1 = static_cast<Value_STRING*>(value1);
 		switch (value2->getTypeValue())
 		{
+		case PARAM_LINT:
 		case PARAM_INT:
 		{
 			Errores::generarError(Errores::ERROR_COMPARACION_INT_STRING, outData);
@@ -1206,6 +1395,22 @@ Value_BOOL *  Interprete::CondicionalDeDosValores(Value * value1, OPERADORES acc
 				case OP_REL_MAJOR:  if (x1->value > x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
 				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value) return new Value_BOOL(true); else return new Value_BOOL(false);
+				}
+				break;
+			}
+
+			case PARAM_LINT:
+			{
+				Value_LINT * x2 = static_cast<Value_LINT*>(value2);
+
+				switch (accion)
+				{
+				case OP_REL_EQUAL: if (x1->value == x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_NOT_EQUAL:  if (x1->value != x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR:  if (x1->value < x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR:  if (x1->value > x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MINOR_OR_EQUAL:  if (x1->value <= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
+				case OP_REL_MAJOR_OR_EQUAL:  if (x1->value >= x2->value)  return new Value_BOOL(true); else return new Value_BOOL(false);
 				}
 				break;
 			}
@@ -1293,6 +1498,22 @@ Value * Interprete::OperacionSobreValores(Value * value1, OPERADORES accion, Val
 					return NULL;
 				}
 
+				case PARAM_LINT:
+				{
+					Value_LINT * x2 = static_cast<Value_LINT*>(value2);
+
+					switch (accion)
+					{
+					case OP_ARIT_SUMA: return new Value_LINT(x1->value + x2->value);
+					case OP_ARIT_RESTA: return new Value_LINT(x1->value - x2->value);
+					case OP_ARIT_MULT: return new Value_LINT(x1->value * x2->value);
+					case OP_ARIT_DIV_ENTERA: return new Value_LINT(((int)x1->value) / x2->value);
+					case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
+					case OP_ARIT_MOD: return new Value_LINT(x1->value % x2->value);
+					}
+					return NULL;
+				}
+
 				case PARAM_DOUBLE:
 				{
 					Value_DOUBLE * x2 = static_cast<Value_DOUBLE*>(value2);
@@ -1345,6 +1566,96 @@ Value * Interprete::OperacionSobreValores(Value * value1, OPERADORES accion, Val
 			break;
 		}
 
+		case PARAM_LINT:
+		{
+			Value_LINT * x1 = static_cast<Value_LINT*>(value1);
+
+			switch (value2->getTypeValue())
+			{
+			case PARAM_INT:
+			{
+				Value_INT * x2 = static_cast<Value_INT*>(value2);
+
+				switch (accion)
+				{
+				case OP_ARIT_SUMA: return new Value_LINT(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_LINT(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_LINT(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_LINT(((int)x1->value) / x2->value);
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
+				case OP_ARIT_MOD: return new Value_LINT(x1->value % x2->value);
+				}
+				return NULL;
+			}
+
+			case PARAM_LINT:
+			{
+				Value_LINT * x2 = static_cast<Value_LINT*>(value2);
+
+				switch (accion)
+				{
+				case OP_ARIT_SUMA: return new Value_LINT(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_LINT(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_LINT(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_LINT(((int)x1->value) / x2->value);
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
+				case OP_ARIT_MOD: return new Value_LINT(x1->value % x2->value);
+				}
+				return NULL;
+			}
+
+			case PARAM_DOUBLE:
+			{
+				Value_DOUBLE * x2 = static_cast<Value_DOUBLE*>(value2);
+
+				switch (accion)
+				{
+				case OP_ARIT_SUMA: return new Value_DOUBLE(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_DOUBLE(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_DOUBLE(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_LINT(((int)x1->value) / x2->value);
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / x2->value);
+				case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData); return NULL;
+				}
+
+				return NULL;
+			}
+
+			case PARAM_STRING:
+			{
+				Value_STRING * x2 = static_cast<Value_STRING*>(value2);
+
+				switch (accion)
+				{
+				case OP_ARIT_SUMA: return new Value_STRING(std::to_string(x1->value) + x2->value);
+				case OP_ARIT_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+				case OP_ARIT_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+				case OP_ARIT_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+				case OP_ARIT_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+				case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
+				}
+
+				return NULL;
+			}
+			case PARAM_BOOL:
+			{
+				Value_BOOL * x2 = static_cast<Value_BOOL*>(value2);
+
+				switch (accion)
+				{
+				case OP_ARIT_SUMA: return new Value_LINT(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_LINT(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_LINT(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_LINT(((int)x1->value) / x2->value);
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
+				case OP_ARIT_MOD: return new Value_LINT(x1->value % x2->value);
+				}
+				return NULL;
+			}
+			}
+			break;
+		}
+
 		case PARAM_DOUBLE:
 		{
 			Value_DOUBLE * x1 = static_cast<Value_DOUBLE*>(value1);
@@ -1363,6 +1674,22 @@ Value * Interprete::OperacionSobreValores(Value * value1, OPERADORES accion, Val
 				case OP_ARIT_DIV_ENTERA: return new Value_INT((int)(x1->value / x2->value));
 				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / x2->value);
 
+				case OP_ARIT_MOD:  Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData);  return NULL;
+				}
+				return NULL;
+			}
+
+			case PARAM_LINT:
+			{
+				Value_LINT * x2 = static_cast<Value_LINT*>(value2);
+
+				switch (accion)
+				{
+				case OP_ARIT_SUMA: return new Value_DOUBLE(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_DOUBLE(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_DOUBLE(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_LINT(((int)x1->value) / x2->value);
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
 				case OP_ARIT_MOD:  Errores::generarError(Errores::ERROR_MOD_SOLO_ENTERO, outData);  return NULL;
 				}
 				return NULL;
@@ -1429,6 +1756,22 @@ Value * Interprete::OperacionSobreValores(Value * value1, OPERADORES accion, Val
 				case PARAM_INT:
 				{
 					Value_INT * x2 = static_cast<Value_INT*>(value2);
+
+					switch (accion)
+					{
+					case OP_ARIT_SUMA: return new Value_STRING(x1->value + std::to_string(x2->value));
+					case OP_ARIT_RESTA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "-"); return NULL;
+					case OP_ARIT_MULT: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "*"); return NULL;
+					case OP_ARIT_DIV_ENTERA: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "div"); return NULL;
+					case OP_ARIT_DIV: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "/"); return NULL;
+					case OP_ARIT_MOD: Errores::generarError(Errores::ERROR_MATH_STRING, outData, "%"); return NULL;
+					}
+					return NULL;
+				}
+
+				case PARAM_LINT:
+				{
+					Value_LINT * x2 = static_cast<Value_LINT*>(value2);
 
 					switch (accion)
 					{
@@ -1516,6 +1859,22 @@ Value * Interprete::OperacionSobreValores(Value * value1, OPERADORES accion, Val
 				return NULL;
 			}
 
+			case PARAM_LINT:
+			{
+				Value_LINT * x2 = static_cast<Value_LINT*>(value2);
+
+				switch (accion)
+				{
+				case OP_ARIT_SUMA: return new Value_LINT(x1->value + x2->value);
+				case OP_ARIT_RESTA: return new Value_LINT(x1->value - x2->value);
+				case OP_ARIT_MULT: return new Value_LINT(x1->value * x2->value);
+				case OP_ARIT_DIV_ENTERA: return new Value_LINT(((int)x1->value) / x2->value);
+				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
+				case OP_ARIT_MOD: return new Value_LINT(x1->value % x2->value);
+				}
+				return NULL;
+			}
+
 			case PARAM_DOUBLE:
 			{
 				Value_DOUBLE * x2 = static_cast<Value_DOUBLE*>(value2);
@@ -1587,6 +1946,17 @@ bool Interprete::ConversionXtoBool(Value * valOp)
 	case PARAM_INT:
 	{
 		Value_INT * xIn = static_cast<Value_INT*>(valOp);
+
+
+		if (xIn->value)
+			return true;
+		else
+			return false;
+	}
+
+	case PARAM_LINT:
+	{
+		Value_LINT * xIn = static_cast<Value_LINT*>(valOp);
 
 
 		if (xIn->value)
@@ -1963,6 +2333,10 @@ Value* Interprete::Transformar_Declarativo_Value(Parser_Declarativo * dec)
 			case PARAM_INT:
 			{
 				return new Value_INT();
+			}
+			case PARAM_LINT:
+			{
+				return new Value_LINT();
 			}
 			case PARAM_STRING:
 			{
