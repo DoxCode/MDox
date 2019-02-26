@@ -180,17 +180,19 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 				{
 					case PARAM_VOID:
 					{
-						std::cout << "void";
+					//	std::cout << "void";
 						break;
 					}
 					case PARAM_LINT:
 					{
+						std::cout << "lint";
 						Value_LINT * x = static_cast<Value_LINT*>(v);
 						std::cout << x->value;
 						break;
 					}
 					case PARAM_INT:
 					{
+						std::cout << "int";
 						Value_INT * x = static_cast<Value_INT*>(v);
 						std::cout << x->value;
 						break;
@@ -1488,12 +1490,37 @@ Value * Interprete::OperacionSobreValores(Value * value1, OPERADORES accion, Val
 
 					switch (accion)
 					{
-					case OP_ARIT_SUMA: return new Value_INT(x1->value + x2->value);
-					case OP_ARIT_RESTA: return new Value_INT(x1->value - x2->value);
-					case OP_ARIT_MULT: return new Value_INT(x1->value * x2->value);
-					case OP_ARIT_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
-					case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
-					case OP_ARIT_MOD: return new Value_INT(x1->value % x2->value);
+						case OP_ARIT_SUMA: 
+						{ 
+							int t = x1->value + x2->value; 
+							if (addOvf(&t, x1->value, x2->value))
+							{
+								Value_LINT * v = new Value_LINT((long long)x1->value + x2->value);
+								return v;
+							}
+							return new Value_INT(t); 
+						}
+						case OP_ARIT_RESTA:
+						{
+							int t = x1->value - x2->value;
+							if (minOvf(&t, x1->value, x2->value))
+							{
+								return new Value_LINT((long long)x1->value - x2->value);
+							}
+							return new Value_INT(t);
+						}
+						case OP_ARIT_MULT:
+						{
+							int t = x1->value * x2->value;
+							if (minOvf(&t, x1->value, x2->value))
+							{
+								return new Value_LINT((long long)x1->value * x2->value);
+							}
+							return new Value_INT(t);
+						}
+						case OP_ARIT_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
+						case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
+						case OP_ARIT_MOD: return new Value_INT(x1->value % x2->value);
 					}
 					return NULL;
 				}
@@ -1849,9 +1876,34 @@ Value * Interprete::OperacionSobreValores(Value * value1, OPERADORES accion, Val
 
 				switch (accion)
 				{
-				case OP_ARIT_SUMA: return new Value_INT(x1->value + x2->value);
-				case OP_ARIT_RESTA: return new Value_INT(x1->value - x2->value);
-				case OP_ARIT_MULT: return new Value_INT(x1->value * x2->value);
+				case OP_ARIT_SUMA:
+				{
+					int t = x1->value + x2->value;
+					if (addOvf(&t, x1->value, x2->value))
+					{
+						Value_LINT * v = new Value_LINT(x1->value + (long long)x2->value);
+						return v;
+					}
+					return new Value_INT(t);
+				}
+				case OP_ARIT_RESTA:
+				{
+					int t = x1->value - x2->value;
+					if (minOvf(&t, x1->value, x2->value))
+					{
+						return new Value_LINT(x1->value - (long long)x2->value);
+					}
+					return new Value_INT(t);
+				}
+				case OP_ARIT_MULT:
+				{
+					int t = x1->value * x2->value;
+					if (minOvf(&t, x1->value, x2->value))
+					{
+						return new Value_LINT(x1->value * (long long)x2->value);
+					}
+					return new Value_INT(t);
+				}
 				case OP_ARIT_DIV_ENTERA: return new Value_INT(((int)x1->value) / x2->value);
 				case OP_ARIT_DIV:  return new Value_DOUBLE(x1->value / ((double)x2->value));
 				case OP_ARIT_MOD: return new Value_INT(x1->value % x2->value);

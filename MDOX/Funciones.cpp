@@ -204,4 +204,31 @@ bool is_Identificador(const std::string & s)
 	return false;
 }
 
+//Para evitar el overflow en enteros por sumas
+bool addOvf(int* result, int a, int b)
+{
+	if (a > 0 && b > 0 && *result < 0)
+		return true;
+	if (a < 0 && b < 0 && *result > 0)
+		return true;
+	return false;
+}
+//Para evitar el overflow en enteros por restas (a-b)
+bool minOvf(int* result, int a, int b)
+{	
+	return addOvf(result, a, -b);
+}
 
+//Para evitar el overflow en enteros por sumas
+bool multOvf(int* result, int a, int b)
+{
+	if (a > 0 && b > 0 && *result < 0)
+		return true;
+	if (a < 0 && b < 0 && *result < 0)
+		return true;
+	if (a < 0 && b > 0 && *result > 0)
+		return true;
+	if (a > 0 && b < 0 && *result > 0)
+		return true;
+	return false;
+}

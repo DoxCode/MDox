@@ -21,5 +21,8 @@ bool is_number(const std::string& s);
 bool is_Identificador(const std::string & s);
 std::string getAbsolutePathFromRelative(std::string path);
 std::string getFileNameAndExt(std::string s);
+bool addOvf(int*, int, int);
+bool minOvf(int*, int, int);
+bool multOvf(int*, int, int);
 
 #endif

@@ -2,6 +2,7 @@
 #define INTERPRETE_H
 
 //
+#include "../MDOX/Funciones.h"
 #include "../MDOX/Estructuras.h"
 #include "../MDOX/Errores.h"
 #include "../MDOX/Parser.h"
