@@ -185,14 +185,12 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 					}
 					case PARAM_LINT:
 					{
-						std::cout << "lint";
 						Value_LINT * x = static_cast<Value_LINT*>(v);
 						std::cout << x->value;
 						break;
 					}
 					case PARAM_INT:
 					{
-						std::cout << "int";
 						Value_INT * x = static_cast<Value_INT*>(v);
 						std::cout << x->value;
 						break;
