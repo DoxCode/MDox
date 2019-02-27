@@ -725,8 +725,10 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 						break;
 					}
 
+					Errores::saltarErrores = true;
 					//Comprobamos el valor de entrada con el operacional.
 					Value_BOOL * _Cond = CondicionalDeDosValores(valor_operacion, OP_REL_EQUAL, xCallEnt->entradas->at(ent_itr), &xOperacion->parametros);
+					Errores::saltarErrores = false;
 
 					//De no poder convertir la operación correctamente, nos saltamos esta función. Pues no es posible realizarla.
 					if (_Cond == NULL)
@@ -758,7 +760,6 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 
 					//Si el parametro es DECLARATIVO + ID, es decir algo como: "int x"
 					// se tratará siempre de una VARIABLE LOCAL de la función, que se debe pasar al llamar a la función.
-
 					// SE producirá UN ERROR: Si dicha variable ya fue declarada.
 					if (xParametro->tipo == PRM_DECLARATIVO_ID)
 					{
@@ -774,11 +775,14 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 						Variable * _var = new Variable(_xParID->pID->nombre, v, true);
 						_var->deep = deep;
 
+						Errores::saltarErrores = true; //Saltamos errores, solo necesitamos saber si es correcto o no.
 						if (!EstablecerVariable(_var, &(xCallEnt->entradas->at(ent_itr)), &_xParID->pID->parametros))
 						{
-							forzar_salida = true;
+							correcto = false;
+							Errores::saltarErrores = false;
 							break;
 						}
+						Errores::saltarErrores = false;
 
 						variablesEntorno.push_back(_var);
 					}

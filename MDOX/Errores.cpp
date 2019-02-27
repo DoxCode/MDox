@@ -1,5 +1,7 @@
 #include "Errores.h"
 
+bool Errores::saltarErrores;
+
 void Errores::generarCabeceraError(OutData_Parametros * node, int numero_error, Errores::ERROR_TYPE tipo)
 {
 	int linea = node->linea;
@@ -30,10 +32,19 @@ void Errores::generarCabeceraError(OutData_Parametros * node, int numero_error, 
 
 void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node, std::string value, std::string value2)
 {
+	if (Errores::saltarErrores)
+		return;
+
 	Errores::ERROR_TYPE tipo = Errores::TY_ERROR;
 
 	switch (error)
 	{
+		
+	case Errores::ERROR_MAIN_NO_ENCONTRADO:
+		std::cout << "ERROR: 10. ";
+		std::cout << "No se ha encontrado la función de inicio del programa <main>.\n";
+		break;
+
 	case Errores::ERROR_FUNCION_PARAMETRO_OPERACION_INVALIDA:
 		Errores::generarCabeceraError(node, 4001, tipo);
 		std::cout << "Se ha introducido un parámetro inválido en la función " << value << ". \n";
@@ -138,6 +149,23 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		Errores::generarCabeceraError(node, 4004, tipo);
 		std::cout << "Se encontró un error operacional en la función '" << value << "' por lo que no pudo ser declarada. \n ";
 		break;
+
+	case Errores::ERROR_INCREMENTO_VARIABLE_DESCONOCIDA:
+		Errores::generarCabeceraError(node, 2007, tipo);
+		std::cout << "Se está intentando incrementar la variable '" << value << "', que nunca ha sido declarada. \n ";
+		break;
+
+
+	case Errores::ERROR_DECREMENTO_VARIABLE_DESCONOCIDA:
+		Errores::generarCabeceraError(node, 2007, tipo);
+		std::cout << "Se está intentando decrementar la variable '" << value << "', que nunca ha sido declarada. \n ";
+		break;
+
+	case Errores::ERROR_INC_DEC_VARIABLE_INVALIDA:
+		Errores::generarCabeceraError(node, 2008, tipo);
+		std::cout << "Se está intentando incrementar o decrementar la variable '" << value << "', pero no es de un tipo adecuado. Debe tener valor númerico. \n ";
+		break;
+
 
 		
 

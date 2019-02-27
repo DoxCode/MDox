@@ -6,11 +6,13 @@
 #include <list>
 #include <tuple>
 #include <iostream>
+
 #include "Parser.h"
 
 class Errores
 {
 	public:
+
 		enum ERROR_TYPE {
 			TY_ERROR,
 			TY_WARNING,
@@ -18,6 +20,9 @@ class Errores
 		};
 
 		enum NUM_ERRORES {
+
+			ERROR_MAIN_NO_ENCONTRADO, //Error 0010
+
 			ERROR_DE_SINTAXIS, // Error 1001
 
 			ERROR_VARIABLE_NO_EXISTE, // Error 2001
@@ -31,6 +36,9 @@ class Errores
 			ERROR_COMPARACION_REAL_STRING, //Error 2005
 			ERROR_COMPARACION_BOOL_STRING, //Error 2005
 			ERROR_COMPARACION_DESCONOCIDO,	// Error 2006
+			ERROR_INCREMENTO_VARIABLE_DESCONOCIDA,	// Error 2007
+			ERROR_DECREMENTO_VARIABLE_DESCONOCIDA,	// Error 2007
+			ERROR_INC_DEC_VARIABLE_INVALIDA,	// Error 2008
 
 			//Operaciones matemáticas
 			ERROR_OPERACION_INVALIDA_VOID, //Error 2007
@@ -51,6 +59,7 @@ class Errores
 			WARNING_VARIABLE_YA_DECLARADA, // Warning 2001
 		};
 
+	 static bool saltarErrores;
      static void generarError(Errores::NUM_ERRORES error, OutData_Parametros * node, std::string value = "", std::string value2 = "");
 	 static void generarWarning(Errores::NUM_WARNING error, OutData_Parametros * node, std::string value = "", std::string value2 = "");
 
