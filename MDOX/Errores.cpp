@@ -165,7 +165,10 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		Errores::generarCabeceraError(node, 2008, tipo);
 		std::cout << "Se está intentando incrementar o decrementar la variable '" << value << "', pero no es de un tipo adecuado. Debe tener valor númerico. \n ";
 		break;
-
+	case Errores::ERROR_FUNCION_IMPOSIBLE_RECUPERAR_FECHA:
+		Errores::generarCabeceraError(node, 4005, tipo);
+		std::cout << "Error desconocido. No se ha podido obtener la fecha actual. \n ";
+		break;
 
 		
 

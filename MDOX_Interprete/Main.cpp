@@ -14,7 +14,9 @@ int main()
 	std::cout << "Bienvenido a MDOX, version " << VERSION << "(" << ESTADO << ") \n";
 	std::cout << "Copyright (c) 2018-2019 Rodrigo de Miguel Fernández. Universidad de Salamanca. \n";
 	std::cout << "MDOX es un software gratuito y SIN GARANTIAS, eres libre de distribuirlo. \n";
+	//std::cout << "RUTA: " << getAbsolutePathFromRelative("MDOX_Interprete.ilk") << "\n";
 
+	Core::Start();
 	Iniciar_Interprete();
 	return 0;
 }

@@ -1,11 +1,12 @@
 #ifndef INTERPRETE_H
 #define INTERPRETE_H
 
-//
+#include "Interprete_Core.h"
 #include "../MDOX/Funciones.h"
 #include "../MDOX/Estructuras.h"
 #include "../MDOX/Errores.h"
 #include "../MDOX/Parser.h"
+#include <iostream>
 #include <math.h>  
 
 class OperacionComp
@@ -68,10 +69,13 @@ public:
 	}
 };
 
+
 class Interprete {
 private:
 	Value * _retorno = NULL;
 public:
+	 static Interprete * instance;
+
 	std::vector<Fichero*> nombre_ficheros; //Nombre de ficheros cargados en la instancia actual del interprete.
 
 	std::vector<Parser_Funcion*> funciones;
@@ -103,6 +107,13 @@ public:
 	bool ValueConversion(Value * val1, Value ** val2, OutData_Parametros * outData, std::string nombre);
 	bool GestionarOperacionesPorPrioridad(Parser_Operacion * pOp, std::vector<OperacionComp*>* componente, std::vector<OPERADORES> * operators, OPERADORES_TIPOS op);
 	Value_BOOL *  CondicionalLogico(Value * value1, OPERADORES accion, Value * value2);
+	bool ValueToConsole(Value * v);
+	Value * FuncionCore(std::string, OutData_Parametros*, Interprete_Funcion_Entradas*);
+
+	Interprete()
+	{
+		Interprete::instance = this;
+	}
 
    ~Interprete() 
     {
@@ -114,5 +125,7 @@ public:
 	};
 
 };
+
+//Interprete * Interprete::instance;
 
 #endif

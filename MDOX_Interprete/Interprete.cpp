@@ -3,6 +3,8 @@
 #include "../MDOX/Errores.cpp"
 #include "../MDOX/Parser.cpp"
 
+Interprete * Interprete::instance;
+
 bool Interprete::CargarDatos(Parser* parser)
 {
 	//Borramos la lista de funciones existentes actualmente.
@@ -164,7 +166,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 
 			return true;
 		}
-		// FUNCION PRINT:
+		// FUNCION SALIDA DATOS :
 		// Permite escribir por consola un valor dado.
 		case SENT_PRINT:
 		{
@@ -172,54 +174,13 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 			Value * v = Operaciones(x->pOp, variables);
 
 			if (!v)
-				Errores::generarError(Errores::ERROR_FUNCION_PARAMETRO_OPERACION_INVALIDA, &x->parametros, "print");
+				Errores::generarError(Errores::ERROR_FUNCION_PARAMETRO_OPERACION_INVALIDA, &x->parametros, "<::");
 
 			if (v)
 			{
-				switch (v->getTypeValue())
-				{
-					case PARAM_VOID:
-					{
-					//	std::cout << "void";
-						break;
-					}
-					case PARAM_LINT:
-					{
-						Value_LINT * x = static_cast<Value_LINT*>(v);
-						std::cout << x->value;
-						break;
-					}
-					case PARAM_INT:
-					{
-						Value_INT * x = static_cast<Value_INT*>(v);
-						std::cout << x->value;
-						break;
-					}
-					case PARAM_STRING:
-					{
-						Value_STRING * x = static_cast<Value_STRING*>(v);
-						ReplaceAll(x->value, "\\n", "\n");
-						std::cout << x->value;
-						break;
-					}
-					case PARAM_DOUBLE:
-					{
-						Value_DOUBLE * x = static_cast<Value_DOUBLE*>(v);
-						std::cout << x->value;
-						break;
-					}
-					case PARAM_BOOL:
-					{
-						Value_BOOL * x = static_cast<Value_BOOL*>(v);
-						std::cout << x->value;
-						break;
-					}
-					default:
-						std::cout << v;
-				}
-
+				bool b = ValueToConsole(v);
 				delete v;
-				return true;
+				return b;
 			}
 			else
 				return false;
@@ -382,6 +343,52 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 
 }
 
+bool Interprete::ValueToConsole(Value * v)
+{
+		switch (v->getTypeValue())
+		{
+		case PARAM_VOID:
+		{
+			//	std::cout << "void";
+			break;
+		}
+		case PARAM_LINT:
+		{
+			Value_LINT * x = static_cast<Value_LINT*>(v);
+			std::cout << x->value;
+			break;
+		}
+		case PARAM_INT:
+		{
+			Value_INT * x = static_cast<Value_INT*>(v);
+			std::cout << x->value;
+			break;
+		}
+		case PARAM_STRING:
+		{
+			Value_STRING * x = static_cast<Value_STRING*>(v);
+			ReplaceAll(x->value, "\\n", "\n");
+			std::cout << x->value;
+			break;
+		}
+		case PARAM_DOUBLE:
+		{
+			Value_DOUBLE * x = static_cast<Value_DOUBLE*>(v);
+			std::cout << x->value;
+			break;
+		}
+		case PARAM_BOOL:
+		{
+			Value_BOOL * x = static_cast<Value_BOOL*>(v);
+			std::cout << x->value;
+			break;
+		}
+		default:
+			std::cout << v;
+		}
+		return true;
+}
+
 
 
 //Establece una operación, una operación puede ser el incremento/decremento de una variable o una operación matemática
@@ -516,7 +523,7 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 
 	return false;
 }
-
+//
 bool Interprete::EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*> * variables)
 {
 	Variable * var = Interprete_NuevaVariable(pIg->param, variables, true);
@@ -525,30 +532,6 @@ bool Interprete::EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*
 	{
 		if (pIg->cond)
 		{
-			//TODO BORRAR
-			/*if (pIg->cond->tipo == COND_OP)
-			{
-				Condicional_Operacion * xOp = static_cast<Condicional_Operacion*>(pIg->cond);
-				if (xOp->ca == NULL && xOp->adicional_ops == NULL)
-				{
-					Value * v = Operaciones(xOp->op1, variables);
-
-					if (v == NULL)
-					{
-						delete v;
-						return false;
-					}
-
-					if (!EstablecerVariable(var, &v, &pIg->parametros))
-					{
-						delete v;
-						return false;
-					}
-					delete v;
-					return true;
-				}
-			}*/
-
 			Value * v_bol = Operaciones(pIg->cond, variables);
 
 			if (v_bol == NULL)
@@ -647,6 +630,43 @@ Variable* Interprete::BusquedaVariable(std::string ID, std::vector<Variable*> * 
 	return NULL;
 }
 
+
+Value * Interprete::FuncionCore(std::string ID, OutData_Parametros * params, Interprete_Funcion_Entradas * xCall)
+{
+	for (std::vector<Core_Function*>::iterator funcion = Core::core_functions.begin(); funcion != Core::core_functions.end(); ++funcion)
+	{
+		if ((*funcion)->nombre == ID)
+		{
+			if ((*funcion)->entradas.size() != xCall->entradas->size())
+				continue;
+			
+			bool is_ok = true;
+			for (unsigned ent_itr = 0; ent_itr < xCall->entradas->size(); ent_itr++)
+			{
+				if (xCall->entradas->at(ent_itr)->getTypeValue() != (*funcion)->entradas.at(ent_itr) && (*funcion)->entradas.at(ent_itr) != PARAM_VOID)
+				{
+					is_ok = false;
+					break;
+				}
+			}
+
+			if (!is_ok)
+				continue;
+
+			Core_Function_Interprete * funcionInterprete = static_cast<Core_Function_Interprete*>(*funcion);
+			Value * ret = funcionInterprete->funcion_exec(xCall->entradas, params);
+
+			if (ret == NULL)
+				break;
+
+			return ret;
+		}
+	}
+
+	return NULL;
+}
+
+
 // Ejecuta la función dentro del ENTORNO. Es decir, se trata de una función que NO está fuera del entorno de llamada. (Es decir, no forma parte de una clase diferente)
 // Las variables a las cuales tiene acceso esta función, serán las variables del entorno propio, es decir VARIABLES GLOBALES, variables declaradas a nivel de main.
 Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vector<Variable*> * variablesActuales /*Variables del entorno anterior*/ )
@@ -681,6 +701,22 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 		return NULL;
 	}
 
+	//Normalmente "Interprete_Funcion_Entradas" lo creamos para poder borrarlo con mayor facilidad.
+	Interprete_Funcion_Entradas * xCallEnt = new Interprete_Funcion_Entradas(vec_func);
+
+	// ------------ Tipos de Funciones  ------------
+	// **** Comenzamos probando si se trata de una función del core del lenguaje.
+	Value * _coreValue = this->FuncionCore(ID, &xFunc->parametros, xCallEnt);
+
+	if (_coreValue != NULL)
+	{
+		delete xCallEnt;
+		return _coreValue;
+	}
+
+
+	// **** EN EL CASO de que no se encontrara ninguna función core, vamos con las normales:
+
 	std::vector<Variable*> variablesPublicas;
 	//Tomamos 
 	for (std::vector<Variable*>::iterator it = variablesActuales->begin(); it != variablesActuales->end(); ++it)
@@ -689,7 +725,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 			variablesPublicas.push_back((*it));
 	}
 
-	Interprete_Funcion_Entradas * xCallEnt = new Interprete_Funcion_Entradas(vec_func);
+
 
 	//De entre todas las funciones declaradas, buscamos la que realmente se está llamando.
 	for (std::vector<Parser_Funcion*>::iterator funcion = funciones.begin(); funcion != funciones.end(); ++funcion)
@@ -1092,7 +1128,8 @@ bool Interprete::EstablecerVariable(Variable * var, Value ** value, OutData_Para
 		if (!var->fuerte)
 		{
 			deletePtr(var->valor);
-			var->valor = (*value)->Clone(); 
+			var->valor = (*value);
+
 			return true;
 		}
 
@@ -2165,7 +2202,7 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 				Valor_Funcion * xFunc = static_cast<Valor_Funcion*>(x->op1);
 
 
-				//Aquí habría que poner una opción para cuando se trate de modo: prolog.
+				//Aquí habría que poner una opción para cuando se trate de modo: backtracking.
 				Value * _resFunc = ExecFuncion(xFunc->ID->nombre, xFunc, variables);
 
 				if (_resFunc == NULL)

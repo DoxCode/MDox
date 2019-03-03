@@ -53,6 +53,35 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 				continue;
 			}
 
+			//TOKENIZER:: operaciones con 3 caracteres
+			if (itr + 2 < (*it)->val.size())
+			{
+				const char c2 = (*it)->val.at(itr + 1);
+				const char c3 = (*it)->val.at(itr + 2);
+
+				if (
+					(c == '<' && c2 == ':' && c3 == ':') ||
+					(c == ':' && c2 == ':' && c3 == '>')
+					)
+				{
+		
+					if (val.size() > 0)
+					{
+						tokens.push_back(new Token((*it)->linea, itr, val));
+						val = "";
+					}
+
+					std::string chr(1, c);
+					chr += c2;
+					chr += c3;
+					tokens.push_back(new Token((*it)->linea, itr, chr));
+					itr += 2;
+					continue;
+
+				}
+			}
+
+			//TOKENIZER:: operaciones con 2 caracteres
 			if (itr + 1 < (*it)->val.size())
 			{
 				const char c2 = (*it)->val.at(itr+1);

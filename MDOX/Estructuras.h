@@ -103,7 +103,9 @@ public:
 
 enum tipos_parametros
 {
-	PARAM_VOID,
+	PARAM_VOID, // Void es un valor vacio, pero que puede llegar a tomar cualquier valor.
+				//Un valor vacio como tal no se puede operar, pero se puede transformar en cualquier
+				// otro valor.
 
 	//ENTEROS
 	PARAM_INT,	 // -2.147.483.647 a 2.147.483.647   (4 bytes)

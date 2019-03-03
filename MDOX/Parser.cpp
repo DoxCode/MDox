@@ -469,7 +469,6 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 
 	std::string token = tokenizer.getTokenValue(index);
 
-
 	bool negado = false;
 	//Comprobamos si se trata de una operación binaria con prioridades de paréntesis.
 	if (token == "!")
@@ -996,27 +995,19 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 
 	//##########   -- SENTENCIA PRINT --   ##########
 	index = local_index;
-
-	if (tokenizer.getTokenValue(index) == "print")
+	if (tokenizer.getTokenValue(index) == "<::")
 	{
-		if (tokenizer.getTokenValue(index) == "(")
+		Parser_Operacion * pOp = getOperacion(index);
+		if (pOp)
 		{
-			Parser_Operacion * pOp = getOperacion(index);
-
-			if (pOp)
-			{
-				if (tokenizer.getTokenValue(index) == ")")
+				if (tokenizer.getTokenValue(index) == ";")
 				{
-					if (tokenizer.getTokenValue(index) == ";")
-					{
-						local_index = index;
-						Sentencia_Print *sif = new Sentencia_Print(pOp);
-						sif->generarPosicion(&tokenizer);
-						return sif;
-					}
+					local_index = index;
+					Sentencia_Print *sif = new Sentencia_Print(pOp);
+					sif->generarPosicion(&tokenizer);
+					return sif;
 				}
-				deletePtr(pOp);
-			}
+			deletePtr(pOp);
 		}
 	}
 
