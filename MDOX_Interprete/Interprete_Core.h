@@ -3,8 +3,9 @@
 
 #include "../MDOX/Core.h"
 #include "Interprete.h"
-
+#include <iostream>
 #include <chrono>
+#include <thread>
 
 class Core_Function_Interprete : public Core_Function
 {
@@ -18,7 +19,8 @@ public:
 
 
 // ----- FUNCIONES INTERPRETE
-static Value * funcion_print(std::vector<Value*>*, OutData_Parametros *);
+Value * funcion_print(std::vector<Value*>*, OutData_Parametros *);
 Value * funcion_now(std::vector<Value*>* a, OutData_Parametros * b);
+Value * funcion_sleep(std::vector<Value*>* a, OutData_Parametros * b);
 
 #endif

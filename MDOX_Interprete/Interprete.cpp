@@ -55,7 +55,6 @@ bool Interprete::CargarDatos(Parser* parser)
 		return false;
 	}
 
-	std::cout << "Fichero incluido correctamente. \n";
 	return true;
 }
 
@@ -620,7 +619,7 @@ Value * Interprete::FuncionCore(std::string ID, OutData_Parametros * params, Int
 
 // Ejecuta la función dentro del ENTORNO. Es decir, se trata de una función que NO está fuera del entorno de llamada. (Es decir, no forma parte de una clase diferente)
 // Las variables a las cuales tiene acceso esta función, serán las variables del entorno propio, es decir VARIABLES GLOBALES, variables declaradas a nivel de main.
-Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, VariablePreloaded * variablesActuales /*Variables del entorno anterior*/ )
+Value* Interprete::ExecFuncion(Valor_Funcion * xFunc, VariablePreloaded * variablesActuales /*Variables del entorno anterior*/ )
 {
 	std::vector<Value*> * vec_func = new std::vector<Value*>();
 	vec_func->reserve(xFunc->entradas.size());
@@ -647,7 +646,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, VariablePr
 		}
 		vec_func->clear();
 
-		Errores::generarError(Errores::ERROR_FUNCION_ERROR_OPERACIONES_ENTRADA, &xFunc->parametros, ID);
+		Errores::generarError(Errores::ERROR_FUNCION_ERROR_OPERACIONES_ENTRADA, &xFunc->parametros, xFunc->ID->nombre);
 		delete vec_func;
 		return NULL;
 	}
@@ -657,7 +656,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, VariablePr
 
 	// ------------ Tipos de Funciones  ------------
 	// **** Comenzamos probando si se trata de una función del core del lenguaje.
-	Value * _coreValue = this->FuncionCore(ID, &xFunc->parametros, xCallEnt);
+	Value * _coreValue = this->FuncionCore(xFunc->ID->nombre, &xFunc->parametros, xCallEnt);
 
 	if (_coreValue != NULL)
 	{
@@ -672,7 +671,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, VariablePr
 	for (std::vector<Parser_Funcion*>::iterator funcion = funciones.begin(); funcion != funciones.end(); ++funcion)
 	{
 		//Debe coincidir el nombre de la misma.
-		if ((*funcion)->pID->nombre == ID)
+		if ((*funcion)->pID->nombre == xFunc->ID->nombre)
 		{
 			//si no tiene el mismo numero de entradas, saltamos, no es esta función.
 			if ((*funcion)->entradas.size() != xCallEnt->entradas->size())
@@ -882,7 +881,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, VariablePr
 	//AGREGADO TODO
 	delete xCallEnt;
 
-	Errores::generarError(Errores::ERROR_FUNCION_NO_RECONOCIDA, &xFunc->parametros, ID);
+	Errores::generarError(Errores::ERROR_FUNCION_NO_RECONOCIDA, &xFunc->parametros, xFunc->ID->nombre);
 	return NULL;
 }
 
@@ -2158,7 +2157,7 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, VariablePreloaded * var
 
 
 				//Aquí habría que poner una opción para cuando se trate de modo: backtracking.
-				Value * _resFunc = ExecFuncion(xFunc->ID->nombre, xFunc, variables);
+				Value * _resFunc = ExecFuncion(xFunc, variables);
 
 				if (_resFunc == NULL)
 				{

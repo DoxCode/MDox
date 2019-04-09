@@ -14,7 +14,9 @@ void Core::Start()
 	now->funcion_exec = &funcion_now;
 	Core::core_functions.push_back(now);
 
-
+	Core_Function_Interprete * sleep = new Core_Function_Interprete("sleep", {PARAM_INT}, PARAM_VOID);
+	sleep->funcion_exec = &funcion_sleep;
+	Core::core_functions.push_back(sleep);
 
 }
 
@@ -64,3 +66,16 @@ Value * funcion_now(std::vector<Value*>* a, OutData_Parametros * b)
 	
 	return v;
 }
+
+
+Value * funcion_sleep(std::vector<Value*>* a, OutData_Parametros * b)
+{
+	Value * v = a->at(0);
+	Value_INT * x = static_cast<Value_INT*>(v);
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(x->value));
+
+	return new Value();
+}
+
+

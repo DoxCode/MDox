@@ -8,9 +8,42 @@ Rodrigo de Miguel Fernández. Usal.
 
 #include "Main.h"
 
-int main()
+int main(int argument_count, char * argument_list[])
 {
 	setlocale(LC_ALL, "");
+
+
+	if (argument_count >= 2)
+	{
+		std::string ruta = argument_list[1];
+
+		Parser parser = Parser();
+
+		//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
+		bool correcto = parser.tokenizer.GenerarTokenizerDesdeFichero(ruta);
+
+		if (!correcto)
+		{
+			return 0;
+		}
+
+		Interprete * interprete = new Interprete();
+		if (!interprete->CargarDatos(&parser))
+		{
+			return 0;
+		}
+
+		Parser_Identificador vId = Parser_Identificador("main");
+		std::vector<Parser_Operacion*> entradas;
+		Valor_Funcion vf = Valor_Funcion(&vId, entradas);
+
+		Core::Start();
+		interprete->ExecFuncion(&vf, NULL);
+
+
+		return 0;
+	}
+
 	std::cout << "Bienvenido a MDOX, version " << VERSION << "(" << ESTADO << ") \n";
 	std::cout << "Copyright (c) 2018-2019 Rodrigo de Miguel Fernández. Universidad de Salamanca. \n";
 	std::cout << "MDOX es un software gratuito y SIN GARANTIAS, eres libre de distribuirlo. \n";

@@ -93,7 +93,7 @@ public:
 	bool Interprete_Sentencia(Parser_Sentencia * sentencia, VariablePreloaded * variables);
 	VariablePreloaded * Interprete_NuevaVariable(Parser_Parametro * par, VariablePreloaded * variables);
 
-	Value* ExecFuncion(std::string ID, Valor_Funcion * xFunc, VariablePreloaded * variables);
+	Value* ExecFuncion(Valor_Funcion * xFunc, VariablePreloaded * variables);
 	bool ConversionXtoBool(Value * valOp);
 	Value_BOOL * CondicionalDeDosValores(Value * value1, OPERADORES accion, Value * value2, OutData_Parametros * outData);
 	Value * Operaciones(Parser_Operacion * pOp, VariablePreloaded * variables);

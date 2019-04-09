@@ -113,12 +113,22 @@
   <ItemGroup>
     <ClInclude Include="Comandos.h" />
     <ClInclude Include="Interprete.h" />
+    <ClInclude Include="Interprete_Core.h" />
     <ClInclude Include="Main.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Comandos.cpp" />
     <ClCompile Include="Interprete.cpp" />
+    <ClCompile Include="Interprete_Core.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="PreLoad.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="MDOX_Interprete.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon1.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
