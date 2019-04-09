@@ -578,6 +578,15 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 			return sif;
 		}
 	}
+	// #######  EXPRESIONES MATEMÁTICAS -- Comenzando por igualdad #######
+	index = local_index;
+	Operacion_Igualdad* pOi = getIgualdad(index);
+	
+	if (pOi != NULL)
+	{
+		local_index = index;
+		return pOi;
+	}
 
 	// #######  EXPRESIONES MATEMÁTICAS #######
 	//Comprobando expresión matemática. -> <VALOR> [MATH]
@@ -597,12 +606,30 @@ Parser_Operacion * Parser::getOperacion(int& local_index)
 			sif->generarPosicion(&tokenizer);
 			return sif;
 		}
+		//En el caso de que el operador no sea compatible matemático, por lo que
+		// puede ser, o el final de un operador matematico o una igualdad paramétrica.
+		else 	
+		{
+			int t_index = local_index;
+	
+
+			Operacion_Igualdad* oi = getIgualdad(t_index);
+
+			if (oi != NULL)
+			{
+				local_index = t_index;
+				delete pValor;
+				return oi;
+			}
+		}
 
 		local_index = index;
 		Operacion_Operador * sif = new Operacion_Operador(pValor);
 		sif->generarPosicion(&tokenizer);
 		return sif;
 	}
+
+
 	return NULL;
 }
 
@@ -721,13 +748,14 @@ Parser_Parametro * Parser::getParametro(int& local_index)
 // ####################### IGUALDAD  ##########################
 // ############################################################
 
-Parser_Igualdad * Parser::getIgualdad(int& local_index)
+Operacion_Igualdad * Parser::getIgualdad(int& local_index)
 {
 	int index = local_index;
 	Parser_Parametro * pPar = getParametro(index);
 
 	if (pPar)
 	{
+		int p_index = index;
 		std::string token = tokenizer.getTokenValue(index);
 		IgualdadType tipo;
 
@@ -743,27 +771,26 @@ Parser_Igualdad * Parser::getIgualdad(int& local_index)
 		{
 			tipo = IG_SUB_EQ;
 		}
-		else
+	/*	else if (token == ";")
+		{
+			local_index = p_index;
+			Operacion_Igualdad * sif = new Operacion_Igualdad(pPar, NULL, IG_NONE);
+			sif->generarPosicion(&tokenizer);
+			return sif;
+		}*/
+		else 
 		{
 			deletePtr(pPar);
 			return NULL;
 		}
 
-/*		int index2 = index;
-		Parser_Operacion * pOp = getOperacion(index2);
 
-		if (pOp)
-		{
-			local_index = index2;
-			return new Parser_Igualdad(pPar, pOp, tipo);
-		}
-*/
 		Parser_Operacion * pCond = getOperacion(index);
 
 		if (pCond)
 		{
 			local_index = index;
-			Parser_Igualdad * sif = new Parser_Igualdad(pPar, pCond, tipo);
+			Operacion_Igualdad * sif = new Operacion_Igualdad(pPar, pCond, tipo);
 			sif->generarPosicion(&tokenizer);
 			return sif;
 		}
@@ -913,7 +940,7 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 	{
 		if (tokenizer.getTokenValue(index) == "(")
 		{
-			Parser_Igualdad * pIg = getIgualdad(index);
+			Operacion_Igualdad * pIg = getIgualdad(index);
 			if (tokenizer.getTokenValue(index) == ";")
 			{
 				Parser_Operacion * pCond = getOperacion(index);
@@ -1011,20 +1038,18 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 		}
 	}
 
-	//##########   -- SENTENCIA VARIABLE INIT --   ##########
+	// #######  IGUALDAD ESPECIAL   #######
+	//Igualdad de estilo especial x; int x; double y; es decir, PARAMETROS
 	index = local_index;
-
 	Parser_Parametro * pPar = getParametro(index);
 
 	if (pPar)
 	{
-
 		if (tokenizer.getTokenValue(index) == ";")
 		{
-
 			local_index = index;
-			Sentencia_Parametro *sif = new Sentencia_Parametro(pPar);
-			sif->generarPosicion(&tokenizer);
+			Operacion_Igualdad * sif1 = new Operacion_Igualdad(pPar, NULL, IG_NONE);
+			Sentencia_Operacional *sif = new Sentencia_Operacional(sif1);
 			return sif;
 		}
 		deletePtr(pPar);
@@ -1047,23 +1072,6 @@ Parser_Sentencia * Parser::getSentencia(int& local_index)
 		deletePtr(pOp);
 	}
 
-
-	//##########   -- SENTENCIA Igualdad --   ##########
-	 index = local_index;
-
-	Parser_Igualdad * pIg = getIgualdad(index);
-
-	if (pIg)
-	{
-		if (tokenizer.getTokenValue(index) == ";")
-		{
-			local_index = index;
-			Sentencia_Igualdad *sif = new Sentencia_Igualdad(pIg);
-			sif->generarPosicion(&tokenizer);
-			return sif;
-		}
-		deletePtr(pIg);
-	}
 
 	index = local_index;
 	return NULL;

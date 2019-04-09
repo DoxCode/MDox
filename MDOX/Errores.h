@@ -22,6 +22,7 @@ class Errores
 		enum NUM_ERRORES {
 
 			ERROR_MAIN_NO_ENCONTRADO, //Error 0010
+			ERROR_CRITICO, // Error 0011
 
 			ERROR_DE_SINTAXIS, // Error 1001
 

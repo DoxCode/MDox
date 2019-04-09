@@ -9,6 +9,9 @@
 #include <iostream>
 #include <math.h>  
 
+
+
+
 class OperacionComp
 {
 public:
@@ -28,26 +31,26 @@ class Variable
 {
 public:
 	std::string nombre;
-	Value* valor;
+	int index;
+	//Profundidad de la variable
+	int deep = 1;
+	Variable(std::string a,  int b, int i) : nombre(a), deep(b), index(i) {}
+};
+
+class VariablePreloaded
+{
+public:
+	Value* valor = NULL;
 
 	//Indica si la variable es fuertemente tipada.
 	bool fuerte;
-	//Profundidad de la variable
-	int deep = 1;
 
-	Variable(std::string a, Value* b, bool c) : nombre(a), valor(b), fuerte(c) {}
-	virtual ~Variable()
+	VariablePreloaded(Value* b, bool c) : valor(b), fuerte(c) {}
+	VariablePreloaded() : valor(NULL) {}
+	virtual ~VariablePreloaded()
 	{
 		delete valor;
 	};
-
-	Variable * Clone()
-	{
-		Variable * var = new Variable(nombre, valor->Clone(), fuerte);
-		var->deep = deep;
-		return var;
-	}
-
 };
 
 class Interprete_Funcion_Entradas
@@ -74,10 +77,9 @@ class Interprete {
 private:
 	Value * _retorno = NULL;
 public:
-	 static Interprete * instance;
+	static Interprete * instance;
 
 	std::vector<Fichero*> nombre_ficheros; //Nombre de ficheros cargados en la instancia actual del interprete.
-
 	std::vector<Parser_Funcion*> funciones;
 
 	//Variable de retorno actual
@@ -86,29 +88,42 @@ public:
 	Value * viewRetorno() { return _retorno; }
 	void nullRetorno() { if (_retorno != NULL) { delete _retorno;  _retorno = NULL; } }
 
-	int deep = 1; //Se usa para las variables.
-
 	bool CargarDatos(Parser* parser);
 	bool Interpretar(Parser* parser);
-	bool Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<Variable*> * variables);
-	Variable * Interprete_NuevaVariable(Parser_Parametro * par, std::vector<Variable*> * variables, bool existe);
+	bool Interprete_Sentencia(Parser_Sentencia * sentencia, VariablePreloaded * variables);
+	VariablePreloaded * Interprete_NuevaVariable(Parser_Parametro * par, VariablePreloaded * variables);
 
-	Value* ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vector<Variable*> * variables);
+	Value* ExecFuncion(std::string ID, Valor_Funcion * xFunc, VariablePreloaded * variables);
 	bool ConversionXtoBool(Value * valOp);
 	Value_BOOL * CondicionalDeDosValores(Value * value1, OPERADORES accion, Value * value2, OutData_Parametros * outData);
-	Value * Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables);
-	Value * Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables, std::vector<OperacionComp*>* componente);
+	Value * Operaciones(Parser_Operacion * pOp, VariablePreloaded * variables);
+	Value * Operaciones(Parser_Operacion * pOp, VariablePreloaded * variables, std::vector<OperacionComp*>* componente);
 	Value * OperacionSobreValores(Value * value1, OPERADORES accion, Value * value2, OutData_Parametros * outData);
 	Value* Transformar_Declarativo_Value(Parser_Declarativo * dec);
-	Variable* BusquedaVariable(std::string ID, std::vector<Variable*> * variables);
-	bool EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*> * variables);
-	bool EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variable*> * variables);
-	bool EstablecerVariable(Variable * var, Value ** value, OutData_Parametros * salidaError);
-	bool ValueConversion(Value * val1, Value ** val2, OutData_Parametros * outData, std::string nombre);
+	
+	bool EstablecerOperacion(Parser_Operacion * pOp, VariablePreloaded* variables);
+	bool EstablecerVariable(VariablePreloaded * var, Value ** value, OutData_Parametros * salidaError);
+	bool ValueConversion(Value ** val1, Value ** val2, OutData_Parametros * outData);
 	bool GestionarOperacionesPorPrioridad(Parser_Operacion * pOp, std::vector<OperacionComp*>* componente, std::vector<OPERADORES> * operators, OPERADORES_TIPOS op);
 	Value_BOOL *  CondicionalLogico(Value * value1, OPERADORES accion, Value * value2);
+	Value * EstablecerIgualdad(Operacion_Igualdad*, VariablePreloaded*);
 	bool ValueToConsole(Value * v);
 	Value * FuncionCore(std::string, OutData_Parametros*, Interprete_Funcion_Entradas*);
+
+
+	bool PreloadError = false;
+	void RemoverVariablesScope(int deep, std::vector<Variable> * variables);
+	Variable * BusquedaVariable(std::string ID, std::vector<Variable> * variables);
+
+	void PreLoad();
+	void PreLoad_Funcion(Parser_Funcion *);
+	void PreLoad_Sentencia(Parser_Sentencia * sentencia, int*, std::vector<Variable> * variables, int deep);
+	void PreLoad_Operacion(Parser_Operacion * op, int*, std::vector<Variable> * variables, int deep);
+	void PreLoad_Identificador(Parser_Identificador * x, int* total_vars, std::vector<Variable> * variables, int deep, OutData_Parametros * node, bool add = false);
+	void PreLoad_Valor(Parser_Valor * pV, int*, std::vector<Variable> * variables, int deep, OutData_Parametros * data);
+	void PreLoad_Param(Parser_Parametro * pV, int*, std::vector<Variable> * variables, int deep);
+
+
 
 	Interprete()
 	{
@@ -123,8 +138,9 @@ public:
 		   delete (*it);
 	   }
 	};
-
 };
+
+
 
 //Interprete * Interprete::instance;
 

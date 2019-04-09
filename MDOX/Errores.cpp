@@ -39,10 +39,15 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 
 	switch (error)
 	{
-		
+
 	case Errores::ERROR_MAIN_NO_ENCONTRADO:
 		std::cout << "ERROR: 10. ";
 		std::cout << "No se ha encontrado la función de inicio del programa <main>.\n";
+		break;
+		
+	case Errores::ERROR_CRITICO:
+		Errores::generarCabeceraError(node, 11, tipo);
+		std::cout << "Se ha producido un error CRÍTICO, la ejecución del interprete se ha detenido.\n";
 		break;
 
 	case Errores::ERROR_FUNCION_PARAMETRO_OPERACION_INVALIDA:
@@ -57,22 +62,22 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 
 	case Errores::ERROR_CONVERSION_VARIABLE_INT:
 		Errores::generarCabeceraError(node, 2004, tipo);
-		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado a '" << value << "' debe ser un entero. \n";
+		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe ser un entero. \n";
 		break;
 
 	case Errores::ERROR_CONVERSION_VARIABLE_REAL:
 		Errores::generarCabeceraError(node, 2004, tipo);
-		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado a '" << value << "' debe ser un real. \n";
+		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe ser un real. \n";
 		break;
 
 	case Errores::ERROR_CONVERSION_VARIABLE_BOOL:
 		Errores::generarCabeceraError(node, 2004, tipo);
-		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado a '" << value << "' debe ser un booleano. \n";
+		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe ser un booleano. \n";
 		break;
 
 	case Errores::ERROR_CONVERSION_VARIABLE_STRING:
 		Errores::generarCabeceraError(node, 2004, tipo);
-		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado a '" << value << "' debe ser un string. \n";
+		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe ser un string. \n";
 		break;
 
 	case Errores::ERROR_COMPARACION_INT_STRING:

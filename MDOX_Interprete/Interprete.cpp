@@ -47,30 +47,35 @@ bool Interprete::CargarDatos(Parser* parser)
 		}
 	}
 
+	this->PreLoad();
+
+	if (this->PreloadError)
+	{
+		this->PreloadError = false;
+		return false;
+	}
+
 	std::cout << "Fichero incluido correctamente. \n";
 	return true;
 }
 
 bool Interprete::Interpretar(Parser * parser)
 {
-	std::vector<Variable*> variables;
 
 	int local = 0;
+
+	//Parser_Sentencia * inst = new Sentencia_Recursiva()
+	std::vector<Parser_Sentencia*> valor;
+
 	while (local < parser->tokenizer.tokens.size())
 	{
 		//	std::cout << "--:: " << parser.tokenizer.tokens.at(local) << " :: " << local << " \n";
 
 		Parser_Sentencia* p2 = parser->getSentencia(local);
-		
 
 		if (p2)
 		{
-			if (!Interprete_Sentencia(p2, &variables))
-			{
-				//TODO: TESTING PARA LEER TODO
-				//delete p2;
-				//return false;
-			}
+			valor.push_back(p2);
 		}
 		else
 		{
@@ -79,20 +84,31 @@ bool Interprete::Interpretar(Parser * parser)
 			//delete p2;
 			return false;
 		}
-		//std::cout << "<LIBERANDO SENTENCIA>";
-		delete p2;
-
 	}
 
-	for (std::vector<Variable*>::iterator it = variables.begin(); it != variables.end(); ++it)
+	Parser_Sentencia * inst = new Sentencia_Recursiva(valor);
+	int var_num = 0;
+	std::vector<Variable> _variables;
+
+	PreLoad_Sentencia(inst, &var_num, &_variables, 0);
+
+	VariablePreloaded * variables = new VariablePreloaded[var_num];
+
+
+	if (!Interprete_Sentencia(inst, variables))
 	{
-		delete (*it);
+		//TODO: TESTING PARA LEER TODO
+		//delete p2;
+		//return false;
 	}
+
+	delete inst; 
+	delete[] variables;
 
 	return true;
 }
 
-bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<Variable*> * variables)
+bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, VariablePreloaded * variables)
 {
 	switch (sentencia->tipo)
 	{
@@ -100,14 +116,12 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 		{
 			Sentencia_Recursiva * x = static_cast<Sentencia_Recursiva*>(sentencia);
 
-			std::vector<Variable*> variables2 = *variables;
-			deep++;
-
 			for (std::vector<Parser_Sentencia*>::iterator it = x->valor.begin(); it != x->valor.end(); ++it)
 			{
-				if (!Interprete_Sentencia(*it, &variables2))
-				{
-					//No devolverá error en principio
+				if (!Interprete_Sentencia(*it, variables))
+				{				
+					//Fallo inesperado, no debería ocurrir nunca si se han filtrado correctamente los errores.
+					Errores::generarError(Errores::ERROR_CRITICO, &(*it)->parametros);
 					return false;
 				}
 			
@@ -116,28 +130,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 				//if ((*it)->tipo == SENT_RETURN)
 				//	break;		
 			}
-
-			for (std::vector<Variable*>::iterator it = variables2.begin(); it != variables2.end(); ++it)
-			{
-				if ((*it)->deep == deep)
-					delete (*it);
-			}
-			deep--;
-
 			return true;
-		}
-
-		//Inicializa una variable dada
-		case SENT_VAR_INI:
-		{
-			Sentencia_Parametro * x = static_cast<Sentencia_Parametro*>(sentencia);
-			if (Interprete_NuevaVariable(x->pPar, variables, false) == NULL) // Crea nueva variable, si ya existe devuelve NULL
-			{
-				//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
-				return false;
-			}
-
-				return true;
 		}
 
 		// Add+1 -> También se podrá llamar a operaciones matemáticas, pero su resultado nunca se guardará. 
@@ -147,18 +140,6 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 			Sentencia_Operacional * x = static_cast<Sentencia_Operacional*>(sentencia);
 
 			if (!EstablecerOperacion(x->pOp, variables))
-			{
-				//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
-				return false;
-			}
-
-			return true;
-		}
-		case SENT_IGU:
-		{
-			Sentencia_Igualdad * x = static_cast<Sentencia_Igualdad*>(sentencia);
-
-			if (!EstablecerIgualdad(x->pIg, variables))
 			{
 				//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 				return false;
@@ -286,7 +267,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, std::vector<
 
 			if (x->pIguald)
 			{
-				if (!EstablecerIgualdad(x->pIguald, variables))
+				if (Operaciones(x->pIguald, variables)==NULL)
 				{
 					//std::cout << " Linea: [" << x->linea << "::" << x->offset << "] ";
 					return false;
@@ -392,7 +373,7 @@ bool Interprete::ValueToConsole(Value * v)
 
 
 //Establece una operación, una operación puede ser el incremento/decremento de una variable o una operación matemática
-bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variable*> * variables)
+bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, VariablePreloaded * variables)
 {
 	if (pOp->tipo == OP_ID)
 	{
@@ -400,58 +381,54 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 
 		if (x2->accion == ID_INCREMENTO)
 		{
-			Variable * v1 = BusquedaVariable(x2->ID->nombre, variables);
+			Parser_Identificador * preLoadID = static_cast<Parser_Identificador*>(x2->ID);
+			VariablePreloaded * v1 = &(variables[preLoadID->index]);
 
-			if (v1)
+			if (v1->valor->getTypeValue() == PARAM_INT)
 			{
-				if (v1->valor->getTypeValue() == PARAM_INT)
-				{
-					Value_INT * x3 = static_cast<Value_INT*>(v1->valor);
-					Value * xR = new Value_INT(x3->value + 1);
+				Value_INT * x3 = static_cast<Value_INT*>(v1->valor);
+				Value * xR = new Value_INT(x3->value + 1);
 
-					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
-					{
-						delete xR;
-						return false;
-					}
-					return true;
-				}
-				else if (v1->valor->getTypeValue() == PARAM_LINT)
+				if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
 				{
-					Value_LINT * x3 = static_cast<Value_LINT*>(v1->valor);
-					Value * xR = new Value_LINT(x3->value + 1);
-
-					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
-					{
-						delete xR;
-						return false;
-					}
-					return true;
+					//delete xR;
+					return false;
 				}
-				else if (v1->valor->getTypeValue() == PARAM_DOUBLE)
+				return true;
+			}
+			else if (v1->valor->getTypeValue() == PARAM_LINT)
+			{
+				Value_LINT * x3 = static_cast<Value_LINT*>(v1->valor);
+				Value * xR = new Value_LINT(x3->value + 1);
+
+				if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
 				{
-					Value_DOUBLE * x3 = static_cast<Value_DOUBLE*>(v1->valor);
-					Value * xR = new Value_DOUBLE(x3->value + 1);
-
-					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
-					{
-						delete xR;
-						return false;
-					}
-					return true;
+					//delete xR;
+					return false;
 				}
-				else return false;
+				return true;
+			}
+			else if (v1->valor->getTypeValue() == PARAM_DOUBLE)
+			{
+				Value_DOUBLE * x3 = static_cast<Value_DOUBLE*>(v1->valor);
+				Value * xR = new Value_DOUBLE(x3->value + 1);
+
+				if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
+				{
+					//delete xR;
+					return false;
+				}
+				return true;
+			}
+			else return false;
 				
-
-			}
-			else {
-				Errores::generarError(Errores::ERROR_INCREMENTO_VARIABLE_DESCONOCIDA, &x2->parametros, x2->ID->nombre);
-				return false;
-			}
+			
 		}
 		else  if (x2->accion == ID_DECREMENTO)
 		{
-			Variable * v1 = BusquedaVariable(x2->ID->nombre, variables);
+			//Value * v1 = (*variables)[preLoadID->index].valor;
+			Parser_Identificador * preLoadID = static_cast<Parser_Identificador*>(x2->ID);
+			VariablePreloaded * v1 = &(variables[preLoadID->index]);
 
 			if (v1)
 			{
@@ -462,7 +439,7 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 
 					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
 					{
-						delete xR;
+						//delete xR;
 						return false;
 					}
 					return true;
@@ -474,7 +451,7 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 
 					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
 					{
-						delete xR;
+						//delete xR;
 						return false;
 					}
 					return true;
@@ -486,7 +463,7 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 
 					if (!EstablecerVariable(v1, &xR, &x2->ID->parametros))
 					{
-						delete xR;
+						//delete xR;
 						return false;
 					}
 					return true;
@@ -512,45 +489,52 @@ bool Interprete::EstablecerOperacion(Parser_Operacion * pOp, std::vector<Variabl
 	{
 		Value * _res = Operaciones(pOp, variables);
 
-		//Si devuelve algún valor la operación, lo borra, no lo usaremos.
 		if (_res)
-			delete(_res);
+		{
+			if (_res->vr) //Si pertenece a una variable no borramos valores
+				return true;
+			else
+			{
+				deletePtr(_res);
+				return true;
+			}
+		}
 		else
 			return false;
-
-		return true;
 	}
 
 	return false;
 }
 //
-bool Interprete::EstablecerIgualdad(Parser_Igualdad * pIg, std::vector<Variable*> * variables)
+Value * Interprete::EstablecerIgualdad(Operacion_Igualdad * pIg, VariablePreloaded * variables)
 {
-	Variable * var = Interprete_NuevaVariable(pIg->param, variables, true);
+	VariablePreloaded * var = Interprete_NuevaVariable(pIg->param, variables);
+	Value * v_bol = NULL;
 
 	if (var)
 	{
-		if (pIg->cond)
+		if (pIg->op)
 		{
-			Value * v_bol = Operaciones(pIg->cond, variables);
+			v_bol = Operaciones(pIg->op, variables);
 
 			if (v_bol == NULL)
 			{
-				return false;
+				return NULL;
 			}
 
 			if (!EstablecerVariable(var, &v_bol, &pIg->parametros))
 			{
-				delete v_bol;
-				return false;
+				//delete v_bol;
+				return NULL;
 			}
-			return true;
+			return var->valor;
 		}
+		else return var->valor;
 	}
-	return false;
+	return NULL;
 }
 
-Variable * Interprete::Interprete_NuevaVariable(Parser_Parametro * par, std::vector<Variable*> * variables, bool existe)
+VariablePreloaded * Interprete::Interprete_NuevaVariable(Parser_Parametro * par, VariablePreloaded * variables)
 {
 	switch (par->tipo)
 	{
@@ -558,78 +542,45 @@ Variable * Interprete::Interprete_NuevaVariable(Parser_Parametro * par, std::vec
 		{
 			Parametro_Declarativo_ID * x = static_cast<Parametro_Declarativo_ID*>(par);
 			
-			Variable * var1 = BusquedaVariable(x->pID->nombre, variables);
-			// 1º comprobamos si dicha ID existe.
-			if (var1 == NULL)
-			{
-				//No existe
-				Value* v = Transformar_Declarativo_Value(x->pDec);
+			//Variable * var1 = BusquedaVariable(x->pID->nombre, variables);
+			Parser_Identificador * preLoadID = static_cast<Parser_Identificador*>(x->pID);
+			VariablePreloaded * var1 = &(variables[preLoadID->index]);
 
-				if (v)
-				{
-					if (v->getTypeValue() == PARAM_VOID)
-					{
-						Variable * v = new Variable(x->pID->nombre, NULL, false);
-						v->deep = deep;
-						variables->push_back(v);
-						return v;
-					}
-					else
-					{
-						Variable * var = new Variable(x->pID->nombre, v, true);
-						var->deep = deep;
-						variables->push_back(var);
-						return var;
-					}
-				}
+			Value* v = Transformar_Declarativo_Value(x->pDec);
+			v->vr = true;
 
-				Errores::generarError(Errores::ERROR_INICIALIZACION_VARIABLE, &x->pID->parametros, x->pID->nombre);
-				return NULL;
-			}
-			else
-			{
-				Errores::generarWarning(Errores::WARNING_VARIABLE_YA_DECLARADA, &x->pID->parametros, x->pID->nombre);
+			delete var1->valor;
+			var1->valor = v;
 
-				if (existe)
-				{
-					return var1;
-				}
-				//Existe
-
-				return NULL; // O NULL si queremos que lo de arriba sea error
-			}
-			break;
+			if (v->getTypeValue() == PARAM_VOID)
+				var1->fuerte = false;
+			else var1->fuerte = true;
+			
+			return var1;
 		}
 
 		case PRM_ID: // Se proporciona la ID el tipo de parametro de la variable no se conocerá hasta que se inicialice.
 		{
-			Parser_Identificador * x = static_cast<Parser_Identificador*>(par);
-			Variable * var1 = BusquedaVariable(x->nombre, variables);
-			
-			if (var1)
-				return var1;		
+			Parser_Identificador * preLoadID = static_cast<Parser_Identificador*>(par);
+			VariablePreloaded * var1 = &(variables[preLoadID->index]);
 
-			Variable * v = new Variable(x->nombre, NULL, false);
-			v->deep = deep;
-			variables->push_back(v);
-			return v;
+			if (var1->valor != NULL)
+				return var1;
+
+			var1->fuerte = false;
+			
+			delete var1->valor;
+
+			var1->valor = new Value();
+			var1->valor->vr = true;
+
+			return var1;
 		}
 		default:
 			Errores::generarError(Errores::ERROR_DESC_DECLARACION_VARIABLE, &par->parametros);
 			return NULL;
 	}
 }
-
-Variable* Interprete::BusquedaVariable(std::string ID, std::vector<Variable*> * variables)
-{
-	for (std::vector<Variable*>::iterator it = variables->begin(); it != variables->end(); ++it)
-	{
-		if ((*it)->nombre == ID)
-			return (*it);
-	}
-	return NULL;
-}
-
 
 Value * Interprete::FuncionCore(std::string ID, OutData_Parametros * params, Interprete_Funcion_Entradas * xCall)
 {
@@ -669,7 +620,7 @@ Value * Interprete::FuncionCore(std::string ID, OutData_Parametros * params, Int
 
 // Ejecuta la función dentro del ENTORNO. Es decir, se trata de una función que NO está fuera del entorno de llamada. (Es decir, no forma parte de una clase diferente)
 // Las variables a las cuales tiene acceso esta función, serán las variables del entorno propio, es decir VARIABLES GLOBALES, variables declaradas a nivel de main.
-Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vector<Variable*> * variablesActuales /*Variables del entorno anterior*/ )
+Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, VariablePreloaded * variablesActuales /*Variables del entorno anterior*/ )
 {
 	std::vector<Value*> * vec_func = new std::vector<Value*>();
 	vec_func->reserve(xFunc->entradas.size());
@@ -714,17 +665,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 		return _coreValue;
 	}
 
-
 	// **** EN EL CASO de que no se encontrara ninguna función core, vamos con las normales:
-
-	std::vector<Variable*> variablesPublicas;
-	//Tomamos 
-	for (std::vector<Variable*>::iterator it = variablesActuales->begin(); it != variablesActuales->end(); ++it)
-	{
-		if ((*it)->deep == 0) // DEEP 0 = VARIABLE GLOBAL.
-			variablesPublicas.push_back((*it));
-	}
-
 
 
 	//De entre todas las funciones declaradas, buscamos la que realmente se está llamando.
@@ -740,7 +681,10 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 			bool correcto = true; // Si es FALSE se limpiará el heap de las variables creadas, pero no ejecutará la función.
 			bool forzar_salida = false; //Se devolverá NULL
 
-			std::vector<Variable*> variablesEntorno = variablesPublicas;
+			VariablePreloaded * variablesFuncion = NULL;
+			
+			if((*funcion)->preload_var > 0)
+				variablesFuncion = new VariablePreloaded[(*funcion)->preload_var];
 
 			for (unsigned ent_itr = 0; ent_itr < xCallEnt->entradas->size(); ent_itr++)
 			{
@@ -753,7 +697,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 
 					//Realizamos la operación oportuna de la entrada de la función dada, esta operación se realiza
 					//con las variables ya declaradas en la propia entrada de la función y/o con variables públicas
-					Value* valor_operacion = Operaciones(xOperacion, &variablesEntorno);
+					Value* valor_operacion = Operaciones(xOperacion, variablesFuncion);
 
 					if (valor_operacion == NULL)
 					{
@@ -799,42 +743,37 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 					// SE producirá UN ERROR: Si dicha variable ya fue declarada.
 					if (xParametro->tipo == PRM_DECLARATIVO_ID)
 					{
-						Parametro_Declarativo_ID* _xParID = static_cast<Parametro_Declarativo_ID*>(xParametro);
-						if (BusquedaVariable(_xParID->pID->nombre, &variablesEntorno) != NULL)
-						{
-							Errores::generarError(Errores::ERROR_FUNCION_ENTRADA_DECLARADA, &_xParID->pID->parametros, _xParID->pID->nombre, ID);
-							correcto = false;
-							break;
-						}
+					//	Parametro_Declarativo_ID* _xParID = static_cast<Parametro_Declarativo_ID*>(xParametro);
+						
+						//Value* v = Transformar_Declarativo_Value(_xParID->pDec);
 
-						Value* v = Transformar_Declarativo_Value(_xParID->pDec);
-						Variable * _var = new Variable(_xParID->pID->nombre, v, true);
-						_var->deep = deep;
-
+					//	Variable * _var = new Variable(_xParID->pID->nombre, v, true);
+						//_var->deep = deep;
+					
 						Errores::saltarErrores = true; //Saltamos errores, solo necesitamos saber si es correcto o no.
-						if (!EstablecerVariable(_var, &(xCallEnt->entradas->at(ent_itr)), &_xParID->pID->parametros))
+						VariablePreloaded *_var = Interprete_NuevaVariable(xParametro, variablesFuncion);
+
+						if (!EstablecerVariable(_var, &(xCallEnt->entradas->at(ent_itr)), &xParametro->parametros))
 						{
 							correcto = false;
 							Errores::saltarErrores = false;
 							break;
 						}
 						Errores::saltarErrores = false;
-
-						variablesEntorno.push_back(_var);
 					}
 					//PRM_ID  -> Si es un identificador, puede ser tomado como VALOR o como PARAMETRO DEBIL. ESTO HAY QUE TENERLO EN CUENTA. Dependerá de si existe o no la variable ID.
 					//EJEMPLO:  function funcion(X,Y,Y) -> El parametro X e Y son considerados parametros declarados de la función, para la segunda Y implicará que el parametro
 					// de entrada 2 y 3 deben ser iguales. En caso contrario la función no debe ser elegida.
 					else if (xParametro->tipo == PRM_ID)
 					{
-						Parser_Identificador* _xID = static_cast<Parser_Identificador*>(xParametro);
+						//Parser_Identificador* _xID = static_cast<Parser_Identificador*>(xParametro);
+						Parser_Identificador * preLoadID = static_cast<Parser_Identificador*>(xParametro);
+						VariablePreloaded * _var = &(variablesFuncion[preLoadID->index]);
 
-						Variable * _var = BusquedaVariable(_xID->nombre, &variablesEntorno);
-
-						//La variable YA existe, ende no estamos inicializándola, si no más bien comparándola.
-						if (_var)
+						if (_var->valor != NULL)
 						{
-							Value_BOOL * _Cond = CondicionalDeDosValores(_var->valor, OP_REL_EQUAL, xCallEnt->entradas->at(ent_itr), &_xID->parametros);
+							//La variable YA existe, ende no estamos inicializándola, si no más bien comparándola.
+							Value_BOOL * _Cond = CondicionalDeDosValores(_var->valor, OP_REL_EQUAL, xCallEnt->entradas->at(ent_itr), &xParametro->parametros);
 
 							//De no poder convertir la operación correctamente, nos saltamos esta función. Pues no es posible realizarla.
 							if (_Cond == NULL)
@@ -850,16 +789,15 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 								delete _Cond;
 								break;
 							}
-
 							delete _Cond;
 							continue;
 						}
-						else // La variable NO existe, ende la creamos.
+						else
 						{
-							Variable * _var = new Variable(_xID->nombre, xCallEnt->entradas->at(ent_itr)->Clone(), false);
-							_var->deep = deep;
-							variablesEntorno.push_back(_var);
+							_var->fuerte = false;
+							_var->valor = xCallEnt->entradas->at(ent_itr)->Clone();
 						}
+						
 					}
 					//El resto de valors posibles del parametro dan igual, pues se supone que son variables recibidas.
 				}
@@ -874,13 +812,7 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 			//Y con mal decimos, que la función buscada no es la del iterador actual, si no, otra con la misma ID, o simplemente hay un fallo.
 			if (!correcto || forzar_salida)
 			{
-				for (std::vector<Variable*>::iterator it = variablesEntorno.begin(); it != variablesEntorno.end(); ++it)
-				{
-					if ((*it)->deep != 0) // Si no es una variable pública la eliminamos
-						deletePtr(*it);
-				}
-				variablesEntorno.clear();
-
+				delete[] variablesFuncion;
 
 				if (forzar_salida)
 				{
@@ -892,42 +824,35 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 			}
 
 
-			if (Interprete_Sentencia((*funcion)->body, &variablesEntorno))
+			if (Interprete_Sentencia((*funcion)->body, variablesFuncion))
 			{
-				for (std::vector<Variable*>::iterator it = variablesEntorno.begin(); it != variablesEntorno.end(); ++it)
-				{
-					if ((*it)->deep != 0) // Si no es una variable pública la eliminamos
-						deletePtr(*it);
-				}
-				variablesEntorno.clear();	
+
+				delete[] variablesFuncion;	
 				deletePtr(xCallEnt);
 
 				//Si la salida es NULA es que no se ha especificado una, la salida será igual al valor de retorno.
-				if((*funcion)->salida == NULL)
-					return getRetorno();
+				if ((*funcion)->salida == NULL)
+				{
+					Value * ret = getRetorno();
+					if (ret == NULL)
+						return new Value();
+					else return ret;
+				}
 				else
 				{
 					Value* v = Transformar_Declarativo_Value((*funcion)->salida);
-					Value * ret = viewRetorno()->Clone();
+					
+					Value * ret = NULL;
+
+					if(viewRetorno() != NULL)
+						ret = viewRetorno()->Clone();
 
 					if (v->getTypeValue() == PARAM_VOID)
-					{
-						if (ret == NULL)
-						{
 							return v;
-						}
-						else
-						{
-							return v;
-						}
-
-					}
-
-
 
 					if (ret != NULL)
 					{
-						if (ValueConversion(v, &ret, &(*funcion)->parametros, ID))
+						if (ValueConversion(&v, &ret, &(*funcion)->parametros))
 						{
 							nullRetorno();
 							return v;
@@ -939,22 +864,15 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 							return NULL;
 						}
 					}
+					else return v;
 
 				}
 
 			}
 			else
 			{
-				for (std::vector<Variable*>::iterator it = variablesEntorno.begin(); it != variablesEntorno.end(); ++it)
-				{
-					if ((*it)->deep != 0) // Si no es una variable pública la eliminamos
-						deletePtr(*it);
-				}
-				variablesEntorno.clear();
-
-
+				delete[] variablesFuncion;
 				nullRetorno();
-
 				deletePtr(xCallEnt);
 
 				return new Value();
@@ -968,38 +886,46 @@ Value* Interprete::ExecFuncion(std::string ID, Valor_Funcion * xFunc, std::vecto
 	return NULL;
 }
 
-bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros * outData, std::string nombre)
+bool Interprete::ValueConversion(Value ** val1, Value ** val2, OutData_Parametros * outData)
 {
-	switch (val1->getTypeValue())
+	switch ((*val1)->getTypeValue())
 	{
 
 	case PARAM_VOID:
 	{
-		deletePtr(val1);
-		val1 = (*val2)->Clone();
+		deletePtr(*val1);
+		(*val1) = (*val2);
+		*val2 = NULL;
 		return true;
 	}
 	case PARAM_INT:
 	{
 		if ((*val2)->getTypeValue() == PARAM_INT)
 		{
-			Value_INT * xVar = static_cast<Value_INT*>(val1);
-			Value_INT * xVal = static_cast<Value_INT*>(*val2);
-			xVar->value = xVal->value;
-			deletePtr(*val2);
+			deletePtr(*val1);
+			(*val1) = (*val2);
+			*val2 = NULL;
 			return true;
 		}
 		else if ((*val2)->getTypeValue() == PARAM_LINT)
 		{
-			Value_INT * xVar = static_cast<Value_INT*>(val1);
+			Value_INT * xVar = static_cast<Value_INT*>(*val1);
 			Value_LINT * xVal = static_cast<Value_LINT*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else if ((*val2)->getTypeValue() == PARAM_BOOL)
+		{
+			Value_INT * xVar = static_cast<Value_INT*>(*val1);
+			Value_BOOL * xVal = static_cast<Value_BOOL*>(*val2);
 			xVar->value = xVal->value;
 			deletePtr(*val2);
 			return true;
 		}
 		else
 		{
-				Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, outData, nombre);
+				Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, outData);
 			return false;
 		}
 	}
@@ -1007,7 +933,7 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 	{
 		if ((*val2)->getTypeValue() == PARAM_INT)
 		{
-			Value_LINT * xVar = static_cast<Value_LINT*>(val1);
+			Value_LINT * xVar = static_cast<Value_LINT*>(*val1);
 			Value_INT * xVal = static_cast<Value_INT*>(*val2);
 			xVar->value = xVal->value;
 			deletePtr(*val2);
@@ -1015,15 +941,23 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 		}
 		else if ((*val2)->getTypeValue() == PARAM_LINT)
 		{
-			Value_LINT * xVar = static_cast<Value_LINT*>(val1);
+			Value_LINT * xVar = static_cast<Value_LINT*>(*val1);
 			Value_LINT * xVal = static_cast<Value_LINT*>(*val2);
+			xVar->value = xVal->value;
+			deletePtr(*val2);
+			return true;
+		}
+		else if ((*val2)->getTypeValue() == PARAM_BOOL)
+		{
+			Value_LINT * xVar = static_cast<Value_LINT*>(*val1);
+			Value_BOOL * xVal = static_cast<Value_BOOL*>(*val2);
 			xVar->value = xVal->value;
 			deletePtr(*val2);
 			return true;
 		}
 		else
 		{
-			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, outData, nombre);
+			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, outData);
 			return false;
 		}
 	}
@@ -1031,7 +965,7 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 	{
 		if ((*val2)->getTypeValue() == PARAM_INT)
 		{
-			Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(val1);
+			Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(*val1);
 			Value_INT * xVal = static_cast<Value_INT*>(*val2);
 			xVar->value = xVal->value;
 			deletePtr(*val2);
@@ -1039,7 +973,7 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 		}
 		else if ((*val2)->getTypeValue() == PARAM_LINT)
 		{
-			Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(val1);
+			Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(*val1);
 			Value_LINT * xVal = static_cast<Value_LINT*>(*val2);
 			xVar->value = xVal->value;
 			deletePtr(*val2);
@@ -1047,15 +981,22 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 		}
 		else if ((*val2)->getTypeValue() == PARAM_DOUBLE)
 		{
-			Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(val1);
-			Value_DOUBLE * xVal = static_cast<Value_DOUBLE*>(*val2);
+			deletePtr(*val1);
+			(*val1) = (*val2);
+			*val2 = NULL;
+			return true;
+		}
+		else if ((*val2)->getTypeValue() == PARAM_BOOL)
+		{
+			Value_DOUBLE * xVar = static_cast<Value_DOUBLE*>(*val1);
+			Value_BOOL * xVal = static_cast<Value_BOOL*>(*val2);
 			xVar->value = xVal->value;
 			deletePtr(*val2);
 			return true;
 		}
 		else
 		{
-			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_REAL, outData, nombre);
+			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_REAL, outData);
 			return false;
 		}
 	}
@@ -1063,7 +1004,7 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 	{
 		if ((*val2)->getTypeValue() == PARAM_STRING)
 		{
-			Value_STRING * xVar = static_cast<Value_STRING*>(val1);
+			Value_STRING * xVar = static_cast<Value_STRING*>(*val1);
 			Value_STRING * xVal = static_cast<Value_STRING*>(*val2);
 			xVar->value = xVal->value;
 			ReplaceAll(xVar->value, "\\n", "\n");
@@ -1072,7 +1013,7 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 		}
 		else
 		{
-			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_STRING, outData,nombre);
+			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_STRING, outData);
 			return false;
 		}
 	}
@@ -1080,15 +1021,14 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 	{
 		if ((*val2)->getTypeValue() == PARAM_BOOL)
 		{
-			Value_BOOL * xVar = static_cast<Value_BOOL*>(val1);
-			Value_BOOL * xVal = static_cast<Value_BOOL*>(*val2);
-			xVar->value = xVal->value;
-			deletePtr(*val2);
+			deletePtr(*val1);
+			(*val1) = (*val2);
+			*val2 = NULL;
 			return true;
 		}
 		else if ((*val2)->getTypeValue() == PARAM_INT)
 		{
-			Value_BOOL * xVar = static_cast<Value_BOOL*>(val1);
+			Value_BOOL * xVar = static_cast<Value_BOOL*>(*val1);
 			Value_INT * xVal = static_cast<Value_INT*>(*val2);
 			xVar->value = xVal->value;
 			deletePtr(*val2);
@@ -1096,7 +1036,7 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 		}
 		else if ((*val2)->getTypeValue() == PARAM_LINT)
 		{
-			Value_BOOL * xVar = static_cast<Value_BOOL*>(val1);
+			Value_BOOL * xVar = static_cast<Value_BOOL*>(*val1);
 			Value_LINT * xVal = static_cast<Value_LINT*>(*val2);
 			xVar->value = xVal->value;
 			deletePtr(*val2);
@@ -1104,15 +1044,23 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 		}
 		else if ((*val2)->getTypeValue() == PARAM_DOUBLE)
 		{
-			Value_BOOL * xVar = static_cast<Value_BOOL*>(val1);
+			Value_BOOL * xVar = static_cast<Value_BOOL*>(*val1);
 			Value_DOUBLE * xVal = static_cast<Value_DOUBLE*>(*val2);
 			xVar->value = xVal->value;
 			deletePtr(*val2);
 			return true;
 		}
+		else if ((*val2)->getTypeValue() == PARAM_STRING)
+		{
+			Value_BOOL * xVar = static_cast<Value_BOOL*>(*val1);
+			Value_STRING * xVal = static_cast<Value_STRING*>(*val2);
+			xVar->value = !(xVal->value == "");
+			deletePtr(*val2);
+			return true;
+		}
 		else
 		{
-			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_BOOL, outData, nombre);
+			Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_BOOL, outData);
 			return false;
 		}
 	}
@@ -1121,21 +1069,33 @@ bool Interprete::ValueConversion(Value * val1, Value ** val2, OutData_Parametros
 }
 
 
-bool Interprete::EstablecerVariable(Variable * var, Value ** value, OutData_Parametros * outData)
+bool Interprete::EstablecerVariable(VariablePreloaded * var, Value ** value, OutData_Parametros * outData)
 {
-	if (var)
+
+	if (!var->fuerte)
 	{
-		if (!var->fuerte)
-		{
-			deletePtr(var->valor);
-			var->valor = (*value);
+		deletePtr(var->valor);
 
-			return true;
-		}
+		if ((*value)->vr)
+			var->valor = (*value)->Clone();
+		else var->valor = (*value);
 
-		return ValueConversion(var->valor, value, outData, var->nombre);
+		var->valor->vr = true;
+		return true;
 	}
-	return false;
+
+	bool b;
+
+	if ((*value)->vr)
+	{
+		Value * v = (*value)->Clone();
+		b = ValueConversion(&(var->valor), &v, outData);
+	}
+	else b = ValueConversion(&(var->valor), value, outData);
+
+	var->valor->vr = true;
+
+	return b;
 }
 
 
@@ -2086,7 +2046,7 @@ bool Interprete::ConversionXtoBool(Value * valOp)
 	return false;
 }
 
-Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> * variables)
+Value * Interprete::Operaciones(Parser_Operacion * pOp, VariablePreloaded * variables)
 {
 	std::vector<OperacionComp*>* componenteInterno = new std::vector<OperacionComp*>();
 	//	componenteInterno->reserve(10);
@@ -2106,7 +2066,7 @@ Value * Interprete::Operaciones(Parser_Operacion * pOp, std::vector<Variable*> *
 	return val;
 }
 
-Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> * variables, std::vector<OperacionComp*>* componente)
+Value * Interprete::Operaciones (Parser_Operacion * pOp, VariablePreloaded * variables, std::vector<OperacionComp*>* componente)
 {
 	if (pOp->tipo == OP_REC_OP)
 	{
@@ -2170,30 +2130,25 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 
 			case VAL_ID:
 			{
-				Parser_Identificador * xID = static_cast<Parser_Identificador*>(x->op1);
-				Variable * var = BusquedaVariable(xID->nombre, variables);
-				if (var)
-				{
-					if (xID->negado)
-					{
+				//Parser_Identificador * xID = static_cast<Parser_Identificador*>(x->op1);
 
-						bool resBol = ConversionXtoBool(var->valor);
-						val = new Value_BOOL(!resBol);
-					}
-					else
-					{
-						if (var->valor == NULL)
-						{
-							Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, &pOp->parametros);
-							val = NULL;
-						}
-						else val = var->valor->Clone();
-					}
+				Parser_Identificador * preLoadID = static_cast<Parser_Identificador*>(x->op1);
+				VariablePreloaded * v1 = &(variables[preLoadID->index]);
+
+				if (preLoadID->negado)
+				{
+
+					bool resBol = ConversionXtoBool(v1->valor);
+					val = new Value_BOOL(!resBol);
 				}
 				else
 				{
-					Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &xID->parametros , xID->nombre);
-					return NULL;
+					if (v1->valor == NULL)
+					{
+						Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, &pOp->parametros);
+						val = NULL;
+					}
+					else val = v1->valor->Clone();
 				}
 				break;
 			}
@@ -2230,6 +2185,19 @@ Value * Interprete::Operaciones (Parser_Operacion * pOp, std::vector<Variable*> 
 		}
 		else  return NULL;
 	}
+	else if (pOp->tipo == OP_IGUALDAD)
+	{
+		Operacion_Igualdad * x = static_cast<Operacion_Igualdad*>(pOp);
+
+		Value * r;
+		if ((r = EstablecerIgualdad(x, variables)) == NULL)
+		{
+			return NULL;
+		}
+		componente->push_back(new OperacionComp(r->Clone(), OP_NONE));
+	//	return r->Clone();
+	}
+
 	else {
 		return NULL;
 	}

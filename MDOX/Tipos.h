@@ -11,6 +11,12 @@
 #include "Funciones.h"
 #include "Estructuras.h"
 
+#include "Core.h"
+
+void aaaa()
+{
+	Core_Functions::function_print(new Value());
+}
 
 tipos_parametros DeclarativoToParamType(Parser_Declarativo * pDec);
 

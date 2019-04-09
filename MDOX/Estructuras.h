@@ -152,6 +152,7 @@ public:
 };
 
 
+
 // ############################################################
 // ################# PARAMETROS DE ENTRADA #################### 
 // ############################################################
@@ -267,10 +268,14 @@ public:
 // ################################################################
 class Parser_Identificador : public Parser_Valor, public Parser_Parametro {
 public:
+	int index;
 	std::string nombre;
 	Parser_Identificador(std::string a) : nombre(a), Parser_Valor(VAL_ID), Parser_Parametro(PRM_ID) {}
+	Parser_Identificador() : Parser_Valor(VAL_ID), Parser_Parametro(PRM_ID) {}
 	virtual ~Parser_Identificador() {};
 };
+
+
 
 // ################################################################
 // ######################### OPERACIONES ########################## 
@@ -280,6 +285,7 @@ enum OprtType
 	OP_REC_OP,
 	OP_ID,
 	OP_MATH,
+	OP_IGUALDAD,
 };
 
 class Parser_Operacion : public Funcion_ValorEntrada, public Parser_NODE{
@@ -401,6 +407,35 @@ public:
 	};
 };
 
+
+// ############################################################
+// ####################### IGUALDAD ########################### 
+// ############################################################
+
+enum IgualdadType {
+	IG_NONE,
+	IG_EQUAL,
+	IG_ADD_EQ,
+	IG_SUB_EQ,
+};
+
+class Operacion_Igualdad : public Parser_Operacion {
+public:
+	Parser_Parametro* param;
+	Parser_Operacion* op;
+	IgualdadType valor;
+
+	//Igualdad con valor en la derecha operacion.
+	Operacion_Igualdad(Parser_Parametro* a, Parser_Operacion* b, IgualdadType c) : param(a), op(b), valor(c), Parser_Operacion(OP_IGUALDAD) {};
+
+	//Aseguramos el borrado de la memoria
+	~Operacion_Igualdad() {
+
+		delete op;
+		deletePtr(param);
+	};
+};
+
 // ###############################################################
 // ####################### OPERACIÓN PLY ######################### 
 // ###############################################################
@@ -472,6 +507,9 @@ class Value {
 public:
 	virtual tipos_parametros getTypeValue() { return PARAM_VOID; };
 	virtual ~Value() { };
+
+	//Este valor le pertenece a una variable o es un valor basura?
+	bool vr = false;
 
 	Value() { };
 
@@ -559,32 +597,7 @@ public:
 	virtual Value * Clone() { return new Value_TUPLA(*this); }
 };
 
-// ############################################################
-// ####################### IGUALDAD ########################### 
-// ############################################################
 
-enum IgualdadType {
-	IG_EQUAL,
-	IG_ADD_EQ,
-	IG_SUB_EQ,
-};
-
-class Parser_Igualdad : public Parser_NODE {
-public:
-	Parser_Parametro* param;
-	Parser_Operacion* cond;
-	IgualdadType valor;
-
-	//Igualdad con valor en la derecha CONDICIONAL si es OPERACIONAL, COND solo tendrá el valor de la operacion.
-	Parser_Igualdad(Parser_Parametro* a, Parser_Operacion* b, IgualdadType c) : param(a), cond(b), valor(c) {};
-
-	//Aseguramos el borrado de la memoria
-	~Parser_Igualdad() {
-
-		delete cond;
-		deletePtr(param);
-	};
-};
 
 // ############################################################
 // ####################### SENTENCIA ########################## 
@@ -598,8 +611,6 @@ enum SentenciaType {
 	SENT_RETURN,
 	SENT_PRINT,
 	SENT_OP,
-	SENT_IGU,
-	SENT_VAR_INI,
 
 };
 
@@ -667,12 +678,12 @@ public:
 
 class Sentencia_FOR : public Parser_Sentencia {
 public:
-	Parser_Igualdad * pIguald;
+	Parser_Operacion * pIguald;
 	Parser_Operacion * pCond;
 	Parser_Operacion * pOp;
 	Parser_Sentencia * pS;
 
-	Sentencia_FOR(Parser_Igualdad * a, Parser_Operacion * b, Parser_Operacion * c, Parser_Sentencia * d) : pIguald(a), pCond(b), pOp(c), pS(d), Parser_Sentencia(SENT_FOR) {};
+	Sentencia_FOR(Operacion_Igualdad * a, Parser_Operacion * b, Parser_Operacion * c, Parser_Sentencia * d) : pIguald(a), pCond(b), pOp(c), pS(d), Parser_Sentencia(SENT_FOR) {};
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_FOR() {
@@ -719,31 +730,6 @@ public:
 	}
 };
 
-class Sentencia_Igualdad : public Parser_Sentencia {
-public:
-	Parser_Igualdad * pIg;
-
-	Sentencia_Igualdad(Parser_Igualdad * a) : pIg(a), Parser_Sentencia(SENT_IGU) {}
-
-	//Aseguramos el borrado de la memoria
-	virtual ~Sentencia_Igualdad() {
-		delete pIg;
-	}
-};
-
-
-class Sentencia_Parametro : public Parser_Sentencia {
-public:
-	Parser_Parametro * pPar;
-
-	Sentencia_Parametro(Parser_Parametro * a) : pPar(a), Parser_Sentencia(SENT_VAR_INI) {}
-
-	//Aseguramos el borrado de la memoria
-	virtual ~Sentencia_Parametro() {
-		delete pPar;
-	}
-};
-
 // ############################################################
 // ####################### FUNCIONES ########################## 
 // ############################################################
@@ -754,6 +740,9 @@ public:
 	std::vector<Funcion_ValorEntrada*> entradas;
 	Parser_Declarativo * salida;
 	Parser_Sentencia * body;
+
+	//Variables precargadas en cada funcion
+	int preload_var = 0;
 
 	// Función sin valor devuelto, el valor devuelto puede ser automático o no tenerlo
 	Parser_Funcion(Parser_Identificador * a, std::vector<Funcion_ValorEntrada*> b, Parser_Sentencia * c) : pID(a), entradas(b), body(c), salida(NULL){}
@@ -777,7 +766,5 @@ public:
 
 	};
 };
-
-
 
 #endif

@@ -23,7 +23,7 @@ public:
 	 Parser_Operacion * getOperacion(int& local_index);
 	 Parser_Operador * getOperador(int& index);
 	 Parser_Parametro * getParametro(int& local_index);
-	 Parser_Igualdad * getIgualdad(int& local_index);
+	 Operacion_Igualdad * getIgualdad(int& local_index);
 	 Parser_Sentencia * getSentencia(int& local_index);
 	 Parser_Funcion * getFuncion(int& local_index);
 	 Funcion_ValorEntrada * getEntrada(int& local_index);

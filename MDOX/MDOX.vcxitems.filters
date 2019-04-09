@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Errores.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Funciones.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Parser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Tipos.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Tokenizer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Errores.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Estructuras.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Funciones.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Parser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Tipos.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Tokenizer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Core.h" />
+  </ItemGroup>
+</Project>
