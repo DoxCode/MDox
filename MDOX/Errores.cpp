@@ -1,19 +1,10 @@
 #include "Errores.h"
 
 bool Errores::saltarErrores;
+OutData_Parametros* Errores::outData;
 
 void Errores::generarCabeceraError(OutData_Parametros * node, int numero_error, Errores::ERROR_TYPE tipo)
 {
-	int linea = node->linea;
-	int offset = node->offset;
-
-	std::string ruta = "";
-
-	if (node->fichero != NULL)
-	{
-		if (node->fichero->ruta != "")
-			ruta = "<" + node->fichero->ruta + "> ";
-	}
 
 
 	std::string error = "ERROR";
@@ -25,6 +16,24 @@ void Errores::generarCabeceraError(OutData_Parametros * node, int numero_error, 
 	else if (tipo == Errores::TY_ERROR)
 		error = "ERROR";
 	else error = "DESCONOCIDO";
+
+	if (node == NULL)
+	{
+		std::cout << error << " " << numero_error << ": " << " Runtime Error: ";
+		return;
+	}
+
+
+	int linea = node->linea;
+	int offset = node->offset;
+
+	std::string ruta = "";
+
+	if (node->fichero != NULL)
+	{
+		if (node->fichero->ruta != "")
+			ruta = "<" + node->fichero->ruta + "> ";
+	}
 
 
 	std::cout << error << " " << numero_error << ": " << ruta << "[" << linea << ":" << offset << "] ";
@@ -62,22 +71,27 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 
 	case Errores::ERROR_CONVERSION_VARIABLE_INT:
 		Errores::generarCabeceraError(node, 2004, tipo);
-		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe ser un entero. \n";
+		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe poder convertirse a un entero. \n";
 		break;
 
 	case Errores::ERROR_CONVERSION_VARIABLE_REAL:
 		Errores::generarCabeceraError(node, 2004, tipo);
-		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe ser un real. \n";
+		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe poder convertirse a un real. \n";
+		break;
+
+	case Errores::ERROR_CONVERSION_VARIABLE_LONG:
+		Errores::generarCabeceraError(node, 2004, tipo);
+		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe poder convertirse a un lint. \n";
 		break;
 
 	case Errores::ERROR_CONVERSION_VARIABLE_BOOL:
 		Errores::generarCabeceraError(node, 2004, tipo);
-		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe ser un booleano. \n";
+		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe poder convertirse a un booleano. \n";
 		break;
 
 	case Errores::ERROR_CONVERSION_VARIABLE_STRING:
 		Errores::generarCabeceraError(node, 2004, tipo);
-		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe ser un string. \n";
+		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe poder convertirse a un string. \n";
 		break;
 
 	case Errores::ERROR_COMPARACION_INT_STRING:
@@ -145,6 +159,16 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "La expresión debe tener un tipo bool o una expresión compatible convertible. \n";
 		break;
 
+	case Errores::ERROR_MATH_MULT_STRING:
+		Errores::generarCabeceraError(node, 2012, tipo);
+		std::cout << "No se puede multiplicar un string con un " << value << ". \n";
+		break;
+
+	case Errores::ERROR_MATH_MINUS_STRING:
+		Errores::generarCabeceraError(node, 2013, tipo);
+		std::cout << "No se puede restar un string con un " << value << ". \n";
+		break;
+
 	case Errores::ERROR_FUNCION_ENTRADA_DECLARADA:
 		Errores::generarCabeceraError(node, 4003, tipo);
 		std::cout << "La entrada '" << value << "' de la función '" << value2 << "' ya fue declarada. \n ";
@@ -175,8 +199,25 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "Error desconocido. No se ha podido obtener la fecha actual. \n ";
 		break;
 
-		
+	case Errores::ERROR_CONVERSION_DESCONOCIDA:
+		Errores::generarCabeceraError(node, 2014, tipo);
+		std::cout << "Se ha producido un error al intentar convertir un valor en otro desconocido. \n ";
+		break;
 
+
+	case Errores::ERROR_OPERACION_DESCONOCIDA:
+		Errores::generarCabeceraError(node, 2015, tipo);
+		std::cout << "Se ha producido un error desconocido al intentar realizar una operación. \n ";
+		break;
+
+	case Errores::ERROR_OPERACION_INVALIDA:
+		Errores::generarCabeceraError(node, 2016, tipo);
+		std::cout << "Se ha producido un error al intentar realizar una operación, puede que esta sea inválida. \n ";
+		break;
+
+		
+		
+		
 	}
 }
 
@@ -189,6 +230,10 @@ void Errores::generarWarning(Errores::NUM_WARNING error, OutData_Parametros * no
 	case Errores::WARNING_VARIABLE_YA_DECLARADA:
 		Errores::generarCabeceraError(node, 2001, tipo);
 		std::cout << "La variable '" << value << "' ya fue declarada previamente. \n";
+		break;
+	case Errores::WARNING_FUNCION_VALOR_DEVUELTO_VOID:
+		Errores::generarCabeceraError(node, 2002, tipo);
+		std::cout << "Se ha elegido una ruta en la función que no devuelve ningún valor, pero la función " << value << " requiere de un valor de salida. \n ";
 		break;
 
 	}

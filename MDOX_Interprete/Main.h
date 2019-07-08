@@ -2,7 +2,7 @@
 #define MAIN_H
 
 //#define _GLIBCXX_USE_CXX11_ABI 0
-#define VERSION 0.6
+#define VERSION 0.7
 #define ESTADO "BETA"
 
 #include <iostream>
@@ -11,7 +11,7 @@
 
 #include "Comandos.h"
 //#include "../MDOX/Funciones.h"
-#include "Interprete.h"
+//#include "Interprete.h"
 
 
 

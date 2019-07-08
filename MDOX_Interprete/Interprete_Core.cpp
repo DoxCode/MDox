@@ -28,22 +28,12 @@ void Core::Start()
 	ENTRADA: <VOID>
 	SALIDA: <VOID>
 */
-Value * funcion_print(std::vector<Value*>* a, OutData_Parametros * b)
+bool funcion_print(std::vector<Value>& a, Interprete* interprete)
 {
-	if (a->size() < 1)
-		return new Value();
-
-	Value * v = a->at(0);
-
-	if (!v)
-		Errores::generarError(Errores::ERROR_FUNCION_PARAMETRO_OPERACION_INVALIDA, b, "print");
-	else
-	{
-		Interprete::instance->ValueToConsole(v);
+		//Errores::generarError(Errores::ERROR_FUNCION_PARAMETRO_OPERACION_INVALIDA, b, "print");
+		a[0].print();
 		std::cout << "\n";
-	}
-
-	return new Value();
+		return true;
 }
 
 
@@ -54,28 +44,28 @@ Value * funcion_print(std::vector<Value*>* a, OutData_Parametros * b)
 	SALIDA: <LINT>
 */
 // TODO: Cuando esten implementados los enums, NOW recibira ms, s, etc y devolvera eso.
-Value * funcion_now(std::vector<Value*>* a, OutData_Parametros * b)
+bool funcion_now(std::vector<Value>& a, Interprete* interprete)
 {
-	Value_LINT * v = new Value_LINT(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-
-	if (!v)
-	{
-		Errores::generarError(Errores::ERROR_FUNCION_IMPOSIBLE_RECUPERAR_FECHA, b);
-		return NULL;
-	}
+	//Value_LINT * v = new Value_LINT(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 	
-	return v;
+	Value v = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	interprete->setRetorno(v);
+
+	//Errores::generarError(Errores::ERROR_FUNCION_IMPOSIBLE_RECUPERAR_FECHA, b);
+	return true;
 }
 
 
-Value * funcion_sleep(std::vector<Value*>* a, OutData_Parametros * b)
+bool funcion_sleep(std::vector<Value>& a, Interprete* interprete)
 {
-	Value * v = a->at(0);
-	Value_INT * x = static_cast<Value_INT*>(v);
+	Value v = a[0];
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(x->value));
+	if (!v.Cast(PARAM_INT))
+		return false;
 
-	return new Value();
+	std::this_thread::sleep_for(std::chrono::milliseconds(std::get<int>(v.value)));
+
+	return true;
 }
 
 

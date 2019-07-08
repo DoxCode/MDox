@@ -14,19 +14,17 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)Core.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Errores.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Estructuras.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Funciones.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Parser.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Tipos.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Tokenizer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Errores.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Funciones.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Operaciones.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Parser.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Tipos.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Tokenizer.cpp" />
   </ItemGroup>
 </Project>

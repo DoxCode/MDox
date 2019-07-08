@@ -7,7 +7,7 @@
 #include <tuple>
 #include <iostream>
 
-#include "Parser.h"
+#include "Estructuras.h"
 
 class Errores
 {
@@ -30,6 +30,7 @@ class Errores
 			ERROR_INICIALIZACION_VARIABLE, // Error 2002
 			ERROR_DESC_DECLARACION_VARIABLE, // Error 2003
 			ERROR_CONVERSION_VARIABLE_INT,	// Error 2004
+			ERROR_CONVERSION_VARIABLE_LONG,	// Error 2004
 			ERROR_CONVERSION_VARIABLE_REAL,	// Error 2004
 			ERROR_CONVERSION_VARIABLE_BOOL,	// Error 2004
 			ERROR_CONVERSION_VARIABLE_STRING,	// Error 2004
@@ -41,13 +42,21 @@ class Errores
 			ERROR_DECREMENTO_VARIABLE_DESCONOCIDA,	// Error 2007
 			ERROR_INC_DEC_VARIABLE_INVALIDA,	// Error 2008
 
+
 			//Operaciones matemáticas
 			ERROR_OPERACION_INVALIDA_VOID, //Error 2007
 			ERROR_MOD_SOLO_ENTERO, //Error 2008
 			ERROR_MATH_STRING, //Error 2009
 			ERROR_OPERACION_INVALIDA_NULL, //Error 2010
 
+
 			ERROR_EXPRESION_NO_CONVERTIBLE_BOOL, //Error 2011
+			ERROR_MATH_MULT_STRING, //Error 2012
+			ERROR_MATH_MINUS_STRING, //Error 2013
+
+			ERROR_CONVERSION_DESCONOCIDA,	// Error 2014
+			ERROR_OPERACION_DESCONOCIDA,	// Error 2015
+			ERROR_OPERACION_INVALIDA, //2016
 
 			ERROR_FUNCION_PARAMETRO_OPERACION_INVALIDA, // Error 4001
 			ERROR_FUNCION_NO_RECONOCIDA, //Error 4002
@@ -59,8 +68,10 @@ class Errores
 
 		enum NUM_WARNING {
 			WARNING_VARIABLE_YA_DECLARADA, // Warning 2001
+			WARNING_FUNCION_VALOR_DEVUELTO_VOID, //WRNG 2002
 		};
 
+	static OutData_Parametros* outData;
 	 static bool saltarErrores;
      static void generarError(Errores::NUM_ERRORES error, OutData_Parametros * node, std::string value = "", std::string value2 = "");
 	 static void generarWarning(Errores::NUM_WARNING error, OutData_Parametros * node, std::string value = "", std::string value2 = "");

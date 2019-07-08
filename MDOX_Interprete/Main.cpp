@@ -33,18 +33,17 @@ int main(int argument_count, char * argument_list[])
 			return 0;
 		}
 
-		Parser_Identificador vId = Parser_Identificador("main");
-		std::vector<Parser_Operacion*> entradas;
-		Valor_Funcion vf = Valor_Funcion(&vId, entradas);
+		Parser_Identificador * vId = new Parser_Identificador("main");
+		std::vector<Value> entradas;
+		Valor_Funcion vf = Valor_Funcion(vId);
 
 		Core::Start();
-		interprete->ExecFuncion(&vf, NULL);
-
+		interprete->ExecFuncion(vf.ID->nombre, entradas);
 
 		return 0;
 	}
 
-	std::cout << "Bienvenido a MDOX, version " << VERSION << "(" << ESTADO << ") \n";
+	std::cout << "Bienvenido a MDOX, version " << VERSION << "(" << ESTADO << ")  \n";
 	std::cout << "Copyright (c) 2018-2019 Rodrigo de Miguel Fernández. Universidad de Salamanca. \n";
 	std::cout << "MDOX es un software gratuito y SIN GARANTIAS, eres libre de distribuirlo. \n";
 	//std::cout << "RUTA: " << getAbsolutePathFromRelative("MDOX_Interprete.ilk") << "\n";

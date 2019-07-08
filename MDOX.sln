@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27004.2010
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.202
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MDOX_Compilador", "MDOX_Compilador\MDOX_Compilador.vcxproj", "{F7CC4D29-7726-4702-A0C9-247C65321C7E}"
 EndProject
@@ -10,6 +10,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MDOX", "MDOX\MDOX.vcxitems", "{F345F48E-1F82-405E-A8A8-822B145DA915}"
 EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		MDOX\MDOX.vcxitems*{e9b0043d-64a9-4f1e-8eaa-6aa2ffb0cd3d}*SharedItemsImports = 4
+		MDOX\MDOX.vcxitems*{f345f48e-1f82-405e-a8a8-822b145da915}*SharedItemsImports = 9
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
@@ -18,11 +22,9 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{F7CC4D29-7726-4702-A0C9-247C65321C7E}.Debug|x64.ActiveCfg = Debug|x64
-		{F7CC4D29-7726-4702-A0C9-247C65321C7E}.Debug|x64.Build.0 = Debug|x64
 		{F7CC4D29-7726-4702-A0C9-247C65321C7E}.Debug|x86.ActiveCfg = Debug|Win32
 		{F7CC4D29-7726-4702-A0C9-247C65321C7E}.Debug|x86.Build.0 = Debug|Win32
 		{F7CC4D29-7726-4702-A0C9-247C65321C7E}.Release|x64.ActiveCfg = Release|x64
-		{F7CC4D29-7726-4702-A0C9-247C65321C7E}.Release|x64.Build.0 = Release|x64
 		{F7CC4D29-7726-4702-A0C9-247C65321C7E}.Release|x86.ActiveCfg = Release|Win32
 		{F7CC4D29-7726-4702-A0C9-247C65321C7E}.Release|x86.Build.0 = Release|Win32
 		{E9B0043D-64A9-4F1E-8EAA-6AA2FFB0CD3D}.Debug|x64.ActiveCfg = Debug|x64

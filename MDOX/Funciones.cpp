@@ -159,6 +159,10 @@ DataType string_to(const std::string& s)
 }
 
 
+
+
+
+
 bool nextStringLine(std::string& linea, std::string busqueda)
 {
 	if (linea.substr(0, busqueda.size()) == busqueda)

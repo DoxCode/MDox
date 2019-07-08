@@ -44,9 +44,6 @@
     <ClCompile Include="Interprete_Core.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
-    <ClCompile Include="PreLoad.cpp">
-      <Filter>Archivos de origen</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="MDOX_Interprete.rc">

@@ -9,9 +9,9 @@
 #include <list>
 #include <vector>
 
-#include "../MDOX/Parser.h"
-#include "../MDOX/Funciones.h"
-#include "../MDOX/Tokenizer.h"
+//#include "../MDOX/Parser.h"
+//#include "../MDOX/Funciones.h"
+//#include "../MDOX/Tokenizer.h"
 #include "Interprete.h"
 
 // Lista de comandos existentes en MDOX, así como errores
