@@ -135,9 +135,9 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 		[&](Value & a)->Value {return a.operacion_Unitaria(node->operador); },
 		[&](Parser_Identificador * a)->Value 
 			{ 
-				Value * id =  a->var_global ? &this->variables_globales[a->index].value : &variables[a->index].value; 
-				*id = id->operacion_Unitaria(node->operador);
-				return *id;
+				Value id =  a->var_global ? this->variables_globales[a->index].value : variables[a->index].value; 
+				id = id.operacion_Unitaria(node->operador);
+				return id;
 			},
 		[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)).operacion_Unitaria(node->operador); },
 		[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL);  return false; },

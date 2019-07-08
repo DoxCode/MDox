@@ -904,6 +904,21 @@ Parser_Operacion* Parser::getOperacion(int& local_index, std::vector<Variable>& 
 
 						return NULL;
 				}
+				else if (is_assignment_operator(op_stack.back()) || isRelationalOperator(op_stack.back()))
+				{
+					if (is_left(aux))
+					{
+						if (transform_left(aux))
+							normal_operator_do(left_scope, is_op, aux, stack, op_stack);
+						else continue;
+
+					}
+					else
+					{
+						return NULL;
+					}
+					continue;
+				}
 				else	//No puede haber dos operadores seguidos, de haberlos, no es una operación EJ: 5+2+-3
 				{
 					return NULL;
