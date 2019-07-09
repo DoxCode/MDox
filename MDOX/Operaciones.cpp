@@ -153,14 +153,17 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 					[]( std::string & a,const double& b)->Value { Errores::generarError(Errores::ERROR_MATH_MINUS_STRING, Errores::outData, "double"); return std::monostate(); },
 					[](std::string & a, std::string & b)->Value //TODO: FALLA
 					{
-						int t = a.length() - (b.length() + 1);
-						std::string tt = a.substr(t, b.length());
 
+						if (a.length() < b.length())
+							return a;
+
+						int inx = a.length() - b.length();
+						std::string tt = a.substr(inx, b.length());
 						if (tt == b)
-						{
-							return (a.erase(0, a.length() - t) + tt);
-						}
-						return (a);
+							return a.erase(inx, b.length());
+						else return a;
+
+
 					},
 					[](std::string & a,const long long& b)->Value
 					{
@@ -767,7 +770,6 @@ bool Value::Cast(const tipos_parametros tipo)
 					auto number = strtol(a.c_str(), &endptr, 10);
 					if (a.c_str() == endptr)
 					{
-						std::cout << "--TTTTT--";
 						Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, Errores::outData);
 						return false;
 					}

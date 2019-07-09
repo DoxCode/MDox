@@ -20,7 +20,7 @@ Value Parser::getLiteral(bool& v, int& local_index)
 		{
 			local_index = index;
 			v = true;
-			return Value("");
+			return Value((std::string)"");
 		}
 
 		if (tokenizer.getTokenValue(index) == "\"")
