@@ -1324,13 +1324,25 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 *
 **/
 
-Variable* Parser::BusquedaVariable(const std::string& ID, std::vector<Variable>& variables)
+Variable* Parser::BusquedaVariable(Parser_Identificador * ID, std::vector<Variable>& variables)
 {
-	for (int itr = 0; itr < variables.size(); itr++)
+	for (std::vector<Variable>::iterator it = variables.begin(); it != variables.end(); ++it)
 	{
-		if (variables[itr].nombre == ID)
-			return &(variables[itr]);
+		if (it->nombre == ID->nombre)
+			return &(*it);
 	}
+
+	for (std::vector<Variable>::iterator it = this->variables_globales.begin(); it != this->variables_globales.end(); ++it)
+	{
+		if (it->nombre == ID->nombre)
+		{
+			ID->var_global = true;
+			return &(*it);
+		}
+	}
+
+
+	
 	return NULL;
 }
 
@@ -1342,7 +1354,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 			{
 				[&](Parser_Identificador * a)
 				{
-					Variable* var = this->BusquedaVariable(a->nombre, variables);
+					Variable* var = this->BusquedaVariable(a, variables);
 					if (var == NULL)
 					{
 						//Si no existe, la creamos.
@@ -1367,13 +1379,23 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 				[&](arbol_operacional * a) { CargarEnCacheOperaciones(a, variables); },
 				[&](Parser_Identificador * a)
 				{
-					Variable* var = this->BusquedaVariable(a->nombre, variables);
+					Variable* var = this->BusquedaVariable(a, variables);
 					if (var == NULL)
 					{
 						//Si no existe, la creamos.
-						variables.push_back(Variable(a->nombre, this->getLastIndex()));
-						IncrementarVariables();
-						a->index = variables.back().index;
+						if (this->isGlobal)
+						{
+							this->variables_globales.push_back(Variable(a->nombre, this->getLastIndex()));
+							IncrementarVariables();
+							a->index = this->variables_globales.back().index;
+							a->var_global = true;
+						}
+						else
+						{
+							variables.push_back(Variable(a->nombre, this->getLastIndex()));
+							IncrementarVariables();
+							a->index = variables.back().index;
+						}
 					}
 					else a->index = var->index;
 				},
@@ -1385,13 +1407,23 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 					[&](arbol_operacional * a2) { CargarEnCacheOperaciones(a2, variables); },
 					[&](Parser_Identificador * a2)
 					{
-							Variable* var2 = this->BusquedaVariable(a2->nombre, variables);
+							Variable* var2 = this->BusquedaVariable(a2, variables);
 							if (var2 == NULL)
 							{
 								//Si no existe, la creamos.
-								variables.push_back(Variable(a2->nombre, this->getLastIndex()));
-								IncrementarVariables();
-								a2->index = variables.back().index;
+								if (this->isGlobal)
+								{
+									this->variables_globales.push_back(Variable(a2->nombre, this->getLastIndex()));
+									IncrementarVariables();
+									a2->index = this->variables_globales.back().index;
+									a2->var_global = true;
+								}
+								else
+								{
+									variables.push_back(Variable(a2->nombre, this->getLastIndex()));
+									IncrementarVariables();
+									a2->index = variables.back().index;
+								}
 							}
 							else a2->index = var2->index;
 					},
@@ -1405,7 +1437,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 			[&](arbol_operacional * a) { CargarEnCacheOperaciones(a, variables); },
 			[&](Parser_Identificador * a)
 			{
-				Variable* var = this->BusquedaVariable(a->nombre, variables);
+				Variable* var = this->BusquedaVariable(a, variables);
 				if (var == NULL)
 				{
 					Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a->parametros, a->nombre);
@@ -1421,7 +1453,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 		[&](arbol_operacional * a2) { CargarEnCacheOperaciones(a2, variables); },
 		[&](Parser_Identificador * a2)
 		{
-			Variable* var2 = this->BusquedaVariable(a2->nombre, variables);
+			Variable* var2 = this->BusquedaVariable(a2, variables);
 			if (var2 == NULL)
 			{
 				Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a2->parametros, a2->nombre);

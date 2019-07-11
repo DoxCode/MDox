@@ -27,7 +27,8 @@ bool Interprete::CargarDatos(Parser* parser)
 
 
 	this->nombre_ficheros.push_back(parser->tokenizer.fichero);
-	
+	std::vector<Parser_Operacion*> var_globales;
+
 	//Interpretando datos...size_t
 	int local = 0;
 	while (local < parser->tokenizer.tokens.size())
@@ -41,12 +42,34 @@ bool Interprete::CargarDatos(Parser* parser)
 			funciones.push_back(p2);
 			continue;
 		}
-		else
+
+
+		parser->isGlobal = true;
+		std::vector<Variable> variables;
+		Parser_Operacion* p3 = parser->getOperacion(local, variables);
+		parser->isGlobal = false;
+
+		if (p3)
 		{
-			OutData_Parametros data = OutData_Parametros(parser->tokenizer.token_actual->linea, parser->tokenizer.token_actual->char_horizontal, this->nombre_ficheros.back());
-			Errores::generarError(Errores::ERROR_DE_SINTAXIS, &data, parser->tokenizer.token_actual->token);
-			return false;
+			if (parser->tokenizer.getTokenValue(local) == ";")
+			{
+				var_globales.push_back(p3);
+				continue;
+			}
 		}
+
+
+		OutData_Parametros data = OutData_Parametros(parser->tokenizer.token_actual->linea, parser->tokenizer.token_actual->char_horizontal, this->nombre_ficheros.back());
+		Errores::generarError(Errores::ERROR_DE_SINTAXIS, &data, parser->tokenizer.token_actual->token);
+		return false;
+		
+	}
+
+	this->variables_globales = new Variable_Runtime[parser->numero_variables_globales];
+
+	for (std::vector<Parser_Operacion*>::iterator it = var_globales.begin(); it != var_globales.end(); ++it)
+	{	
+		lectura_arbol_operacional((*it)->val, NULL);
 	}
 
 	return true;
@@ -89,7 +112,6 @@ void Interprete::Interpretar(Parser * parser)
 
 	Parser_Sentencia * inst = new Sentencia_Recursiva(valor);
 
-	this->variables_globales = new Variable_Runtime[parser->numero_variables_globales];
 	Variable_Runtime * variables = new Variable_Runtime[parser->numero_variables_funcion];
 
 	if (!Interprete_Sentencia(inst, variables))

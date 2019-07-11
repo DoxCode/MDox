@@ -44,8 +44,8 @@ public:
 	Parser_Funcion* getFuncion(int& local_index);
 
 	//Cacheado de variables
-	Variable* BusquedaVariable(const std::string& ID, std::vector<Variable>& variables);
-	void clearVariables() {variables_globales.clear();}
+	Variable* BusquedaVariable(Parser_Identificador * ID, std::vector<Variable>& variables);
+	void clearVariables() { variables_globales.clear(); numero_variables_globales = 0; }
 	void CargarEnCacheOperaciones(arbol_operacional* node, std::vector<Variable>& variables);
 	void IncrementarVariables() { isGlobal ? numero_variables_globales++ : numero_variables_funcion++; }
 	int getLastIndex() { return isGlobal ? numero_variables_globales : numero_variables_funcion; }
