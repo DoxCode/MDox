@@ -68,11 +68,13 @@ public:
 	bool returnCalled() { if (return_activo) { return_activo = false; return true; } return false; }
 	void retornoSinValor() { _retorno = std::monostate(); return_activo = true;  }
 	Value getRetorno() { return _retorno; }
+
 	//void setRetorno(Value * v) { delete _retorno; _retorno = v; }
 	//Value * getRetorno() { Value * t = _retorno; _retorno = NULL; return t; }
 	//Value * viewRetorno() { return _retorno; }
 	//void nullRetorno() { if (_retorno != NULL) { delete _retorno;  _retorno = NULL; } }
 
+	Value TratarMultiplesValores(multi_value* arr, Variable_Runtime* variables);
 	bool CargarDatos(Parser* parser);
 	void Interpretar(Parser* parser);
 	bool Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Runtime* variables);

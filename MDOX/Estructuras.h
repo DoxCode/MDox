@@ -124,10 +124,8 @@ enum tipos_parametros
 
 	//PARAM_ENUM,
 	PARAM_STRING,
-	//PARAM_LIST,
-	//PARAM_VECTOR,
-	//PARAM_DEQUE,
-	PARAM_TUPLA,
+	PARAM_VECTOR,
+
 };
 
 enum NODE_type {
@@ -161,45 +159,17 @@ public:
 // ################## DECLARATIVOS ###################
 // ###################################################
 
-enum DeclarativeType
-{
-	DEC_SINGLE,
-	DEC_MULTI,
-};
-
 class Parser_Declarativo {
 public:
-	DeclarativeType _tipo;
+	tipos_parametros value;
 
-	Parser_Declarativo(DeclarativeType a) : _tipo(a) {}
+	Parser_Declarativo(tipos_parametros a) : value(a) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Parser_Declarativo() {
 	};
 };
 
-class Declarativo_SingleValue : public Parser_Declarativo {
-public:
-	tipos_parametros value;
-	Declarativo_SingleValue(tipos_parametros a) : value(a), Parser_Declarativo(DEC_SINGLE) {}
-};
-
-class Declarativo_MultiValue : public Parser_Declarativo {
-public:
-	tipos_parametros tipo;
-	std::vector<Parser_Declarativo*> value;
-	Declarativo_MultiValue(tipos_parametros a, std::vector<Parser_Declarativo*> b) : value(b), tipo(a), Parser_Declarativo(DEC_MULTI){}
-
-	//Aseguramos el borrado de la memoria cuando se libere el objeto.
-	virtual ~Declarativo_MultiValue()
-	{
-		for (std::vector<Parser_Declarativo*>::iterator it = value.begin(); it != value.end(); ++it)
-		{
-			delete (*it);
-		}
-		value.clear();
-	}
-};
 // ############################################################
 // ####################### OPERADORES ######################### 
 // ############################################################
@@ -243,6 +213,8 @@ enum OPERADORES {
 
 	//Operadores igualdad
 	//Prior 1
+	OP_GET_FIRST, // :  -> x:xs 
+	OP_GET_LAST, // ::  -> xs::x
 	OP_IG_EQUAL,
 	OP_IG_EQUAL_SUM,
 	OP_IG_EQUAL_MIN,
@@ -320,9 +292,11 @@ static int prioridad(OPERADORES & a) {
 
 static bool isRelationalOperator(OPERADORES a) { return (a >= OP_REL_EQUAL && a <= OP_REL_MAJOR_OR_EQUAL); }
 
+class Value;
+
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...)->overloaded<Ts...>;
-using val_variant = std::variant<int, bool, double, long long, std::monostate, std::string>;
+using val_variant = std::variant<int, bool, double, std::vector<Value>, std::monostate, long long, std::string>;
 
 //template <class valueType>
 class Value {
@@ -337,7 +311,7 @@ public:
 	Value operacion_Unitaria(OPERADORES& op);
 	bool operacion_Asignacion(Value& v, OPERADORES& op, bool fuerte);
 	bool asignacion(Value& v, bool& fuerte);
-	void inicializacion(tipos_parametros& tipo);
+	void inicializacion(Parser_Declarativo* tipo);
 
 	void print();
 
@@ -350,6 +324,11 @@ public:
 	bool ValueToBool();
 	bool Cast(Parser_Declarativo* pDec);
 	bool Cast(const tipos_parametros);
+
+	bool operator==(const Value& lhs)
+	{
+		return this->igualdad_Condicional(lhs);
+	};
 
 	template <typename T>
 	static std::string to_string_p(const T a_value, const int n = 10);
@@ -365,8 +344,12 @@ public:
 	Value(std::string& a) : value(a) {};
 	Value(bool a) : value(a) {};
 	Value(std::monostate) : value(std::monostate()) {};
+	Value(std::vector<Value> a) : value(a) {};
 
 };
+
+
+
 
 // ########################################################
 // ####################### VALOR ##########################
@@ -398,10 +381,8 @@ public:
 	int index;
 	std::string nombre;
 	bool fuerte = false;
-	//bool instance = false;
 
-	tipos_parametros tipo = PARAM_VOID;
-
+	Parser_Declarativo * tipo = NULL;
 
 	Parser_Identificador(std::string a) : nombre(a), Parser_Valor(VAL_ID) {}
 	Parser_Identificador() : Parser_Valor(VAL_ID) {}
@@ -436,11 +417,32 @@ public:
 // ################################################################
 // ######################### OPERACIONES ########################## 
 // ################################################################
-using conmp = std::variant<Value, Parser_Identificador*, Valor_Funcion*, OPERADORES>;
+class arbol_operacional;
+class multi_value;
+
+using tipoValor = std::variant<Value, Parser_Identificador*, Valor_Funcion*, arbol_operacional*, multi_value* >;
+
+class multi_value
+{
+public:
+	std::vector<tipoValor> arr;
+//	bool is_vector = false;
+
+	~multi_value()
+	{
+		for (std::vector<tipoValor>::iterator it = arr.begin(); it != arr.end(); ++it)
+		{
+			std::visit(overloaded{
+			[](auto & a) { delete a; },
+			[](Value&) {},
+			}, *it);
+		}
+	}
+};
+
+using conmp = std::variant<Value, Parser_Identificador*, Valor_Funcion*, OPERADORES, multi_value* >;
 using stack_conmp = std::deque<conmp>;
 
-class arbol_operacional;
-using tipoValor = std::variant<Value, Parser_Identificador*, Valor_Funcion*, arbol_operacional*>;
 class arbol_operacional
 {
 public:
@@ -456,12 +458,12 @@ public:
 	virtual ~arbol_operacional()
 	{
 		std::visit(overloaded{
-			[](const auto& a) { delete a; },
-			[](const Value&) {},
+			[](auto& a) { delete a; },
+			[](Value&) {},
 			}, _v1);
 		std::visit(overloaded{
-			[](const auto & a) { delete a; },
-			[](const Value&) {},
+			[](auto & a) { delete a; },
+			[](Value&) {},
 			}, _v2);
 
 	}

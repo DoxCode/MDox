@@ -28,6 +28,7 @@ public:
 	std::vector<Variable> variables_globales;
 	bool isGlobal = false;
 
+
 	int numero_variables_globales = 0;
 	int numero_variables_funcion = 0;
 
@@ -38,7 +39,7 @@ public:
 	Parser_Declarativo* getDeclarativo(int& local_index);
 	Parser_Identificador* getIdentificador(int& local_index);
 	conmp getValor(bool& v, int& local_index, std::vector<Variable>& variables);
-	Parser_Operacion* getOperacion(int& local_index, std::vector<Variable>& variables);
+	Parser_Operacion* getOperacion(int& local_index, std::vector<Variable>& variables, bool inside = false);
 	OPERADORES getOperador(int& local_index);
 	Parser_Sentencia* getSentencia(int& local_index, std::vector<Variable>& variables);
 	Parser_Funcion* getFuncion(int& local_index);
@@ -46,7 +47,7 @@ public:
 	//Cacheado de variables
 	Variable* BusquedaVariable(Parser_Identificador * ID, std::vector<Variable>& variables);
 	void clearVariables() { variables_globales.clear(); numero_variables_globales = 0; }
-	void CargarEnCacheOperaciones(arbol_operacional* node, std::vector<Variable>& variables);
+	void CargarEnCacheOperaciones(arbol_operacional* node, std::vector<Variable>& variables, bool inside);
 	void IncrementarVariables() { isGlobal ? numero_variables_globales++ : numero_variables_funcion++; }
 	int getLastIndex() { return isGlobal ? numero_variables_globales : numero_variables_funcion; }
 

@@ -215,6 +215,11 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "Se ha producido un error al intentar realizar una operación, puede que esta sea inválida. \n ";
 		break;
 
+	case Errores::ERROR_OPERADOR_INVALIDO:
+		Errores::generarCabeceraError(node, 2017, tipo);
+		std::cout << "No se ha podido aplicar el operador" << value << ". Es posible que el tipo de elemento no permita el uso del mismo. \n ";
+		break;
+
 		
 		
 		

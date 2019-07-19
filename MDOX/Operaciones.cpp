@@ -1,5 +1,6 @@
 
 #include "errores.h"
+#include <algorithm>  
 
 
 template <typename T>
@@ -46,43 +47,100 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			},
 			[](const int& a, const double& b)->Value { return (a + b); },
 			[](const int& a,  std::string & b)->Value { return (to_string_p(a) + b); },
-			[](const int& a, const long long& b)->Value { return (a + b); },
+			[](const int& a, const long long& b)->Value { return (a + b); }, // [](int x) {return x + 5; }
 
-				//DOUBLE .. XX
-				[](const double& a,const int& b)->Value { return (a + b); },
-				[](const double& a,const bool& b)->Value { return (a + b); },
-				[](const double& a, const double& b)->Value { return (a + b); },
-				[](const double& a,  std::string & b)->Value { return (to_string_p(a) + b); },
-				[](const double& a, const long long& b)->Value { return (a + b); },
+			//DOUBLE .. XX
+			[](const double& a,const int& b)->Value { return (a + b); },
+			[](const double& a,const bool& b)->Value { return (a + b); },
+			[](const double& a, const double& b)->Value { return (a + b); },
+			[](const double& a,  std::string & b)->Value { return (to_string_p(a) + b); },
+			[](const double& a, const long long& b)->Value { return (a + b); },
 
-				//LONGLONG .. XX
-				[](const long long& a,const int& b)->Value { return (a + b); },
-				[](const long long& a,const bool& b)->Value { return (a + b); },
-				[](const long long& a, const double& b)->Value { return (a + b); },
-				[](const long long& a,  std::string & b)->Value { return (to_string_p(a) + b); },
-				[](const long long& a, const long long& b)->Value { return (a + b); },
 
-				//STRING .. XX
-					[](const std::string & a,const int& b)->Value { return (a + to_string_p(b)); },
-					[](const std::string & a,const bool& b)->Value { return (a + to_string_p(b)); },
-					[](const std::string & a,const double& b)->Value { return (a + to_string_p(b)); },
-					[](const std::string & a,const std::string & b)->Value { return (a + b); },
-					[](const std::string & a,const long long& b)->Value { return (a + to_string_p(b)); },
+			//LONGLONG .. XX
+			[](const long long& a,const int& b)->Value { return (a + b); },
+			[](const long long& a,const bool& b)->Value { return (a + b); },
+			[](const long long& a, const double& b)->Value { return (a + b); },
+			[](const long long& a,  std::string & b)->Value { return (to_string_p(a) + b); },
+			[](const long long& a, const long long& b)->Value { return (a + b); },
 
-				//BOOL .. XX
-				[](const bool& a,const int& b)->Value
-				{
-					int t = a + b;
-					if (addOvf(&t, a, b))
-						return (a + long long(b));
-					return (t);
-				},
-				[](const bool& a,const bool& b)->Value { return (a + b); },
-				[](const bool& a, const double& b)->Value { return (a + b); },
-				[](const bool& a, const std::string & b)->Value { return (to_string_p(a) + b); },
-				[](const bool& a, const long long& b)->Value { return (a + b); },
 
-				[](auto,auto)->Value { return std::monostate(); },
+			//STRING .. XX
+				[](const std::string & a,const int& b)->Value { return (a + to_string_p(b)); },
+				[](const std::string & a,const bool& b)->Value { return (a + to_string_p(b)); },
+				[](const std::string & a,const double& b)->Value { return (a + to_string_p(b)); },
+				[](const std::string & a,const std::string & b)->Value { return (a + b); },
+				[](const std::string & a,const long long& b)->Value { return (a + to_string_p(b)); },
+
+			//BOOL .. XX
+			[](const bool& a,const int& b)->Value
+			{
+				int t = a + b;
+				if (addOvf(&t, a, b))
+					return (a + long long(b));
+				return (t);
+			},
+			[](const bool& a,const bool& b)->Value { return (a + b); },
+			[](const bool& a, const double& b)->Value { return (a + b); },
+			[](const bool& a, const std::string & b)->Value { return (to_string_p(a) + b); },
+			[](const bool& a, const long long& b)->Value { return (a + b); },
+
+
+
+			[&](auto&, std::vector<Value> & b)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_SUMA); });
+				return r;
+			},
+
+			[&](std::vector<Value> & b, const bool&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_SUMA); });
+				return r;
+			},
+			[&](std::vector<Value> & b, const double&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_SUMA); });
+				return r;
+			},
+			[&](std::vector<Value> & b, std::string&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_SUMA); });
+				return r;
+			},
+			[&](std::vector<Value> & b, long long&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_SUMA); });
+				return r;
+			},
+
+			[&](std::vector<Value>& b, int&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_SUMA); });
+				return r;
+			},
+
+			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
+			{
+				std::vector<Value> r;
+				r.resize((a.size() > b.size()) ? a.size() : b.size());
+				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value& x, Value& y) { return x.operacion_Binaria(y, OP_ARIT_SUMA); });
+				return r;
+			},
+
+			[](auto,auto)->Value { return std::monostate(); },
 
 			}, value, v.value);
 		break;
@@ -119,71 +177,125 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			},
 			[](const int& a,const  long long& b)->Value { return (a - b); },
 
-				//DOUBLE .. XX
-				[](const double& a,const int& b)->Value { return (a - b); },
-				[](const double& a,const bool& b)->Value { return (a - b); },
-				[](const double& a, const double& b)->Value { return (a - b); },
-				[](const double& a,  std::string & b)->Value { Errores::generarError(Errores::ERROR_MATH_MINUS_STRING, Errores::outData, "double"); return std::monostate(); },
-				[](const double& a, const long long& b)->Value { return (a - b); },
+			//DOUBLE .. XX
+			[](const double& a,const int& b)->Value { return (a - b); },
+			[](const double& a,const bool& b)->Value { return (a - b); },
+			[](const double& a, const double& b)->Value { return (a - b); },
+			[](const double& a,  std::string & b)->Value { Errores::generarError(Errores::ERROR_MATH_MINUS_STRING, Errores::outData, "double"); return std::monostate(); },
+			[](const double& a, const long long& b)->Value { return (a - b); },
 
-				//LONGLONG .. XX
-				[](const long long& a, const int& b)->Value { return (a - b); },
-				[](const long long& a, const bool& b)->Value { return (a - b); },
-				[](const long long& a, const double& b)->Value { return (a - b); },
-				[](const long long& a, std::string & b)->Value
-				{
-					if (a < 0) return (b);
-					if (a > b.length()) return (std::string(""));
-					return (b.erase(0,a));
-				},
-				[](const long long& a, const long long& b)->Value { return (a - b); },
+			//LONGLONG .. XX
+			[](const long long& a, const int& b)->Value { return (a - b); },
+			[](const long long& a, const bool& b)->Value { return (a - b); },
+			[](const long long& a, const double& b)->Value { return (a - b); },
+			[](const long long& a, std::string & b)->Value
+			{
+				if (a < 0) return (b);
+				if (a > b.length()) return (std::string(""));
+				return (b.erase(0,a));
+			},
+			[](const long long& a, const long long& b)->Value { return (a - b); },
 
-					//STRING .. XX
-					[](std::string & a,const int& b)->Value
-					{
-						if (b < 0) return (a);
-						if (b > a.length()) return "";
-						return (a.erase(a.length() - (b), b));
-					},
-					[](std::string & a,const bool& b)->Value
-					{
-						if (b > a.length()) return "";
-						if (b) return (a.erase(a.length() - 2, 1)); else return "";
-					},
-					[]( std::string & a,const double& b)->Value { Errores::generarError(Errores::ERROR_MATH_MINUS_STRING, Errores::outData, "double"); return std::monostate(); },
-					[](std::string & a, std::string & b)->Value //TODO: FALLA
-					{
+			//STRING .. XX
+			[](std::string & a,const int& b)->Value
+			{
+				if (b < 0) return (a);
+				if (b > a.length()) return "";
+				return (a.erase(a.length() - (b), b));
+			},
+			[](std::string & a,const bool& b)->Value
+			{
+				if (b > a.length()) return "";
+				if (b) return (a.erase(a.length() - 2, 1)); else return "";
+			},
+			[]( std::string & a,const double& b)->Value { Errores::generarError(Errores::ERROR_MATH_MINUS_STRING, Errores::outData, "double"); return std::monostate(); },
+			[](std::string & a, std::string & b)->Value //TODO: FALLA
+			{
 
-						if (a.length() < b.length())
-							return a;
+				if (a.length() < b.length())
+					return a;
 
-						int inx = a.length() - b.length();
-						std::string tt = a.substr(inx, b.length());
-						if (tt == b)
-							return a.erase(inx, b.length());
-						else return a;
+				int inx = a.length() - b.length();
+				std::string tt = a.substr(inx, b.length());
+				if (tt == b)
+					return a.erase(inx, b.length());
+				else return a;
 
 
-					},
-					[](std::string & a,const long long& b)->Value
-					{
-						if (b < 0) return (a);
-						if (b > a.length()) return (std::string(""));
-						return (a.erase(a.length() - (b + 1), b));
-					},
+			},
+			[](std::string & a,const long long& b)->Value
+			{
+				if (b < 0) return (a);
+				if (b > a.length()) return (std::string(""));
+				return (a.erase(a.length() - (b + 1), b));
+			},
 
-						//BOOL .. XX
-						[](const bool& a,const int& b)->Value { return (a - b); },
-						[](const bool& a,const bool& b)->Value { return (a - b); },
-						[](const bool& a, const double& b)->Value { return (a - b); },
-						[](const bool& a, std::string & b)->Value
-						{
-							if (a < 0) return (b);
-							if (a > b.length()) return (std::string(""));
-							return (b.erase(0,a));
-						},
-						[](const bool& a, const long long& b)->Value { return (a - b); },
-						[](auto,auto)->Value { return std::monostate(); },
+			//BOOL .. XX
+			[](const bool& a,const int& b)->Value { return (a - b); },
+			[](const bool& a,const bool& b)->Value { return (a - b); },
+			[](const bool& a, const double& b)->Value { return (a - b); },
+			[](const bool& a, std::string & b)->Value
+			{
+				if (a < 0) return (b);
+				if (a > b.length()) return (std::string(""));
+				return (b.erase(0,a));
+			},
+			[](const bool& a, const long long& b)->Value { return (a - b); },
+
+
+			[&](auto&, std::vector<Value>& b)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_RESTA); });
+				return r;
+			},
+
+			[&](std::vector<Value>& b, const bool&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_RESTA); });
+				return r;
+			},
+			[&](std::vector<Value>& b, const double&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_RESTA); });
+				return r;
+			},
+			[&](std::vector<Value>& b, std::string&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_RESTA); });
+				return r;
+			},
+			[&](std::vector<Value>& b, long long&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_RESTA); });
+				return r;
+			},
+			[&](std::vector<Value>& b, int&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_RESTA); });
+				return r;
+			},
+
+			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
+			{
+				std::vector<Value> r;
+				r.resize((a.size() > b.size()) ? a.size() : b.size());
+				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value& x, Value& y) { return x.operacion_Binaria(y, OP_ARIT_RESTA); });
+				return r;
+			},
+
+			[](auto,auto)->Value { return std::monostate(); },
 			}, value, v.value);
 		break;
 	}
@@ -213,47 +325,100 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			},
 			[](const int& a, const long long& b)->Value { return (a * b); },
 
-				//DOUBLE .. XX
-				[](const double& a,const int& b)->Value { return (a * b); },
-				[](const double& a,const bool& b)->Value { return (a * b); },
-				[](const double& a, const double& b)->Value { return (a * b); },
-				[](const double& a,  std::string & b)->Value { Errores::generarError(Errores::ERROR_MATH_MULT_STRING, Errores::outData, "double"); return std::monostate(); },
-				[](const double& a, const long long& b)->Value { return (a * b); },
+			//DOUBLE .. XX
+			[](const double& a,const int& b)->Value { return (a * b); },
+			[](const double& a,const bool& b)->Value { return (a * b); },
+			[](const double& a, const double& b)->Value { return (a * b); },
+			[](const double& a,  std::string & b)->Value { Errores::generarError(Errores::ERROR_MATH_MULT_STRING, Errores::outData, "double"); return std::monostate(); },
+			[](const double& a, const long long& b)->Value { return (a * b); },
 
-				//LONGLONG .. XX
-				[](const long long& a, const int& b)->Value { return (a * b); },
-				[](const long long& a, const bool& b)->Value { return (a * b); },
-				[](const long long& a, const double& b)->Value { return (a * b); },
-				[](const long long& a,  std::string & b)->Value
-				{
-					std::string ex = "";
-					for (int itr = 0; itr < a; itr++)
-						ex += b;
-					return (ex);
-				},
-				[](const long long& a, const long long& b)->Value { return (a * b); },
+			//LONGLONG .. XX
+			[](const long long& a, const int& b)->Value { return (a * b); },
+			[](const long long& a, const bool& b)->Value { return (a * b); },
+			[](const long long& a, const double& b)->Value { return (a * b); },
+			[](const long long& a,  std::string & b)->Value
+			{
+				std::string ex = "";
+				for (int itr = 0; itr < a; itr++)
+					ex += b;
+				return (ex);
+			},
+			[](const long long& a, const long long& b)->Value { return (a * b); },
 
-					//STRING .. XX
-					[]( std::string & a,int& b)->Value {
-						std::string ex = "";
-						for (int itr = 0; itr < b; itr++)
-							ex += a;
-						return (ex);
-					},
-					[](std::string & a,const bool& b)->Value { if (b) return (a); else return ""; },
-					[]( std::string & a,const double& b)->Value { Errores::generarError(Errores::ERROR_MATH_MULT_STRING, Errores::outData, "double"); return std::monostate(); },
-					[]( std::string & a, std::string & b)->Value {/*abc ab = aa ab ba bb ca cb*/ return (false); },
-					[]( std::string & a,const long long& b)->Value { return (a + to_string_p(b)); },
+			//STRING .. XX
+			[]( std::string & a,int& b)->Value {
+				std::string ex = "";
+				for (int itr = 0; itr < b; itr++)
+					ex += a;
+				return (ex);
+			},
+			[](std::string & a,const bool& b)->Value { if (b) return (a); else return ""; },
+			[]( std::string & a,const double& b)->Value { Errores::generarError(Errores::ERROR_MATH_MULT_STRING, Errores::outData, "double"); return std::monostate(); },
+			[]( std::string & a, std::string & b)->Value {/*abc ab = aa ab ba bb ca cb*/ return (false); },
+			[]( std::string & a,const long long& b)->Value { return (a + to_string_p(b)); },
 
-						//BOOL .. XX
-						[](const bool& a,const int& b)->Value { return (a * b); },
-						[](const bool& a,const bool& b)->Value { return (a * b); },
-						[](const bool& a, const double& b)->Value { return (a * b); },
-						[](const bool& a, std::string & b)->Value { if (a) return (b); else return ""; },
-						[](const bool& a, const long long& b)->Value { return (a * b); },
+			//BOOL .. XX
+			[](const bool& a,const int& b)->Value { return (a * b); },
+			[](const bool& a,const bool& b)->Value { return (a * b); },
+			[](const bool& a, const double& b)->Value { return (a * b); },
+			[](const bool& a, std::string & b)->Value { if (a) return (b); else return ""; },
+			[](const bool& a, const long long& b)->Value { return (a * b); },
 
 
-						[](auto,auto)->Value { return std::monostate(); },
+			[&](auto&, std::vector<Value>& b)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_MULT); });
+				return r;
+			},
+
+			[&](std::vector<Value>& b, const bool&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) {return  v.operacion_Binaria(c, OP_ARIT_MULT); });
+				return r;
+			},
+			[&](std::vector<Value>& b, const double&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MULT); });
+				return r;
+			},
+			[&](std::vector<Value>& b, std::string&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MULT); });
+				return r;
+			},
+			[&](std::vector<Value>& b, long long&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MULT); });
+				return r;
+			},
+
+			[&](std::vector<Value>& b, int&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MULT); });
+				return r;
+			},
+
+			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
+			{
+				std::vector<Value> r;
+				r.resize((a.size() > b.size()) ? a.size() : b.size());
+				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value& x, Value& y) { return x.operacion_Binaria(y, OP_ARIT_MULT); });
+				return r;
+			},
+
+			[](auto,auto)->Value { return std::monostate(); },
 
 			}, value, v.value);
 		break;
@@ -302,6 +467,54 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			[](const bool& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
 			[](const bool& a, const long long& b)->Value { return ((double)a / b); },
 
+			[&](auto&, std::vector<Value>& b)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_DIV); });
+				return r;
+			},
+
+			[&](std::vector<Value>& b, const bool&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV); });
+				return r;
+			},
+			[&](std::vector<Value>& b, const double&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV); });
+				return r;
+			},
+			[&](std::vector<Value>& b, std::string&)->Value
+			{
+				Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate();
+			},
+			[&](std::vector<Value>& b, long long&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV); });
+				return r;
+			},
+			[&](std::vector<Value>& b, int&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV); });
+				return r;
+			},
+
+			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
+			{
+				std::vector<Value> r;
+				r.resize((a.size() > b.size()) ? a.size() : b.size());
+				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value & x, Value & y) { return x.operacion_Binaria(y, OP_ARIT_DIV); });
+				return r;
+			},
 
 			[](auto,auto)->Value { return std::monostate(); },
 
@@ -352,6 +565,54 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			[](const bool& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
 			[](const bool& a, const long long& b)->Value { return ((int)(a / b)); },
 
+			[&](auto&, std::vector<Value>& b)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_DIV_ENTERA); });
+				return r;
+			},
+
+			[&](std::vector<Value>& b, const bool&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV_ENTERA); });
+				return r;
+			},
+			[&](std::vector<Value>& b, const double&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV_ENTERA); });
+				return r;
+			},
+			[&](std::vector<Value>& b, std::string&)->Value
+			{
+				Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); 
+			},
+			[&](std::vector<Value>& b, long long&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV_ENTERA); });
+				return r;
+			},
+			[&](std::vector<Value>& b, int&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV_ENTERA); });
+				return r;
+			},
+
+			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
+			{
+				std::vector<Value> r;
+				r.resize((a.size() > b.size()) ? a.size() : b.size());
+				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value & x, Value & y) { return x.operacion_Binaria(y, OP_ARIT_DIV_ENTERA); });
+				return r;
+			},
 
 			[](auto,auto)->Value { return std::monostate(); },
 
@@ -401,6 +662,57 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			[](const bool& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
 			[](const bool& a, const long long& b)->Value { return (a % b); },
 
+			[&](auto&, std::vector<Value>& b)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_MOD); });
+				return r;
+			},
+
+			[&](std::vector<Value>& b, const bool&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MOD); });
+				return r;
+			},
+			[&](std::vector<Value>& b, const double&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MOD); });
+				return r;
+			},
+			[&](std::vector<Value>& b, std::string&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MOD); });
+				return r;
+			},
+			[&](std::vector<Value>& b, long long&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MOD); });
+				return r;
+			},
+		    [&](std::vector<Value>& b, int&)->Value
+			{
+				std::vector<Value> r;
+				r.resize(b.size());
+				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MOD); });
+				return r;
+			},
+
+			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
+			{
+				std::vector<Value> r;
+				r.resize((a.size() > b.size()) ? a.size() : b.size());
+				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value & x, Value & y) { return x.operacion_Binaria(y, OP_ARIT_MOD); });
+				return r;
+			},
 
 			[](auto,auto)->Value { return std::monostate(); },
 
@@ -459,6 +771,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a && v.ValueToBool();
 			},
+			[](const int& a, std::vector<Value>& b) { return a && !b.empty(); },
 
 			[](const long long& a, const long long& b) { return a && b; },
 			[](const long long& a, const  bool& b) { return a && b; },
@@ -468,6 +781,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a && v.ValueToBool();
 			},
+			[](const long long& a, std::vector<Value>& b) { return a && !b.empty(); },
 
 			[](const double& a, const double& b) { return a && b; },
 			[](const double& a, const int& b) { return a && b; },
@@ -477,6 +791,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a && v.ValueToBool();
 			},
+			[](const double& a, std::vector<Value>& b) { return a && !b.empty(); },
 
 			[](const bool& a, const double& b) { return a && b;  },
 			[](const bool& a, const int& b) { return a && b; },
@@ -486,6 +801,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a && v.ValueToBool();
 			},
+			[](const bool& a, std::vector<Value>& b) { return a && !b.empty(); },
 
 			[this](const std::string & a, const double& b)
 			{
@@ -507,7 +823,18 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return this->ValueToBool() && v.ValueToBool();
 			},
+			[&](const std::string& a, std::vector<Value>& b) { return this->ValueToBool() && !b.empty(); },
 
+
+			[](std::vector<Value>& a, const double& b) { return !a.empty() && b; },
+			[](std::vector<Value>& a, const int& b) { return !a.empty() && b; },
+			[](std::vector<Value>& a, const long long& b) { return !a.empty() && b; },
+			[](std::vector<Value>& a, const bool& b) { return !a.empty() && b; },
+			[&v](std::vector<Value>& a, const std::string&)
+			{
+				return !a.empty() && v.ValueToBool();
+			},
+			[](std::vector<Value>& a, std::vector<Value>& b) { return !a.empty() && !b.empty(); },
 
 			[](auto,auto) { return false; },
 
@@ -528,6 +855,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a || v.ValueToBool();
 			},
+			[](const int& a, std::vector<Value>& b) { return a || !b.empty(); },
 
 			[](const long long& a, const long long& b) { return a || b; },
 			[](const long long& a, const  bool& b) { return a || b; },
@@ -537,6 +865,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a || v.ValueToBool();
 			},
+			[](const long long& a, std::vector<Value>& b) { return a || !b.empty(); },
 
 			[](const double& a, const double& b) { return a || b; },
 			[](const double& a, const int& b) { return a || b; },
@@ -546,6 +875,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a || v.ValueToBool();
 			},
+			[](const double& a, std::vector<Value>& b) { return a || !b.empty(); },
 
 			[](const bool& a, const double& b) { return a || b;  },
 			[](const bool& a, const int& b) { return a || b; },
@@ -555,29 +885,43 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a || v.ValueToBool();
 			},
+			[](const bool& a, std::vector<Value>& b) { return a || !b.empty(); },
 
-			[this](const std::string & a, const double& b)
+			[this](const std::string& a, const double& b)
 			{
 				return this->ValueToBool() || b;
 			},
-			[this](const std::string & a, const int& b)
+			[this](const std::string& a, const int& b)
 			{
 				return this->ValueToBool() || b;
 			},
-			[this](const std::string & a, const long long& b)
+			[this](const std::string& a, const long long& b)
 			{
 				return this->ValueToBool() || b;
 			},
-			[this](const std::string & a, const bool& b)
+			[this](const std::string& a, const bool& b)
 			{
 				return this->ValueToBool() || b;
 			},
-			[&](const std::string & a, const std::string & b)
+			[&](const std::string& a, const std::string& b)
 			{
 				return this->ValueToBool() || v.ValueToBool();
 			},
+			[&](const std::string& a, std::vector<Value>& b) { return this->ValueToBool() || !b.empty(); },
+
+
+			[](std::vector<Value>& a, const double& b) { return !a.empty() || b; },
+			[](std::vector<Value>& a, const int& b) { return !a.empty() || b; },
+			[](std::vector<Value>& a, const long long& b) { return !a.empty() || b; },
+			[](std::vector<Value>& a, const bool& b) { return !a.empty() || b; },
+			[&v](std::vector<Value>& a, const std::string&)
+			{
+				return !a.empty() || v.ValueToBool();
+			},
+			[](std::vector<Value>& a, std::vector<Value>& b) { return !a.empty() || !b.empty(); },
 
 			[](auto,auto) { return false; },
+
 
 			}, value, v.value);
 		break;
@@ -626,15 +970,16 @@ bool Value::OperacionRelacional(const Value& v, const OPERADORES op)
 	}
 }
 
-void Value::inicializacion(tipos_parametros& tipo)
+void Value::inicializacion(Parser_Declarativo * tipo)
 {
-	switch(tipo)
+	switch(tipo->value)
 	{
 		case tipos_parametros::PARAM_INT: value = (int)0; break;
 		case tipos_parametros::PARAM_LINT: value = (long long)0; break;
 		case tipos_parametros::PARAM_DOUBLE: value = (double)0; break;
 		case tipos_parametros::PARAM_BOOL: value = (bool)false; break;
 		case tipos_parametros::PARAM_STRING: value = (std::string)""; break;
+		case tipos_parametros::PARAM_VECTOR: value = std::vector<Value>{}; break;
 		default: value = std::monostate(); break;
 	}
 }
@@ -661,7 +1006,6 @@ bool Value::asignacion(Value & v, bool& fuerte)
 				auto number = strtol(b.c_str(), &endptr, 10);
 				if (b.c_str() == endptr)
 				{
-					std::cout << "--TTTTT22--";
 					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, Errores::outData);
 					return false;
 				}
@@ -731,13 +1075,19 @@ bool Value::asignacion(Value & v, bool& fuerte)
 			[&]( std::string&,  std::string & b) { *this = v;   return true; },
 			[&]( std::string&, std::monostate&) { *this = std::monostate();  return true; },
 
-
 			[&](std::monostate&, auto&) { *this = v;  return true; },
-			
+
+
+			[&](std::vector<Value>&, std::vector<Value> & b)
+			{
+				*this = Value(b);
+				return true;
+			},
+
 
 			[](auto&,auto&) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
 
-			}, value, v.value);
+		}, value, v.value);
 	}
 
 
@@ -745,16 +1095,7 @@ bool Value::asignacion(Value & v, bool& fuerte)
 
 bool Value::Cast(Parser_Declarativo* pDec)
 {
-	if (pDec->_tipo == DEC_SINGLE)
-	{
-		Declarativo_SingleValue* x = static_cast<Declarativo_SingleValue*>(pDec);
-		return Cast(x->value);
-	}
-	else
-	{
-		//Por ahora no hay valores de tipo multiple.
-		return false;
-	}
+		return Cast(pDec->value);
 }
 
 bool Value::Cast(const tipos_parametros tipo)
@@ -861,6 +1202,19 @@ bool Value::Cast(const tipos_parametros tipo)
 				[](auto) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
 				}, value);
 		}
+		case PARAM_VECTOR:
+		{
+			return std::visit(overloaded{
+				[&](std::string& b) { *this = Value(std::vector<Value> { b }); return true; },
+				[&](const bool& a) {  *this = Value(std::vector<Value> { a });  return true; },
+				[&](const int& a) {  *this = Value(std::vector<Value> { a }); return true; },
+				[&](const long long& a) {  *this = Value(std::vector<Value> { a });  return true; },
+				[&](const double& a) { *this = Value(std::vector<Value> { a });  return true; },
+				[](std::vector<Value>&) { return true; },			
+				[](auto) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
+			}, value);
+		}
+
 		default: return false;
 	}
 }
@@ -879,6 +1233,8 @@ bool Value::ValueToBool()
 		[]( int& a) { return (bool)a; },
 		[]( long long& a) { return (bool)a; },
 		[]( double& a) { return (bool)a; },
+		[](std::vector<Value> & a) { return !a.empty(); },
+			
 		[](auto&) { return false; },
 		}, value);
 }
@@ -991,6 +1347,7 @@ bool Value::igualdad_Condicional(const Value & v)
 		},
 		[](const std::string & a, const std::string & b) { return a == b; },
 
+			[](std::vector<Value>& a, std::vector<Value>& b) { return distance(a.begin(), a.end()) == distance(b.begin(), b.end()) && equal(a.begin(), a.end(), b.begin()); },
 
 		[](auto,auto) { return false; },
 
@@ -1105,6 +1462,40 @@ bool Value::mayorQue_Condicional(const Value & v)
 		},
 		[](const std::string & a, const std::string & b) { return a > b; },
 
+		[](std::vector<Value>& a, std::vector<Value>& b) 
+		{ 
+			if ((a.empty() && b.empty()) || (a.empty() && !b.empty()))
+				return false;
+
+			if (b.empty())
+				return true;
+
+			Value* v1 = &*a.begin();
+			Value* v1_end = &*a.end();
+
+			Value* v2 = &*b.begin();
+			Value* v2_end = &*b.end();
+
+			while (v1 != v1_end || v2 != v2_end)
+			{
+				if (v1 == v2)
+				{
+					v1++; v2++;
+					continue;
+				}
+				else
+				{
+					return v1->mayorQue_Condicional(v2);
+				}
+			}
+
+			if (v1 == v1_end && v2 == v2_end)
+				return false;
+			if (v1 != v1_end)
+				return false;
+			//Ende es mayor en tamaño.
+			return true;
+		},
 
 		[](auto,auto) { return false; },
 
@@ -1218,6 +1609,40 @@ bool Value::menorQue_Condicional(const Value & v)
 		},
 		[](const std::string & a, const std::string & b) { return a < b; },
 
+		[](std::vector<Value>& a, std::vector<Value>& b)
+		{
+			if ((a.empty() && b.empty()) || (!a.empty() && b.empty()))
+				return false;
+
+			if (a.empty())
+				return true;
+
+			Value * v1 = &*a.begin();
+			Value * v1_end = &*a.end();
+
+			Value * v2 = &*b.begin();
+			Value * v2_end = &*b.end();
+
+			while (v1 != v1_end || v2 != v2_end)
+			{
+				if (v1 == v2)
+				{
+					v1++; v2++;
+					continue;
+				}
+				else
+				{
+					return v1->menorQue_Condicional(v2);
+				}
+			}
+
+			if (v1 == v1_end && v2 == v2_end)
+				return false;
+			if (v1 != v1_end)
+				return true;
+
+			return false;
+		},
 
 		[](auto,auto) { return false; },
 
@@ -1331,6 +1756,40 @@ bool Value::menorIgualQue_Condicional(const Value & v)
 		},
 		[](const std::string & a, const std::string & b) { return a <= b; },
 
+		[](std::vector<Value>& a, std::vector<Value>& b)
+		{
+			if ((!a.empty() && b.empty()))
+				return false;
+
+			if (a.empty() || (a.empty() && b.empty()))
+				return true;
+
+			Value * v1 = &*a.begin();
+			Value * v1_end = &*a.end();
+
+			Value * v2 = &*b.begin();
+			Value * v2_end = &*b.end();
+
+			while (v1 != v1_end || v2 != v2_end)
+			{
+				if (v1 == v2)
+				{
+					v1++; v2++;
+					continue;
+				}
+				else
+				{
+					return v1->menorIgualQue_Condicional(v2);
+				}
+			}
+
+			if (v1 == v1_end && v2 == v2_end)
+				return true;
+			if (v1 != v1_end)
+				return true;
+
+			return false;
+		},
 
 		[](auto,auto) { return false; },
 
@@ -1444,6 +1903,40 @@ bool Value::mayorIgualQue_Condicional(const Value & v)
 		},
 		[](const std::string & a, const std::string & b) { return a >= b; },
 
+		[](std::vector<Value>& a, std::vector<Value>& b)
+		{
+			if (a.empty() && !b.empty())
+				return false;
+
+			if (b.empty() || (a.empty() && b.empty()))
+				return true;
+
+			Value * v1 = &*a.begin();
+			Value * v1_end = &*a.end();
+
+			Value * v2 = &*b.begin();
+			Value * v2_end = &*b.end();
+
+			while (v1 != v1_end || v2 != v2_end)
+			{
+				if (v1 == v2)
+				{
+					v1++; v2++;
+					continue;
+				}
+				else
+				{
+					return v1->mayorIgualQue_Condicional(v2);
+				}
+			}
+
+			if (v1 == v1_end && v2 == v2_end)
+				return true;
+			if (v1 != v1_end)
+				return false;
+			//Ende es mayor en tamaño.
+			return true;
+		},
 
 		[](auto,auto) { return false; },
 
@@ -1505,6 +1998,14 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 		[](const long long& val)->Value {return -val; },
 		[](const bool& val)->Value {return -val; },
 		[&](const std::string & val)->Value {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "-"); return std::monostate(); },
+
+		[&](std::vector<Value> & a)->Value
+		{
+			std::vector<Value> r;
+			r.resize(a.size());
+			std::transform(a.begin(), a.end(), r.begin(), [](Value & x) { OPERADORES o = ELEM_NEG_FIRST; return x.operacion_Unitaria(o); });
+			return r;
+		},
 		[](const auto&)->Value {return std::monostate(); },
 			}, value);
 	}
@@ -1516,7 +2017,7 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 			[](const long long& val)->Value {return val - 1; },
 			[](const bool& val)->Value {return val - 1; },
 			[&](const std::string & val)->Value {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "--"); return std::monostate(); },
-			[](const auto&)->Value {return std::monostate(); },
+			[&](const auto&)->Value {Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO, Errores::outData, "--");  return std::monostate(); },
 			}, value);
 	}
 
@@ -1528,7 +2029,7 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 			[](const long long& val)->Value {return val + 1; },
 			[](const bool& val)->Value {return val + 1; },
 			[&](const std::string & val)->Value {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "++"); return std::monostate(); },
-			[](const auto&)->Value {return std::monostate(); },
+			[&](const auto&)->Value {Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO, Errores::outData, "++");  return std::monostate(); },
 			}, value);
 	}
 
@@ -1551,6 +2052,24 @@ void Value::print()
 {
 	std::visit(overloaded{
 		[&](std::monostate a) { return; },
+		[&](std::vector<Value> & a) {
+			if (a.empty())
+			{
+				std::cout << "[]";
+				return;
+			}
+			std::cout << "[";
+			std::for_each(a.begin(), a.end(), [](Value & x) { x.print(); std::cout << ", "; });
+			/*std::string delim = "";
+			for (auto item : a)
+			{
+				std::cout << delim;
+				item.print();
+				delim = ",";
+			}*/
+			std::cout << "\b\b]";
+			},
+
 		[&](auto& a) { std::cout << a; },
 		//	[&](int& val) { std::cout },
 		//	[&](double& val) {return Value(-val); },
