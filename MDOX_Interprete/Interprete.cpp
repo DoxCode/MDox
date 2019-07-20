@@ -298,12 +298,15 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 							return Relacional_rec_arbol(a, variables, r_back);
 						 else return false;
 					 }
-					 else return v2.operacion_Binaria(lectura_arbol_operacional(a, variables), node->operador);
+					 else return lectura_arbol_operacional(a, variables).OperacionRelacional(v2, node->operador);
 				},
-			[&](Value & a)->Value {return v2.operacion_Binaria(a, node->operador); },
-			[&](Parser_Identificador * a)->Value { return v2.operacion_Binaria(a->var_global ? this->variables_globales[a->index].value : variables[a->index].value, node->operador);  },
-			[&](Valor_Funcion * a)->Value { return v2.operacion_Binaria(ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)), node->operador); },
-			[&](multi_value* a)->Value {  return v2.operacion_Binaria(TratarMultiplesValores(a, variables), node->operador); },
+			[&](Value & a)->Value 
+				{
+					return a.OperacionRelacional(v2, node->operador); 
+				},
+			[&](Parser_Identificador * a)->Value { return (a->var_global ? this->variables_globales[a->index].value : variables[a->index].value).OperacionRelacional(v2, node->operador);  },
+			[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)).OperacionRelacional(v2, node->operador); },
+			[&](multi_value* a)->Value {  return TratarMultiplesValores(a, variables).OperacionRelacional(v2, node->operador); },
 			[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return std::monostate(); },
 				}, node->_v1);
 

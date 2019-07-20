@@ -134,10 +134,56 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 
 			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
 			{
+				if (a.empty() || b.empty())
+				{
+					if (a.empty())
+						return b;
+					else return a;
+				}
+				
 				std::vector<Value> r;
-				r.resize((a.size() > b.size()) ? a.size() : b.size());
-				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value& x, Value& y) { return x.operacion_Binaria(y, OP_ARIT_SUMA); });
-				return r;
+				long long m = a.size() > b.size() ? a.size() : b.size();
+				r.resize(m);
+
+				Value* a1 = &*a.begin();
+				Value* a2 = &a.back();
+				
+				Value* b1 = &*b.begin();
+				Value* b2 = &b.back();
+
+				Value* r1 = &*r.begin();
+
+				while (true)
+				{
+					if (a1 == a2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_SUMA);
+
+						do
+						{
+							b1++; r1++;
+							*r1 = *b1;
+						} while (b1 != b2);
+
+						return r;
+					}
+
+					if (b1 == b2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_SUMA);
+
+						do
+						{
+							b1++; r1++;
+							*r1 = *a1;
+						} while (a1 != a2);
+
+						return r;
+					}
+
+					*r1 = a1->operacion_Binaria(*b1, OP_ARIT_SUMA);
+					a1++; b1++; r1++;
+				}
 			},
 
 			[](auto,auto)->Value { return std::monostate(); },
@@ -289,10 +335,57 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 
 			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
 			{
+				if (a.empty() || b.empty())
+				{
+					if (a.empty())
+						return b;
+					else return a;
+				}
+
 				std::vector<Value> r;
-				r.resize((a.size() > b.size()) ? a.size() : b.size());
-				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value& x, Value& y) { return x.operacion_Binaria(y, OP_ARIT_RESTA); });
-				return r;
+				long long m = a.size() > b.size() ? a.size() : b.size();
+				r.resize(m);
+
+				Value* a1 = &*a.begin();
+				Value* a2 = &a.back();
+
+				Value* b1 = &*b.begin();
+				Value* b2 = &b.back();
+
+				Value* r1 = &*r.begin();
+
+				while (true)
+				{
+					if (a1 == a2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_RESTA);
+
+						do 
+						{
+							b1++; r1++;
+							OPERADORES o = ELEM_NEG_FIRST;
+							*r1 = b1->operacion_Unitaria(o);
+						} while (b1 != b2);
+
+						return r;
+					}
+
+					if (b1 == b2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_RESTA);
+
+						do
+						{
+							a1++; r1++;
+							*r1 = *a1;
+						} while (a1 != a2);
+
+						return r;
+					}
+
+					*r1 = a1->operacion_Binaria(*b1, OP_ARIT_RESTA);
+					a1++; b1++; r1++;
+				}
 			},
 
 			[](auto,auto)->Value { return std::monostate(); },
@@ -412,10 +505,56 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 
 			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
 			{
+				if (a.empty() || b.empty())
+				{
+					if (a.empty())
+						return b;
+					else return a;
+				}
+
 				std::vector<Value> r;
-				r.resize((a.size() > b.size()) ? a.size() : b.size());
-				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value& x, Value& y) { return x.operacion_Binaria(y, OP_ARIT_MULT); });
-				return r;
+				long long m = a.size() > b.size() ? a.size() : b.size();
+				r.resize(m);
+
+				Value* a1 = &*a.begin();
+				Value* a2 = &a.back();
+
+				Value* b1 = &*b.begin();
+				Value* b2 = &b.back();
+
+				Value* r1 = &*r.begin();
+
+				while (true)
+				{
+					if (a1 == a2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MULT);
+
+						do
+						{
+							b1++; r1++;
+							*r1 = std::monostate();
+						} while (b1 != b2);
+
+						return r;
+					}
+
+					if (b1 == b2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MULT);
+
+						do
+						{
+							a1++; r1++;
+							*r1 = *a1;
+						} while (a1 != a2);
+
+						return r;
+					}
+
+					*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MULT);
+					a1++; b1++; r1++;
+				}
 			},
 
 			[](auto,auto)->Value { return std::monostate(); },
@@ -510,10 +649,56 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 
 			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
 			{
+				if (a.empty() || b.empty())
+				{
+					if (a.empty())
+						return b;
+					else return a;
+				}
+
 				std::vector<Value> r;
-				r.resize((a.size() > b.size()) ? a.size() : b.size());
-				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value & x, Value & y) { return x.operacion_Binaria(y, OP_ARIT_DIV); });
-				return r;
+				long long m = a.size() > b.size() ? a.size() : b.size();
+				r.resize(m);
+
+				Value* a1 = &*a.begin();
+				Value* a2 = &a.back();
+
+				Value* b1 = &*b.begin();
+				Value* b2 = &b.back();
+
+				Value* r1 = &*r.begin();
+
+				while (true)
+				{
+					if (a1 == a2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV);
+
+						do
+						{
+							b1++; r1++;
+							*r1 = std::monostate();
+						} while (b1 != b2);
+
+						return r;
+					}
+
+					if (b1 == b2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV);
+
+						do
+						{
+							a1++; r1++;
+							*r1 = *a1;
+						} while (a1 != a2);
+
+						return r;
+					}
+
+					*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV);
+					a1++; b1++; r1++;
+				}
 			},
 
 			[](auto,auto)->Value { return std::monostate(); },
@@ -608,10 +793,57 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 
 			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
 			{
+
+				if (a.empty() || b.empty())
+				{
+					if (a.empty())
+						return b;
+					else return a;
+				}
+
 				std::vector<Value> r;
-				r.resize((a.size() > b.size()) ? a.size() : b.size());
-				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value & x, Value & y) { return x.operacion_Binaria(y, OP_ARIT_DIV_ENTERA); });
-				return r;
+				long long m = a.size() > b.size() ? a.size() : b.size();
+				r.resize(m);
+
+				Value* a1 = &*a.begin();
+				Value* a2 = &a.back();
+
+				Value* b1 = &*b.begin();
+				Value* b2 = &b.back();
+
+				Value* r1 = &*r.begin();
+
+				while (true)
+				{
+					if (a1 == a2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV_ENTERA);
+
+						do
+						{
+							b1++; r1++;
+							*r1 = std::monostate();
+						} while (b1 != b2);
+
+						return r;
+					}
+
+					if (b1 == b2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV_ENTERA);
+
+						do
+						{
+							a1++; r1++;
+							*r1 = *a1;
+						} while (a1 != a2);
+
+						return r;
+					}
+
+					*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV_ENTERA);
+					a1++; b1++; r1++;
+				}
 			},
 
 			[](auto,auto)->Value { return std::monostate(); },
@@ -706,12 +938,59 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 				return r;
 			},
 
+
 			[&](std::vector<Value>& a, std::vector<Value>& b)->Value
 			{
+				if (a.empty() || b.empty())
+				{
+					if (a.empty())
+						return b;
+					else return a;
+				}
+
 				std::vector<Value> r;
-				r.resize((a.size() > b.size()) ? a.size() : b.size());
-				std::transform(a.begin(), a.end(), b.begin(), r.begin(), [](Value & x, Value & y) { return x.operacion_Binaria(y, OP_ARIT_MOD); });
-				return r;
+				long long m = a.size() > b.size() ? a.size() : b.size();
+				r.resize(m);
+
+				Value* a1 = &*a.begin();
+				Value* a2 = &a.back();
+
+				Value* b1 = &*b.begin();
+				Value* b2 = &b.back();
+
+				Value* r1 = &*r.begin();
+
+				while (true)
+				{
+					if (a1 == a2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MOD);
+
+						do
+						{
+							b1++; r1++;
+							*r1 = std::monostate();
+						} while (b1 != b2);
+
+						return r;
+					}
+
+					if (b1 == b2)
+					{
+						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MOD);
+
+						do
+						{
+							a1++; r1++;
+							*r1 = *a1;
+						} while (a1 != a2);
+
+						return r;
+					}
+
+					*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MOD);
+					a1++; b1++; r1++;
+				}
 			},
 
 			[](auto,auto)->Value { return std::monostate(); },
@@ -929,7 +1208,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 	}
 }
 
-bool Value::OperacionRelacional(const Value& v, const OPERADORES op)
+bool Value::OperacionRelacional( Value& v, const OPERADORES op)
 {
 	switch (op)
 	{
@@ -1240,7 +1519,7 @@ bool Value::ValueToBool()
 }
 
 
-bool Value::igualdad_Condicional(const Value & v)
+bool Value::igualdad_Condicional( Value & v)
 {
 	return std::visit(overloaded{
 
@@ -1249,7 +1528,7 @@ bool Value::igualdad_Condicional(const Value & v)
 		[](const int& a,const bool& b) { return a == b; },
 		[](const int& a,const long long& b) { return a == b; },
 		[](const int& a,const double& b) { return a == b; },
-		[](const int& a,const std::string & b)
+		[](const int& a, std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1265,7 +1544,7 @@ bool Value::igualdad_Condicional(const Value & v)
 		[](const long long& a, const  bool& b) { return a == b; },
 		[](const long long& a, const int& b) { return a == b; },
 		[](const long long& a, const double& b) { return a == b; },
-		[](const long long& a, const std::string & b)
+		[](const long long& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1281,7 +1560,7 @@ bool Value::igualdad_Condicional(const Value & v)
 		[](const double& a, const int& b) { return a == b; },
 		[](const double& a, const long long& b) { return a == b; },
 		[](const double& a, const bool& b) { return a == b; },
-		[](const double& a, const std::string & b)
+		[](const double& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1297,7 +1576,7 @@ bool Value::igualdad_Condicional(const Value & v)
 		[](const bool& a, const int& b) { return a == b; },
 		[](const bool& a, const long long& b) { return a == b; },
 		[](const bool& a, const bool& b) { return a == b;  },
-		[](const bool& a, const std::string & b)
+		[](const bool& a,  std::string & b)
 		{
 		   if (b == "" || b == "0" || b == "false")
 				return (false == a);
@@ -1305,7 +1584,7 @@ bool Value::igualdad_Condicional(const Value & v)
 				return (true == a);
 		},
 
-		[](const std::string & a, const double& b)
+		[]( std::string & a, const double& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1316,7 +1595,7 @@ bool Value::igualdad_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const int& b)
+		[]( std::string & a, const int& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1327,7 +1606,7 @@ bool Value::igualdad_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const long long& b)
+		[]( std::string & a, const long long& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1338,16 +1617,16 @@ bool Value::igualdad_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const bool& b)
+		[]( std::string & a, const bool& b)
 		{
 		   if (a == "" || a == "0" || a == "false")
 				return (false == b);
 			else
 				return (true == b);
 		},
-		[](const std::string & a, const std::string & b) { return a == b; },
+		[]( std::string & a,  std::string & b) { return a == b; },
 
-			[](std::vector<Value>& a, std::vector<Value>& b) { return distance(a.begin(), a.end()) == distance(b.begin(), b.end()) && equal(a.begin(), a.end(), b.begin()); },
+		[]( std::vector<Value>& a,  std::vector<Value>& b) { return distance(a.begin(), a.end()) == distance(b.begin(), b.end()) && equal(a.begin(), a.end(), b.begin()); },
 
 		[](auto,auto) { return false; },
 
@@ -1355,16 +1634,19 @@ bool Value::igualdad_Condicional(const Value & v)
 }
 
 
-bool Value::mayorQue_Condicional(const Value & v)
+bool Value::mayorQue_Condicional( Value & v)
 {
 	return std::visit(overloaded{
 
 		//INTEGER .. XX
-		[](const int& a,const int& b) { return a > b; },
+		[](const int& a,const int& b) 
+		{ 
+			return a > b; 
+		},
 		[](const int& a,const bool& b) { return a > b; },
 		[](const int& a,const long long& b) { return a > b; },
 		[](const int& a,const double& b) { return a > b; },
-		[](const int& a,const std::string & b)
+		[](const int& a, std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1380,7 +1662,7 @@ bool Value::mayorQue_Condicional(const Value & v)
 		[](const long long& a, const  bool& b) { return a > b; },
 		[](const long long& a, const int& b) { return a > b; },
 		[](const long long& a, const double& b) { return a > b; },
-		[](const long long& a, const std::string & b)
+		[](const long long& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1396,7 +1678,7 @@ bool Value::mayorQue_Condicional(const Value & v)
 		[](const double& a, const int& b) { return a > b; },
 		[](const double& a, const long long& b) { return a > b; },
 		[](const double& a, const bool& b) { return a > b; },
-		[](const double& a, const std::string & b)
+		[](const double& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1412,7 +1694,7 @@ bool Value::mayorQue_Condicional(const Value & v)
 		[](const bool& a, const int& b) { return a > b; },
 		[](const bool& a, const long long& b) { return a > b; },
 		[](const bool& a, const bool& b) { return a > b;  },
-		[](const bool& a, const std::string & b)
+		[](const bool& a,  std::string & b)
 		{
 		   if (b == "" || b == "0" || b == "false")
 				return (false > a);
@@ -1420,7 +1702,7 @@ bool Value::mayorQue_Condicional(const Value & v)
 				return (true > a);
 		},
 
-		[](const std::string & a, const double& b)
+		[]( std::string & a, const double& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1431,7 +1713,7 @@ bool Value::mayorQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const int& b)
+		[]( std::string & a, const int& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1442,7 +1724,7 @@ bool Value::mayorQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const long long& b)
+		[]( std::string & a, const long long& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1453,16 +1735,16 @@ bool Value::mayorQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const bool& b)
+		[]( std::string & a, const bool& b)
 		{
 		   if (a == "" || a == "0" || a == "false")
 				return (false > b);
 			else
 				return (true > b);
 		},
-		[](const std::string & a, const std::string & b) { return a > b; },
+		[]( std::string & a,  std::string & b) { return a > b; },
 
-		[](std::vector<Value>& a, std::vector<Value>& b) 
+		[]( std::vector<Value>& a,  std::vector<Value>& b)
 		{ 
 			if ((a.empty() && b.empty()) || (a.empty() && !b.empty()))
 				return false;
@@ -1471,30 +1753,48 @@ bool Value::mayorQue_Condicional(const Value & v)
 				return true;
 
 			Value* v1 = &*a.begin();
-			Value* v1_end = &*a.end();
+			Value* v1_end = &a.back();
 
 			Value* v2 = &*b.begin();
-			Value* v2_end = &*b.end();
+			Value* v2_end = &b.back();
 
-			while (v1 != v1_end || v2 != v2_end)
+
+			while (true)
 			{
-				if (v1 == v2)
+				if (v1 == v1_end)
 				{
-					v1++; v2++;
-					continue;
+					if (*v1 == *v2)
+					{
+						if (v2 == v2_end)
+						{
+							return false; // Son iguales
+						}
+						else return false; //V2 tiene mas valores, ende es mayor
+					}
+					return v1->mayorQue_Condicional(*v2); //Dependera de que valor es mayor.
+				}
+				else if (v2 == v2_end)
+				{
+					if (*v1 == *v2)
+					{
+						if (v1 == v1_end)
+						{
+							return false; // Son iguales
+						}
+						else return true; //V1 tiene mas valores, ende es mayor
+					}
+					return v1->mayorQue_Condicional(*v2); //Dependera de que valor es mayor.
 				}
 				else
 				{
-					return v1->mayorQue_Condicional(v2);
+					if (*v1 == *v2)
+					{
+						v1++; v2++;
+						continue;
+					}
+					return v1->mayorQue_Condicional(*v2); //Dependera de que valor es mayor.
 				}
 			}
-
-			if (v1 == v1_end && v2 == v2_end)
-				return false;
-			if (v1 != v1_end)
-				return false;
-			//Ende es mayor en tamaño.
-			return true;
 		},
 
 		[](auto,auto) { return false; },
@@ -1502,7 +1802,7 @@ bool Value::mayorQue_Condicional(const Value & v)
 		}, value, v.value);
 }
 
-bool Value::menorQue_Condicional(const Value & v)
+bool Value::menorQue_Condicional( Value & v)
 {
 	return std::visit(overloaded{
 
@@ -1511,7 +1811,7 @@ bool Value::menorQue_Condicional(const Value & v)
 		[](const int& a,const bool& b) { return a < b; },
 		[](const int& a,const long long& b) { return a < b; },
 		[](const int& a,const double& b) { return a < b; },
-		[](const int& a,const std::string & b)
+		[](const int& a, std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1527,7 +1827,7 @@ bool Value::menorQue_Condicional(const Value & v)
 		[](const long long& a, const  bool& b) { return a < b; },
 		[](const long long& a, const int& b) { return a < b; },
 		[](const long long& a, const double& b) { return a < b; },
-		[](const long long& a, const std::string & b)
+		[](const long long& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1543,7 +1843,7 @@ bool Value::menorQue_Condicional(const Value & v)
 		[](const double& a, const int& b) { return a < b; },
 		[](const double& a, const long long& b) { return a < b; },
 		[](const double& a, const bool& b) { return a < b; },
-		[](const double& a, const std::string & b)
+		[](const double& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1559,7 +1859,7 @@ bool Value::menorQue_Condicional(const Value & v)
 		[](const bool& a, const int& b) { return a < b; },
 		[](const bool& a, const long long& b) { return a < b; },
 		[](const bool& a, const bool& b) { return a < b;  },
-		[](const bool& a, const std::string & b)
+		[](const bool& a,  std::string & b)
 		{
 		   if (b == "" || b == "0" || b == "false")
 				return (false < a);
@@ -1567,7 +1867,7 @@ bool Value::menorQue_Condicional(const Value & v)
 				return (true < a);
 		},
 
-		[](const std::string & a, const double& b)
+		[]( std::string & a, const double& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1578,7 +1878,7 @@ bool Value::menorQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const int& b)
+		[]( std::string & a, const int& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1589,7 +1889,7 @@ bool Value::menorQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const long long& b)
+		[]( std::string & a, const long long& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1600,16 +1900,16 @@ bool Value::menorQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const bool& b)
+		[]( std::string & a, const bool& b)
 		{
 		   if (a == "" || a == "0" || a == "false")
 				return (false < b);
 			else
 				return (true < b);
 		},
-		[](const std::string & a, const std::string & b) { return a < b; },
+		[]( std::string & a,  std::string & b) { return a < b; },
 
-		[](std::vector<Value>& a, std::vector<Value>& b)
+		[]( std::vector<Value>& a,  std::vector<Value>& b)
 		{
 			if ((a.empty() && b.empty()) || (!a.empty() && b.empty()))
 				return false;
@@ -1618,30 +1918,48 @@ bool Value::menorQue_Condicional(const Value & v)
 				return true;
 
 			Value * v1 = &*a.begin();
-			Value * v1_end = &*a.end();
+			Value * v1_end = &a.back();
 
 			Value * v2 = &*b.begin();
-			Value * v2_end = &*b.end();
+			Value * v2_end = &b.back();
 
-			while (v1 != v1_end || v2 != v2_end)
+			while (true)
 			{
-				if (v1 == v2)
+				if (v1 == v1_end)
 				{
-					v1++; v2++;
-					continue;
+					if (*v1 == *v2)
+					{
+						if (v2 == v2_end)
+						{
+							return false; // Son iguales
+						}
+						else return true; //V2 tiene mas valores, ende es mayor
+					}
+					return v1->menorQue_Condicional(*v2); //Dependera de que valor es mayor.
+				}
+				else if (v2 == v2_end)
+				{
+					if (*v1 == *v2)
+					{
+						if (v1 == v1_end)
+						{
+							return false; // Son iguales
+						}
+						else return false; //V1 tiene mas valores, ende es mayor
+					}
+					return v1->menorQue_Condicional(*v2); //Dependera de que valor es mayor.
 				}
 				else
 				{
-					return v1->menorQue_Condicional(v2);
+					if (*v1 == *v2)
+					{
+						v1++; v2++;
+						continue;
+					}
+					return v1->menorQue_Condicional(*v2); //Dependera de que valor es mayor.
 				}
 			}
 
-			if (v1 == v1_end && v2 == v2_end)
-				return false;
-			if (v1 != v1_end)
-				return true;
-
-			return false;
 		},
 
 		[](auto,auto) { return false; },
@@ -1649,7 +1967,7 @@ bool Value::menorQue_Condicional(const Value & v)
 		}, value, v.value);
 }
 
-bool Value::menorIgualQue_Condicional(const Value & v)
+bool Value::menorIgualQue_Condicional( Value & v)
 {
 	return std::visit(overloaded{
 
@@ -1658,7 +1976,7 @@ bool Value::menorIgualQue_Condicional(const Value & v)
 		[](const int& a,const bool& b) { return a <= b; },
 		[](const int& a,const long long& b) { return a <= b; },
 		[](const int& a,const double& b) { return a <= b; },
-		[](const int& a,const std::string & b)
+		[](const int& a, std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1674,7 +1992,7 @@ bool Value::menorIgualQue_Condicional(const Value & v)
 		[](const long long& a, const  bool& b) { return a <= b; },
 		[](const long long& a, const int& b) { return a <= b; },
 		[](const long long& a, const double& b) { return a <= b; },
-		[](const long long& a, const std::string & b)
+		[](const long long& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1690,7 +2008,7 @@ bool Value::menorIgualQue_Condicional(const Value & v)
 		[](const double& a, const int& b) { return a <= b; },
 		[](const double& a, const long long& b) { return a <= b; },
 		[](const double& a, const bool& b) { return a <= b; },
-		[](const double& a, const std::string & b)
+		[](const double& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1706,7 +2024,7 @@ bool Value::menorIgualQue_Condicional(const Value & v)
 		[](const bool& a, const int& b) { return a <= b; },
 		[](const bool& a, const long long& b) { return a <= b; },
 		[](const bool& a, const bool& b) { return a <= b;  },
-		[](const bool& a, const std::string & b)
+		[](const bool& a,  std::string & b)
 		{
 		   if (b == "" || b == "0" || b == "false")
 				return (false <= a);
@@ -1725,7 +2043,7 @@ bool Value::menorIgualQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const int& b)
+		[]( std::string & a, const int& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1736,7 +2054,7 @@ bool Value::menorIgualQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const long long& b)
+		[]( std::string & a, const long long& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1747,16 +2065,16 @@ bool Value::menorIgualQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const bool& b)
+		[]( std::string & a, const bool& b)
 		{
 		   if (a == "" || a == "0" || a == "false")
 				return (false <= b);
 			else
 				return (true <= b);
 		},
-		[](const std::string & a, const std::string & b) { return a <= b; },
+		[]( std::string & a,  std::string & b) { return a <= b; },
 
-		[](std::vector<Value>& a, std::vector<Value>& b)
+		[]( std::vector<Value>& a,  std::vector<Value>& b)
 		{
 			if ((!a.empty() && b.empty()))
 				return false;
@@ -1765,30 +2083,47 @@ bool Value::menorIgualQue_Condicional(const Value & v)
 				return true;
 
 			Value * v1 = &*a.begin();
-			Value * v1_end = &*a.end();
+			Value * v1_end = &a.back();
 
 			Value * v2 = &*b.begin();
-			Value * v2_end = &*b.end();
+			Value * v2_end = &b.back();
 
-			while (v1 != v1_end || v2 != v2_end)
+			while (true)
 			{
-				if (v1 == v2)
+				if (v1 == v1_end)
 				{
-					v1++; v2++;
-					continue;
+					if (*v1 == *v2)
+					{
+						if (v2 == v2_end)
+						{
+							return true; // Son iguales
+						}
+						else return true; //V2 tiene mas valores, ende es mayor
+					}
+					return v1->menorIgualQue_Condicional(*v2); //Dependera de que valor es mayor.
+				}
+				else if (v2 == v2_end)
+				{
+					if (*v1 == *v2)
+					{
+						if (v1 == v1_end)
+						{
+							return true; // Son iguales
+						}
+						else return false; //V1 tiene mas valores, ende es mayor
+					}
+					return v1->menorIgualQue_Condicional(*v2); //Dependera de que valor es mayor.
 				}
 				else
 				{
-					return v1->menorIgualQue_Condicional(v2);
+					if (*v1 == *v2)
+					{
+						v1++; v2++;
+						continue;
+					}
+					return v1->menorIgualQue_Condicional(*v2); //Dependera de que valor es mayor.
 				}
 			}
-
-			if (v1 == v1_end && v2 == v2_end)
-				return true;
-			if (v1 != v1_end)
-				return true;
-
-			return false;
 		},
 
 		[](auto,auto) { return false; },
@@ -1796,7 +2131,7 @@ bool Value::menorIgualQue_Condicional(const Value & v)
 		}, value, v.value);
 }
 
-bool Value::mayorIgualQue_Condicional(const Value & v)
+bool Value::mayorIgualQue_Condicional( Value & v)
 {
 	return std::visit(overloaded{
 
@@ -1805,7 +2140,7 @@ bool Value::mayorIgualQue_Condicional(const Value & v)
 		[](const int& a,const bool& b) { return a >= b; },
 		[](const int& a,const long long& b) { return a >= b; },
 		[](const int& a,const double& b) { return a >= b; },
-		[](const int& a,const std::string & b)
+		[](const int& a, std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1821,7 +2156,7 @@ bool Value::mayorIgualQue_Condicional(const Value & v)
 		[](const long long& a, const  bool& b) { return a >= b; },
 		[](const long long& a, const int& b) { return a >= b; },
 		[](const long long& a, const double& b) { return a >= b; },
-		[](const long long& a, const std::string & b)
+		[](const long long& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1837,7 +2172,7 @@ bool Value::mayorIgualQue_Condicional(const Value & v)
 		[](const double& a, const int& b) { return a >= b; },
 		[](const double& a, const long long& b) { return a >= b; },
 		[](const double& a, const bool& b) { return a >= b; },
-		[](const double& a, const std::string & b)
+		[](const double& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1853,7 +2188,7 @@ bool Value::mayorIgualQue_Condicional(const Value & v)
 		[](const bool& a, const int& b) { return a >= b; },
 		[](const bool& a, const long long& b) { return a >= b; },
 		[](const bool& a, const bool& b) { return a >= b;  },
-		[](const bool& a, const std::string & b)
+		[](const bool& a,  std::string & b)
 		{
 		   if (b == "" || b == "0" || b == "false")
 				return (false >= a);
@@ -1861,7 +2196,7 @@ bool Value::mayorIgualQue_Condicional(const Value & v)
 				return (true >= a);
 		},
 
-		[](const std::string & a, const double& b)
+		[]( std::string & a, const double& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1872,7 +2207,7 @@ bool Value::mayorIgualQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const int& b)
+		[]( std::string & a, const int& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1883,7 +2218,7 @@ bool Value::mayorIgualQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const long long& b)
+		[]( std::string & a, const long long& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -1894,16 +2229,16 @@ bool Value::mayorIgualQue_Condicional(const Value & v)
 			 else
 				 return false;
 		},
-		[](const std::string & a, const bool& b)
+		[]( std::string & a, const bool& b)
 		{
 		   if (a == "" || a == "0" || a == "false")
 				return (false >= b);
 			else
 				return (true >= b);
 		},
-		[](const std::string & a, const std::string & b) { return a >= b; },
+		[]( std::string & a,  std::string & b) { return a >= b; },
 
-		[](std::vector<Value>& a, std::vector<Value>& b)
+		[]( std::vector<Value>& a,  std::vector<Value>& b)
 		{
 			if (a.empty() && !b.empty())
 				return false;
@@ -1912,30 +2247,48 @@ bool Value::mayorIgualQue_Condicional(const Value & v)
 				return true;
 
 			Value * v1 = &*a.begin();
-			Value * v1_end = &*a.end();
+			Value * v1_end = &a.back();
 
 			Value * v2 = &*b.begin();
-			Value * v2_end = &*b.end();
+			Value * v2_end = &b.back();
 
-			while (v1 != v1_end || v2 != v2_end)
+
+			while (true)
 			{
-				if (v1 == v2)
+				if (v1 == v1_end)
 				{
-					v1++; v2++;
-					continue;
+					if (*v1 == *v2)
+					{
+						if (v2 == v2_end)
+						{
+							return true; // Son iguales
+						}
+						else return false; //V2 tiene mas valores, ende es mayor
+					}
+					return v1->mayorIgualQue_Condicional(*v2); //Dependera de que valor es mayor.
+				}
+				else if (v2 == v2_end)
+				{
+					if (*v1 == *v2)
+					{
+						if (v1 == v1_end)
+						{
+							return true; // Son iguales
+						}
+						else return true; //V1 tiene mas valores, ende es mayor
+					}
+					return v1->mayorIgualQue_Condicional(*v2); //Dependera de que valor es mayor.
 				}
 				else
 				{
-					return v1->mayorIgualQue_Condicional(v2);
+					if (*v1 == *v2)
+					{
+						v1++; v2++;
+						continue;
+					}
+					return v1->mayorIgualQue_Condicional(*v2); //Dependera de que valor es mayor.
 				}
 			}
-
-			if (v1 == v1_end && v2 == v2_end)
-				return true;
-			if (v1 != v1_end)
-				return false;
-			//Ende es mayor en tamaño.
-			return true;
 		},
 
 		[](auto,auto) { return false; },
@@ -2051,7 +2404,7 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 void Value::print()
 {
 	std::visit(overloaded{
-		[&](std::monostate a) { return; },
+		[&](std::monostate a) { std::cout << "<void>"; },
 		[&](std::vector<Value> & a) {
 			if (a.empty())
 			{

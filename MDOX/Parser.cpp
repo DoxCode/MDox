@@ -859,7 +859,12 @@ Parser_Operacion* Parser::getOperacion(int& local_index, std::vector<Variable>& 
 
 					std::visit(overloaded{
 						 [&](auto) {res.push_back(stack.front()); stack.pop_front(); },
-						 [&](Value & b) { res.pop_back(); res.push_back(b.operacion_Unitaria(a)); stack.pop_front(); },
+						 [&](Value b) 
+						{ 
+							res.pop_back(); 
+							res.push_back(b.operacion_Unitaria(a)); 
+							stack.pop_front(); 
+						},
 					}, res.back());
 					return true;
 				}

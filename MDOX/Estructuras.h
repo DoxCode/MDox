@@ -213,8 +213,7 @@ enum OPERADORES {
 
 	//Operadores igualdad
 	//Prior 1
-	OP_GET_FIRST, // :  -> x:xs 
-	OP_GET_LAST, // ::  -> xs::x
+	OP_GET_ADD_BACK, // :  -> x:xs 
 	OP_IG_EQUAL,
 	OP_IG_EQUAL_SUM,
 	OP_IG_EQUAL_MIN,
@@ -307,7 +306,7 @@ public:
 	~Value() { };
 
 	Value operacion_Binaria(Value& v, const OPERADORES op);
-	bool OperacionRelacional(const Value& v, const OPERADORES op);
+	bool OperacionRelacional( Value& v, const OPERADORES op);
 	Value operacion_Unitaria(OPERADORES& op);
 	bool operacion_Asignacion(Value& v, OPERADORES& op, bool fuerte);
 	bool asignacion(Value& v, bool& fuerte);
@@ -315,17 +314,17 @@ public:
 
 	void print();
 
-	bool mayorQue_Condicional(const Value& v);
-	bool menorQue_Condicional(const Value& v);
-	bool mayorIgualQue_Condicional(const Value& v);
-	bool menorIgualQue_Condicional(const Value& v);
-	bool igualdad_Condicional(const Value& v);
+	bool mayorQue_Condicional( Value& v);
+	bool menorQue_Condicional( Value& v);
+	bool mayorIgualQue_Condicional( Value& v);
+	bool menorIgualQue_Condicional( Value& v);
+	bool igualdad_Condicional( Value& v);
 
 	bool ValueToBool();
 	bool Cast(Parser_Declarativo* pDec);
 	bool Cast(const tipos_parametros);
 
-	bool operator==(const Value& lhs)
+	bool operator==( Value& lhs)
 	{
 		return this->igualdad_Condicional(lhs);
 	};
