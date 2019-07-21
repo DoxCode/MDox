@@ -213,7 +213,7 @@ enum OPERADORES {
 
 	//Operadores igualdad
 	//Prior 1
-	OP_GET_ADD_BACK, // :  -> x:xs 
+	OP_GET_ADD_BACK, // :  -> xs:x
 	OP_IG_EQUAL,
 	OP_IG_EQUAL_SUM,
 	OP_IG_EQUAL_MIN,
@@ -304,6 +304,8 @@ public:
 	//	tipos_parametros tipo;
 
 	~Value() { };
+	static Value Value::Suma(Value& v1, Value& v2);
+
 
 	Value operacion_Binaria(Value& v, const OPERADORES op);
 	bool OperacionRelacional( Value& v, const OPERADORES op);

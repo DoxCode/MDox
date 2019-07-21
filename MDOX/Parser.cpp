@@ -449,8 +449,7 @@ OPERADORES Parser::getOperador(int& local_index)
 	else if (v == "&&") return OPERADORES::OP_LOG_ADD;
 	else if (v == "||") return OPERADORES::OP_LOG_OR;
 
-	else if (v == ":") return OPERADORES::OP_GET_FIRST;
-	else if (v == "::") return OPERADORES::OP_GET_LAST;
+	else if (v == ":") return OPERADORES::OP_GET_ADD_BACK;
 
 	else
 	{
