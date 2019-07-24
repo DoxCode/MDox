@@ -301,9 +301,6 @@ class mdox_vector
 public:
 	std::vector<Value> vector;
 	mdox_vector() {};
-	~mdox_vector() {
-		std::cout << "Destructor mdox_vector\n"; 
-	};
 
 	//mdox_vector(Value& v) { vector = { v }; };
 	//mdox_vector(Value&& v) { vector = { std::move(v) }; };
@@ -321,9 +318,7 @@ public:
 	val_variant value;
 	//	tipos_parametros tipo;
 
-	~Value() { 
-		std::cout << "Destructor Value"; 
-	};
+	~Value() { };
 	static Value Value::Suma(Value& v1, Value& v2);
 	static Value Value::Resta(Value& v1, Value& v2);
 	static Value Value::Multiplicacion(Value& v1, Value& v2);
@@ -503,7 +498,7 @@ public:
 	}
 };
 
-using conmp = std::variant<Value, Parser_Identificador*, Valor_Funcion*, OPERADORES, multi_value* >;
+using conmp = std::variant< std::shared_ptr<Value>, Parser_Identificador*, Valor_Funcion*, OPERADORES, multi_value* >;
 using stack_conmp = std::deque<conmp>;
 
 class arbol_operacional

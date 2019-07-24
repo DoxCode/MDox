@@ -222,7 +222,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 	if (l)
 	{
 		local_index = index;
-		return v1;
+		return std::make_shared<Value>(v1);
 	}
 
 	// ###### Comprobamos si se trata de un declarativo `+ Identificador ######
@@ -280,7 +280,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 			{
 				delete mv;
 				ret = false;
-				return false;
+				return std::make_shared<Value>(false);
 			}
 
 			if (c->val->operador == OP_NONE)
@@ -312,7 +312,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 						itr++;
 					}
 					delete mv;
-					return Value(std::move(res));
+					return std::make_shared<Value>(Value(std::move(res)));
 				}
 				return mv;
 			}
@@ -325,7 +325,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 			{
 				delete mv;
 				ret = false;
-				return false;
+				return std::make_shared<Value>(false);
 			}
 		}
 	}
@@ -558,6 +558,7 @@ arbol_operacional* GenerarArbolDesdeShuntingYard(stack_conmp & res)
 	{
 		if (std::visit(overloaded{
 			 [](const OPERADORES&) { return false; },
+			 [&](std::shared_ptr<Value> & v) {  arbol = new arbol_operacional(*v); return true;  },
 			 [&](const auto & v) { arbol = new arbol_operacional(v); return true; },
 			}, res.back())
 			) return arbol;
@@ -578,6 +579,7 @@ arbol_operacional* GenerarArbolDesdeShuntingYard(stack_conmp & res)
 
 			bool r1 = std::visit(overloaded{
 				[&](auto & v) { arbol->_v2 = v; res.pop_back(); return true; },
+				[&](std::shared_ptr<Value> & v) { arbol->_v2 = *v; res.pop_back(); return true; },
 				[&](OPERADORES & op)
 				{
 					auto a = GenerarArbolDesdeShuntingYard(res);
@@ -599,6 +601,7 @@ arbol_operacional* GenerarArbolDesdeShuntingYard(stack_conmp & res)
 
 				return std::visit(overloaded{
 				[&](auto & v) { arbol->_v1 = v; res.pop_back(); return true; },
+				[&](std::shared_ptr<Value> & v) { arbol->_v1 = *v; res.pop_back(); return true; },
 				[&](OPERADORES & op)
 				{
 					arbol_operacional* a = GenerarArbolDesdeShuntingYard(res);
@@ -862,7 +865,7 @@ Parser_Operacion * Parser::getOperacion(int& local_index, std::vector<Variable> 
 						 [&](Value b)
 						{
 							res.pop_back();
-							res.push_back(b.operacion_Unitaria(a));
+							res.push_back(std::make_shared<Value>(b.operacion_Unitaria(a)));
 							stack.pop_front();
 						},
 					}, res.back());
@@ -891,7 +894,7 @@ Parser_Operacion * Parser::getOperacion(int& local_index, std::vector<Variable> 
 								res.pop_back();
 								res.pop_back();
 
-								res.push_back(_op);
+								res.push_back(std::make_shared<Value>(_op));
 								stack.pop_front();
 								return true;
 							},
