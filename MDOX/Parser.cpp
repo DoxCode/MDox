@@ -113,7 +113,7 @@ Parser_Declarativo* Parser::getDeclarativo(int& local_index)
 	std::string token = tokenizer.getTokenValue(index);
 
 
-   if (token == "vector")
+	if (token == "vector")
 	{
 		Parser_Declarativo* p = new Parser_Declarativo(PARAM_VECTOR);
 		local_index = index;
@@ -227,7 +227,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 
 	// ###### Comprobamos si se trata de un declarativo `+ Identificador ######
 	// Declarativo + Identificados -> int varA
-	 index = local_index;
+	index = local_index;
 
 	Parser_Declarativo* pD1 = getDeclarativo(index);
 
@@ -241,7 +241,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 		if (pID)
 		{
 			local_index = index2;
-		
+
 			pID->fuerte = true;
 			pID->tipo = pD1;
 			pID->generarPosicion(&tokenizer);
@@ -265,7 +265,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 		{
 			local_index = index;
 			return new multi_value;
-		} 
+		}
 
 		index = indexX;
 		multi_value* mv = new multi_value();
@@ -275,7 +275,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 		while (true)
 		{
 			int index2 = index;
-			Parser_Operacion * c = getOperacion(index2, variables, true);
+			Parser_Operacion* c = getOperacion(index2, variables, true);
 			if (!c)
 			{
 				delete mv;
@@ -286,32 +286,33 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 			if (c->val->operador == OP_NONE)
 			{
 				std::visit(overloaded
-				{
-					[&](Value & a) {mv->arr.push_back(a); },
-					[&](auto& a) { mv->arr.push_back(a);  all_value = false; },
-				}, c->val->_v1);
+					{
+						[&](Value & a) {mv->arr.push_back(a); },
+						[&](auto & a) { mv->arr.push_back(a);  all_value = false; },
+					}, c->val->_v1);
 			}
 			else
 			{
 				all_value = false;
 				mv->arr.push_back(c->val);
-				mv->arr.push_back(c->val);
 			}
-			
+
 			std::string ss_v = tokenizer.getTokenValue(index2);
 			if (ss_v == "]")
 			{
 				local_index = index2;
 				if (all_value)
 				{
-					std::vector<Value> res(mv->arr.size());
+					std::shared_ptr<mdox_vector> res = std::make_shared<mdox_vector>();
+					res->vector.resize(mv->arr.size());
 					int itr = 0;
 					for (std::vector<tipoValor>::iterator it = mv->arr.begin(); it != mv->arr.end(); ++it)
 					{
-						res[itr] = std::get<Value>(*it);
+						res->vector[itr] = std::get<Value>(*it);
 						itr++;
 					}
-					return Value(res);
+					delete mv;
+					return Value(std::move(res));
 				}
 				return mv;
 			}
@@ -638,7 +639,7 @@ arbol_operacional* GenerarArbolDesdeShuntingYard(stack_conmp & res)
 }
 
 
-Parser_Operacion* Parser::getOperacion(int& local_index, std::vector<Variable>& variables, bool inside)
+Parser_Operacion * Parser::getOperacion(int& local_index, std::vector<Variable> & variables, bool inside)
 {
 	int index = local_index;
 	//Posibilidades
@@ -674,7 +675,7 @@ Parser_Operacion* Parser::getOperacion(int& local_index, std::vector<Variable>& 
 				{
 					return NULL;
 				}
-				stack.push_back(pV);
+				stack.push_back(std::move(pV));
 				is_op = 2;
 				continue;
 			}
@@ -744,7 +745,7 @@ Parser_Operacion* Parser::getOperacion(int& local_index, std::vector<Variable>& 
 						}
 					}
 
-						return NULL;
+					return NULL;
 				}
 				else if (is_assignment_operator(op_stack.back()) || isRelationalOperator(op_stack.back()))
 				{
@@ -769,7 +770,7 @@ Parser_Operacion* Parser::getOperacion(int& local_index, std::vector<Variable>& 
 				return NULL;
 			}
 
-			stack.push_back(pV);
+			stack.push_back(std::move(pV));
 			is_op = 2;
 			continue;
 		}
@@ -858,11 +859,11 @@ Parser_Operacion* Parser::getOperacion(int& local_index, std::vector<Variable>& 
 
 					std::visit(overloaded{
 						 [&](auto) {res.push_back(stack.front()); stack.pop_front(); },
-						 [&](Value b) 
-						{ 
-							res.pop_back(); 
-							res.push_back(b.operacion_Unitaria(a)); 
-							stack.pop_front(); 
+						 [&](Value b)
+						{
+							res.pop_back();
+							res.push_back(b.operacion_Unitaria(a));
+							stack.pop_front();
 						},
 					}, res.back());
 					return true;
@@ -910,18 +911,18 @@ Parser_Operacion* Parser::getOperacion(int& local_index, std::vector<Variable>& 
 			return NULL;
 	}
 
-/*	std::cout << "\n #DEBUG 2. \n";
-	//DEBUG
-	for (auto it = res.begin(); it != res.end(); ++it)
-	{
-		std::visit(overloaded{
-			 [](auto) {std::cout << "-Var o Funcion-"; },
-			 [](Value & a) { a.print(); std::cout << ", "; },
-			 [](Parser_Identificador * a) { std::cout << a->nombre << ", "; },
-			 [](OPERADORES & a) { std::cout << "OP: " << a << ", ";  },
-			}, *it);
-	}
-	*/
+	/*	std::cout << "\n #DEBUG 2. \n";
+		//DEBUG
+		for (auto it = res.begin(); it != res.end(); ++it)
+		{
+			std::visit(overloaded{
+				 [](auto) {std::cout << "-Var o Funcion-"; },
+				 [](Value & a) { a.print(); std::cout << ", "; },
+				 [](Parser_Identificador * a) { std::cout << a->nombre << ", "; },
+				 [](OPERADORES & a) { std::cout << "OP: " << a << ", ";  },
+				}, *it);
+		}
+		*/
 	local_index = index;
 
 	arbol_operacional* rr = GenerarArbolDesdeShuntingYard(res);
@@ -949,7 +950,7 @@ Parser_Operacion* Parser::getOperacion(int& local_index, std::vector<Variable>& 
 // ####################### SENTENCIA  #########################
 // ############################################################
 
-Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable>& variables)
+Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> & variables)
 {
 	//##########   -- SENTENCIA RECURSIVA --   ##########
 	int index = local_index;
@@ -995,7 +996,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable>& 
 	{
 		if (tokenizer.getTokenValue(index) == "(")
 		{
-			Parser_Operacion* pCond = getOperacion(index, variables,true);
+			Parser_Operacion* pCond = getOperacion(index, variables, true);
 
 			if (pCond)
 			{
@@ -1050,7 +1051,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable>& 
 	{
 		if (tokenizer.getTokenValue(index) == "(")
 		{
-			Parser_Operacion* pCond = getOperacion(index, variables,true);
+			Parser_Operacion* pCond = getOperacion(index, variables, true);
 
 			if (pCond)
 			{
@@ -1085,14 +1086,14 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable>& 
 	{
 		if (tokenizer.getTokenValue(index) == "(")
 		{
-			Parser_Operacion* pIg = getOperacion(index, variables,true);
+			Parser_Operacion* pIg = getOperacion(index, variables, true);
 			if (tokenizer.getTokenValue(index) == ";")
 			{
-				Parser_Operacion* pCond = getOperacion(index, variables,true);
+				Parser_Operacion* pCond = getOperacion(index, variables, true);
 
 				if (tokenizer.getTokenValue(index) == ";")
 				{
-					Parser_Operacion* pOp = getOperacion(index, variables,true);
+					Parser_Operacion* pOp = getOperacion(index, variables, true);
 
 					if (tokenizer.getTokenValue(index) == ")")
 					{
@@ -1366,7 +1367,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 *
 **/
 
-Variable* Parser::BusquedaVariable(Parser_Identificador * ID, std::vector<Variable>& variables)
+Variable* Parser::BusquedaVariable(Parser_Identificador * ID, std::vector<Variable> & variables)
 {
 	for (std::vector<Variable>::iterator it = variables.begin(); it != variables.end(); ++it)
 	{
@@ -1384,7 +1385,7 @@ Variable* Parser::BusquedaVariable(Parser_Identificador * ID, std::vector<Variab
 	}
 
 
-	
+
 	return NULL;
 }
 

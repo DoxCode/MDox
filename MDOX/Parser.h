@@ -22,7 +22,6 @@ public:
 	Tokenizer tokenizer;
 	
 	bool existenErrores = false;
-
 	//Cacheado de variables
 	//Variales globales aún no implementadas.
 	std::vector<Variable> variables_globales;

@@ -66,9 +66,9 @@ template<class T> inline T operator~ (T a) { return (T)~(int)a; }
 template<class T> inline T operator| (T a, T b) { return (T)((int)a | (int)b); }
 template<class T> inline T operator& (T a, T b) { return (T)((int)a & (int)b); }
 template<class T> inline T operator^ (T a, T b) { return (T)((int)a ^ (int)b); }
-template<class T> inline T& operator|= (T& a, T b) { return (T&)((int&)a |= (int)b); }
-template<class T> inline T& operator&= (T& a, T b) { return (T&)((int&)a &= (int)b); }
-template<class T> inline T& operator^= (T& a, T b) { return (T&)((int&)a ^= (int)b); }
+template<class T> inline T& operator|= (T & a, T b) { return (T&)((int&)a |= (int)b); }
+template<class T> inline T& operator&= (T & a, T b) { return (T&)((int&)a &= (int)b); }
+template<class T> inline T& operator^= (T & a, T b) { return (T&)((int&)a ^= (int)b); }
 
 /*
 Ejemplos:
@@ -91,12 +91,12 @@ class OutData_Parametros
 public:
 	int linea;
 	int offset;
-	Fichero * fichero = NULL;
+	Fichero* fichero = NULL;
 
 	OutData_Parametros() {}
-	OutData_Parametros(int a, int b, Fichero * c) : linea(a), offset(b), fichero(c) {}
+	OutData_Parametros(int a, int b, Fichero* c) : linea(a), offset(b), fichero(c) {}
 
-	void loadDatas(int a, int b, Fichero * c)
+	void loadDatas(int a, int b, Fichero* c)
 	{
 		linea = a;
 		offset = b;
@@ -135,20 +135,20 @@ enum NODE_type {
 };
 
 
-class Parser_NODE { 
-public: 
+class Parser_NODE {
+public:
 
 	Parser_NODE() {}
 
-	public:
-		OutData_Parametros parametros;
+public:
+	OutData_Parametros parametros;
 
-		void generarPosicion(Tokenizer * tokenizer) 
-		{ 
-			parametros = OutData_Parametros(tokenizer->token_actual->linea, tokenizer->token_actual->char_horizontal, tokenizer->fichero);
-		}
+	void generarPosicion(Tokenizer* tokenizer)
+	{
+		parametros = OutData_Parametros(tokenizer->token_actual->linea, tokenizer->token_actual->char_horizontal, tokenizer->fichero);
+	}
 
-	virtual ~Parser_NODE() { }; 
+	virtual ~Parser_NODE() { };
 	virtual NODE_type node_type() { return NODE_NULL; };
 };
 
@@ -224,7 +224,7 @@ enum OPERADORES {
 };
 
 
-static bool is_single_operator(OPERADORES& p)
+static bool is_single_operator(OPERADORES & p)
 {
 	switch (p)
 	{
@@ -238,7 +238,7 @@ static bool is_single_operator(OPERADORES& p)
 	return false;
 }
 
-static bool is_assignment_operator(OPERADORES& p)
+static bool is_assignment_operator(OPERADORES & p)
 {
 	if (p >= OP_IG_EQUAL && p <= OP_IG_EQUAL_MOD)
 		return true;
@@ -295,7 +295,25 @@ class Value;
 
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...)->overloaded<Ts...>;
-using val_variant = std::variant<int, bool, double, std::vector<Value>, std::monostate, long long, std::string>;
+
+class mdox_vector
+{
+public:
+	std::vector<Value> vector;
+	mdox_vector() {};
+	~mdox_vector() {
+		std::cout << "Destructor mdox_vector\n"; 
+	};
+
+	//mdox_vector(Value& v) { vector = { v }; };
+	//mdox_vector(Value&& v) { vector = { std::move(v) }; };
+
+	mdox_vector(std::vector<Value>& b) : vector(b) {};
+	mdox_vector(std::vector<Value>&& b) : vector(std::move(b)) {};
+};
+
+
+using val_variant = std::variant<int, bool, double, std::shared_ptr<mdox_vector>, std::monostate, long long, std::string>;
 
 //template <class valueType>
 class Value {
@@ -303,12 +321,18 @@ public:
 	val_variant value;
 	//	tipos_parametros tipo;
 
-	~Value() { };
+	~Value() { 
+		std::cout << "Destructor Value"; 
+	};
 	static Value Value::Suma(Value& v1, Value& v2);
-
+	static Value Value::Resta(Value& v1, Value& v2);
+	static Value Value::Multiplicacion(Value& v1, Value& v2);
+	static Value Value::Div(Value& v1, Value& v2);
+	static Value Value::DivEntera(Value& v1, Value& v2);
+	static Value Value::Mod(Value& v1, Value& v2);
 
 	Value operacion_Binaria(Value& v, const OPERADORES op);
-	bool OperacionRelacional( Value& v, const OPERADORES op);
+	bool OperacionRelacional(Value& v, const OPERADORES op);
 	Value operacion_Unitaria(OPERADORES& op);
 	bool operacion_Asignacion(Value& v, OPERADORES& op, bool fuerte);
 	bool asignacion(Value& v, bool& fuerte);
@@ -316,36 +340,74 @@ public:
 
 	void print();
 
-	bool mayorQue_Condicional( Value& v);
-	bool menorQue_Condicional( Value& v);
-	bool mayorIgualQue_Condicional( Value& v);
-	bool menorIgualQue_Condicional( Value& v);
-	bool igualdad_Condicional( Value& v);
+	bool mayorQue_Condicional(Value& v);
+	bool menorQue_Condicional(Value& v);
+	bool mayorIgualQue_Condicional(Value& v);
+	bool menorIgualQue_Condicional(Value& v);
+	bool igualdad_Condicional(Value& v);
 
 	bool ValueToBool();
 	bool Cast(Parser_Declarativo* pDec);
 	bool Cast(const tipos_parametros);
 
-	bool operator==( Value& lhs)
+	bool operator==(Value& lhs)
 	{
 		return this->igualdad_Condicional(lhs);
 	};
 
 	template <typename T>
-	static std::string to_string_p(const T a_value, const int n = 10);
+	static std::string to_string_p(const T& a_value, const int n = 10);
 
 	Value() : value(std::monostate()) {};
 	//	Value(valueType v) : value(v);
 
 		//Value(val_variant v) : value(v) {};
 
-	Value(int a) : value(a) {};
-	Value(double a) : value(a) {};
-	Value(long long a) : value(a) {};
-	Value(std::string& a) : value(a) {};
-	Value(bool a) : value(a) {};
-	Value(std::monostate) : value(std::monostate()) {};
-	Value(std::vector<Value> a) : value(a) {};
+	Value(int& a) : value(a) {  };
+	Value(double& a) : value(a) {  };
+	Value(long long& a) : value(a) {  };
+	Value(std::string& a) : value(a) {  };
+	Value(bool& a) : value(a) {  };
+	Value(std::monostate&) : value(std::monostate()) {  };
+	Value(std::shared_ptr<mdox_vector>& a) : value(a) {  };
+
+	Value(int&& a) : value(std::move(a)) {  };
+	Value(double&& a) : value(std::move(a)) {  };
+	Value(long long&& a) : value(std::move(a)) {  };
+	Value(std::string&& a) : value(std::move(a)) {  };
+	Value(bool&& a) : value(std::move(a)) {  };
+	Value(std::shared_ptr<mdox_vector>&& a) : value(std::move(a)) {  };
+
+
+	/*
+	Value operator=(Value& lhs)
+	{
+		std::cout << "Copia =\n";
+		value = lhs.value;
+		return *this;
+
+	};
+
+	Value operator=(Value&& lhs)
+	{
+		std::cout << "Mover =\n";
+		value = std::move(lhs.value);
+		return *this;
+	};
+
+
+	Value(const Value& v)
+	{
+		std::cout << "Copia Const\n";
+		value = v.value;
+	}
+
+	Value(Value&& v)
+	{
+		std::cout << "Mover Const\n";
+		value = std::move(v.value);
+	}
+		*/
 
 };
 
@@ -383,7 +445,7 @@ public:
 	std::string nombre;
 	bool fuerte = false;
 
-	Parser_Declarativo * tipo = NULL;
+	Parser_Declarativo* tipo = NULL;
 
 	Parser_Identificador(std::string a) : nombre(a), Parser_Valor(VAL_ID) {}
 	Parser_Identificador() : Parser_Valor(VAL_ID) {}
@@ -401,17 +463,17 @@ class Parser_Operacion;
 
 //Basicamente se trataría de funciones con un retorno de un valor dado.
 class Valor_Funcion : public Parser_Valor, public Parser_NODE
- {
+{
 public:
 	Parser_Identificador* ID;
 	std::vector<Parser_Operacion*> entradas;
 
 	Valor_Funcion(Parser_Identificador* a) : ID(a), Parser_Valor(VAL_FUNC) {}
-	Valor_Funcion(Parser_Identificador * a, std::vector<Parser_Operacion*> b) : ID(a), entradas(b), Parser_Valor(VAL_FUNC)  {}
+	Valor_Funcion(Parser_Identificador* a, std::vector<Parser_Operacion*> b) : ID(a), entradas(b), Parser_Valor(VAL_FUNC) {}
 
-	virtual ~Valor_Funcion() 
-	{ 
-		delete ID; 
+	virtual ~Valor_Funcion()
+	{
+		delete ID;
 	};
 };
 
@@ -427,7 +489,7 @@ class multi_value
 {
 public:
 	std::vector<tipoValor> arr;
-//	bool is_vector = false;
+	//	bool is_vector = false;
 
 	~multi_value()
 	{
@@ -436,7 +498,7 @@ public:
 			std::visit(overloaded{
 			[](auto & a) { delete a; },
 			[](Value&) {},
-			}, *it);
+				}, *it);
 		}
 	}
 };
@@ -459,7 +521,7 @@ public:
 	virtual ~arbol_operacional()
 	{
 		std::visit(overloaded{
-			[](auto& a) { delete a; },
+			[](auto & a) { delete a; },
 			[](Value&) {},
 			}, _v1);
 		std::visit(overloaded{
@@ -530,14 +592,14 @@ public:
 
 class Sentencia_IF : public Parser_Sentencia {
 public:
-	Parser_Operacion * pCond;
-	Parser_Sentencia * pS;
-	Parser_Sentencia * pElse;
+	Parser_Operacion* pCond;
+	Parser_Sentencia* pS;
+	Parser_Sentencia* pElse;
 
 	// Sentencia IF sin ELSE asignado.
-	Sentencia_IF(Parser_Operacion * a, Parser_Sentencia* b) : pCond(a), pS(b), pElse(NULL), Parser_Sentencia(SENT_IF) {}
+	Sentencia_IF(Parser_Operacion* a, Parser_Sentencia* b) : pCond(a), pS(b), pElse(NULL), Parser_Sentencia(SENT_IF) {}
 	// Sentencia IF con ELSE asignado
-	Sentencia_IF(Parser_Operacion * a, Parser_Sentencia* b, Parser_Sentencia* c) : pCond(a), pS(b), pElse(c), Parser_Sentencia(SENT_IF) {}
+	Sentencia_IF(Parser_Operacion* a, Parser_Sentencia* b, Parser_Sentencia* c) : pCond(a), pS(b), pElse(c), Parser_Sentencia(SENT_IF) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_IF() {
@@ -549,11 +611,11 @@ public:
 
 class Sentencia_WHILE : public Parser_Sentencia {
 public:
-	Parser_Operacion * pCond;
-	Parser_Sentencia * pS;
+	Parser_Operacion* pCond;
+	Parser_Sentencia* pS;
 
-	Sentencia_WHILE(Parser_Operacion * a, Parser_Sentencia* b) : pCond(a), pS(b), Parser_Sentencia(SENT_WHILE) {}
-	
+	Sentencia_WHILE(Parser_Operacion* a, Parser_Sentencia* b) : pCond(a), pS(b), Parser_Sentencia(SENT_WHILE) {}
+
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_WHILE() {
 		delete pCond;
@@ -563,12 +625,12 @@ public:
 
 class Sentencia_FOR : public Parser_Sentencia {
 public:
-	Parser_Operacion * pIguald;
-	Parser_Operacion * pCond;
-	Parser_Operacion * pOp;
-	Parser_Sentencia * pS;
+	Parser_Operacion* pIguald;
+	Parser_Operacion* pCond;
+	Parser_Operacion* pOp;
+	Parser_Sentencia* pS;
 
-	Sentencia_FOR(Parser_Operacion* a, Parser_Operacion * b, Parser_Operacion * c, Parser_Sentencia * d) : pIguald(a), pCond(b), pOp(c), pS(d), Parser_Sentencia(SENT_FOR) {};
+	Sentencia_FOR(Parser_Operacion* a, Parser_Operacion* b, Parser_Operacion* c, Parser_Sentencia* d) : pIguald(a), pCond(b), pOp(c), pS(d), Parser_Sentencia(SENT_FOR) {};
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_FOR() {
@@ -581,9 +643,9 @@ public:
 
 class Sentencia_Return : public Parser_Sentencia {
 public:
-	Parser_Operacion * pOp;
+	Parser_Operacion* pOp;
 
-	Sentencia_Return(Parser_Operacion * a) : pOp(a), Parser_Sentencia(SENT_RETURN) {}
+	Sentencia_Return(Parser_Operacion* a) : pOp(a), Parser_Sentencia(SENT_RETURN) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_Return() {
@@ -593,9 +655,9 @@ public:
 
 class Sentencia_Print : public Parser_Sentencia {
 public:
-	Parser_Operacion * pOp;
+	Parser_Operacion* pOp;
 
-	Sentencia_Print(Parser_Operacion * a) : pOp(a), Parser_Sentencia(SENT_PRINT) {}
+	Sentencia_Print(Parser_Operacion* a) : pOp(a), Parser_Sentencia(SENT_PRINT) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_Print() {
@@ -605,9 +667,9 @@ public:
 
 class Sentencia_Operacional : public Parser_Sentencia {
 public:
-	Parser_Operacion * pOp;
+	Parser_Operacion* pOp;
 
-	Sentencia_Operacional( Parser_Operacion * a) : pOp(a), Parser_Sentencia(SENT_OP) {}
+	Sentencia_Operacional(Parser_Operacion* a) : pOp(a), Parser_Sentencia(SENT_OP) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_Operacional() {
@@ -621,23 +683,23 @@ public:
 
 class Parser_Funcion : public Parser_NODE {
 public:
-	Parser_Identificador * pID;
+	Parser_Identificador* pID;
 	std::vector<Parser_Operacion*> entradas;
-	Parser_Declarativo * salida;
-	Parser_Sentencia * body;
+	Parser_Declarativo* salida;
+	Parser_Sentencia* body;
 
 	//Variables precargadas en cada funcion
 	int preload_var = 0;
 
 	// Función sin valor devuelto, el valor devuelto puede ser automático o no tenerlo
-	Parser_Funcion(Parser_Identificador * a, std::vector<Parser_Operacion*> b, Parser_Sentencia * c) : pID(a), entradas(b), body(c), salida(NULL){}
+	Parser_Funcion(Parser_Identificador* a, std::vector<Parser_Operacion*> b, Parser_Sentencia* c) : pID(a), entradas(b), body(c), salida(NULL) {}
 	//Función completa
-	Parser_Funcion(Parser_Identificador * a, std::vector<Parser_Operacion*> b, Parser_Sentencia * c, Parser_Declarativo * d) : pID(a), entradas(b), body(c), salida(d) {}
+	Parser_Funcion(Parser_Identificador* a, std::vector<Parser_Operacion*> b, Parser_Sentencia* c, Parser_Declarativo* d) : pID(a), entradas(b), body(c), salida(d) {}
 
 	virtual NODE_type node_type() { return NODE_FUNCION; }
 
 	//Aseguramos el borrado de la memoria
-	virtual ~Parser_Funcion() 
+	virtual ~Parser_Funcion()
 	{
 		delete pID;
 		delete salida;

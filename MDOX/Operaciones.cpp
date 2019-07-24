@@ -2,9 +2,8 @@
 #include "errores.h"
 #include <algorithm>  
 
-
 template <typename T>
-std::string Value::to_string_p(const T a_value, const int n)
+std::string Value::to_string_p(const T& a_value, const int n)
 {
 	std::ostringstream out;
 	out.precision(n);
@@ -20,7 +19,1235 @@ std::string Value::to_string_p(const T a_value, const int n)
 	else return out.str();
 }
 
-Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
+Value Value::Suma(Value& v1, Value& v2)
+{
+	return std::visit(overloaded{
+
+		//INTEGER .. XX
+		[](const int& a, const int& b)->Value
+		{
+			int t = a + b;
+			if (addOvf(&t, a, b))
+				return (long long(a) + b);
+			return t;
+		},
+		[](const int& a, const bool& b)->Value
+		{
+			int t = a + b;
+			if (addOvf(&t, a, b))
+				return (long long(a) + b);
+			return (t);
+		},
+		[](const int& a, const double& b)->Value { return (a + b); },
+		[](const int& a,  std::string & b)->Value { return (to_string_p(a) + b); },
+		[](const int& a, const long long& b)->Value { return (a + b); }, // [](int x) {return x + 5; }
+
+		//DOUBLE .. XX
+		[](const double& a,const int& b)->Value { return (a + b); },
+		[](const double& a,const bool& b)->Value { return (a + b); },
+		[](const double& a, const double& b)->Value { return (a + b); },
+		[](const double& a,  std::string & b)->Value { return (to_string_p(a) + b); },
+		[](const double& a, const long long& b)->Value { return (a + b); },
+
+
+			//LONGLONG .. XX
+			[](const long long& a,const int& b)->Value { return (a + b); },
+			[](const long long& a,const bool& b)->Value { return (a + b); },
+			[](const long long& a, const double& b)->Value { return (a + b); },
+			[](const long long& a,  std::string & b)->Value { return (to_string_p(a) + b); },
+			[](const long long& a, const long long& b)->Value { return (a + b); },
+
+
+			//STRING .. XX
+				[](const std::string & a,const int& b)->Value { return (a + to_string_p(b)); },
+				[](const std::string & a,const bool& b)->Value { return (a + to_string_p(b)); },
+				[](const std::string & a,const double& b)->Value { return (a + to_string_p(b)); },
+				[](const std::string & a,const std::string & b)->Value { return (a + b); },
+				[](const std::string & a,const long long& b)->Value { return (a + to_string_p(b)); },
+
+			//BOOL .. XX
+			[](const bool& a,const int& b)->Value
+			{
+				int t = a + b;
+				if (addOvf(&t, a, b))
+					return (a + long long(b));
+				return (t);
+			},
+			[](const bool& a,const bool& b)->Value { return (a + b); },
+			[](const bool& a, const double& b)->Value { return (a + b); },
+			[](const bool& a, const std::string & b)->Value { return (to_string_p(a) + b); },
+			[](const bool& a, const long long& b)->Value { return (a + b); },
+
+
+
+			[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
+			{		
+				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Suma(v1,*sss));
+				}
+				return std::move(r);
+			},
+
+			[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
+			{
+				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Suma(*sss, v2));
+				}
+				return std::move(r);
+			},
+			[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
+			{
+				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Suma(*sss, v2));
+				}
+				return std::move(r);
+			},
+			[&](std::shared_ptr<mdox_vector> & b, std::string&)->Value
+			{
+				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Suma(*sss, v2));
+				}
+				return std::move(r);
+			},
+			[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
+			{
+				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Suma(*sss, v2));
+				}
+				return std::move(r);
+			},
+
+
+			[&v2](std::shared_ptr<mdox_vector> & b, int&)->Value
+			{
+				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+				//r.resize(b.size());
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Suma(*sss, v2));
+				}
+				return std::move(r);
+			},
+				[](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector> & b)->Value
+				{
+					if (a->vector.size() == b->vector.size() && !a->vector.empty())
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(a->vector.size());
+
+						int itr = 0;
+						for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Suma(*sss, b->vector[itr]));
+							itr++;
+						}
+						return std::move(r);
+					}
+
+					if (a->vector.empty() || b->vector.empty())
+					{
+						if (a->vector.empty())
+							return b;
+						else return a;
+					}
+
+					std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+					r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+
+					Value* a1 = &*a->vector.begin();
+					Value* b1 = &*b->vector.begin();
+
+					Value * a2 = &a->vector.back();
+					Value * b2 = &b->vector.back();
+
+
+					while (true)
+					{
+						if (a1 == a2)
+						{
+							r->vector.emplace_back(Value::Suma(*a1, *b1));
+
+							if (b1 == b2)
+								return r;
+
+							b1++; 
+
+							while (b1 != b2)
+							{
+								r->vector.emplace_back(*b1);
+								b1++; 
+							}
+
+							r->vector.emplace_back(*b1);
+							return r;
+						}
+
+						if (b1 == b2)
+						{
+							r->vector.emplace_back(Value::Suma(*a1, *b1));
+
+							if (a1 == a2)
+								return r;
+
+							a1++; 
+
+							while (a1 != a2)
+							{
+								r->vector.emplace_back(*a1);
+								a1++; 
+							}
+							r->vector.emplace_back(*a1);
+							return r;
+						}
+
+						r->vector.emplace_back(Value::Suma(*a1, *b1));
+						a1++; b1++;
+					}
+				},
+
+					[](auto,auto)->Value { return std::monostate(); },
+
+		}, v1.value, v2.value);
+}
+
+Value Value::Resta(Value& v1, Value& v2)
+{
+	return std::visit(overloaded{
+
+		//INTEGER .. XX
+		[](const int& a,const int& b)->Value
+		{
+			int t = a - b;
+			if (minOvf(&t, a, b))
+				return (long long(a) - b);
+			return (t);
+		},
+		[](const int& a, const bool& b)->Value
+		{
+			int t = a - b;
+			if (minOvf(&t, a, b))
+				return (long long(a) - b);
+			return (t);
+		},
+		[](const int& a, const double& b)->Value { return (a - b); },
+		[](const int& a, std::string & b)->Value
+		{
+			if (a < 0) return (b);
+			if (a > b.length()) return (std::string(""));
+			return (b.erase(0,a));
+		},
+		[](const int& a,const  long long& b)->Value { return (a - b); },
+
+			//DOUBLE .. XX
+			[](const double& a,const int& b)->Value { return (a - b); },
+			[](const double& a,const bool& b)->Value { return (a - b); },
+			[](const double& a, const double& b)->Value { return (a - b); },
+			[](const double& a,  std::string & b)->Value { Errores::generarError(Errores::ERROR_MATH_MINUS_STRING, Errores::outData, "double"); return std::monostate(); },
+			[](const double& a, const long long& b)->Value { return (a - b); },
+
+			//LONGLONG .. XX
+			[](const long long& a, const int& b)->Value { return (a - b); },
+			[](const long long& a, const bool& b)->Value { return (a - b); },
+			[](const long long& a, const double& b)->Value { return (a - b); },
+			[](const long long& a, std::string & b)->Value
+			{
+				if (a < 0) return (b);
+				if (a > b.length()) return (std::string(""));
+				return (b.erase(0,a));
+			},
+			[](const long long& a, const long long& b)->Value { return (a - b); },
+
+				//STRING .. XX
+				[](std::string & a,const int& b)->Value
+				{
+					if (b < 0) return (a);
+					if (b > a.length()) return "";
+					return (a.erase(a.length() - (b), b));
+				},
+				[](std::string & a,const bool& b)->Value
+				{
+					if (b > a.length()) return "";
+					if (b) return (a.erase(a.length() - 2, 1)); else return "";
+				},
+				[](std::string & a,const double& b)->Value { Errores::generarError(Errores::ERROR_MATH_MINUS_STRING, Errores::outData, "double"); return std::monostate(); },
+				[](std::string & a, std::string & b)->Value //TODO: FALLA
+				{
+
+					if (a.length() < b.length())
+						return a;
+
+					int inx = a.length() - b.length();
+					std::string tt = a.substr(inx, b.length());
+					if (tt == b)
+						return a.erase(inx, b.length());
+					else return a;
+
+
+				},
+				[](std::string & a,const long long& b)->Value
+				{
+					if (b < 0) return (a);
+					if (b > a.length()) return (std::string(""));
+					return (a.erase(a.length() - (b + 1), b));
+				},
+
+					//BOOL .. XX
+					[](const bool& a,const int& b)->Value { return (a - b); },
+					[](const bool& a,const bool& b)->Value { return (a - b); },
+					[](const bool& a, const double& b)->Value { return (a - b); },
+					[](const bool& a, std::string & b)->Value
+					{
+						if (a < 0) return (b);
+						if (a > b.length()) return (std::string(""));
+						return (b.erase(0,a));
+					},
+					[](const bool& a, const long long& b)->Value { return (a - b); },
+
+
+					[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Resta(v1, *sss));
+						}
+						return std::move(r);
+					},
+
+					[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Resta(*sss, v2));
+						}
+						return std::move(r);
+					},
+					[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Resta(*sss, v2));
+						}
+						return std::move(r);
+					},
+					[&](std::shared_ptr<mdox_vector> & b, std::string&)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Resta(*sss, v2));
+						}
+						return std::move(r);
+					},
+					[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Resta(*sss, v2));
+						}
+						return std::move(r);
+					},
+					[&](std::shared_ptr<mdox_vector> & b, int&)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Resta(*sss, v2));
+						}
+						return std::move(r);
+					},
+
+					[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector> & b)->Value
+					{
+						if (a->vector.size() == b->vector.size() && !a->vector.empty())
+						{
+							std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+							r->vector.reserve(a->vector.size());
+
+							int itr = 0;
+							for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+							{
+								r->vector.emplace_back(Value::Resta(*sss, b->vector[itr]));
+								itr++;
+							}
+							return std::move(r);
+						}
+
+						if (a->vector.empty() || b->vector.empty())
+						{
+							if (a->vector.empty())
+								return b;
+							else return a;
+						}
+
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+
+						Value* a1 = &*a->vector.begin();
+						Value* b1 = &*b->vector.begin();
+
+						Value* a2 = &a->vector.back();
+						Value* b2 = &b->vector.back();
+
+
+						while (true)
+						{
+							if (a1 == a2)
+							{
+								r->vector.emplace_back(Value::Resta(*a1, *b1));
+
+								if (b1 == b2)
+									return r;
+
+								b1++;
+
+								OPERADORES op = ELEM_NEG_FIRST;
+								while (b1 != b2)
+								{
+									r->vector.emplace_back(b1->operacion_Unitaria(op));
+									b1++;
+								}
+
+								r->vector.emplace_back(b1->operacion_Unitaria(op));
+								return r;
+							}
+
+							if (b1 == b2)
+							{
+								r->vector.emplace_back(Value::Resta(*a1, *b1));
+
+								if (a1 == a2)
+									return r;
+
+								a1++;
+
+								while (a1 != a2)
+								{
+									r->vector.emplace_back(*a1);
+									a1++;
+								}
+								r->vector.emplace_back(*a1);
+								return r;
+							}
+
+							r->vector.emplace_back(Value::Resta(*a1, *b1));
+							a1++; b1++;
+						}
+					},
+
+					[](auto,auto)->Value { return std::monostate(); },
+		}, v1.value, v2.value);
+}
+
+Value Value::Multiplicacion(Value& v1, Value& v2)
+{
+	return std::visit(overloaded{
+
+		//INTEGER .. XX
+		[](const int& a,const int& b)->Value
+		{
+			int t = a * b;
+			if (multOvf(&t, a, b))
+				return (long long(a) * b);
+			return (t);
+		},
+		[](const int& a, const bool& b)->Value { return (a * b);	},
+		[](const int& a, const double& b)->Value { return (a * b); },
+		[](const int& a, std::string & b)->Value
+		{
+			std::string ex = "";
+			for (int itr = 0; itr < a; itr++)
+				ex += b;
+			return (ex);
+		},
+		[](const int& a, const long long& b)->Value { return (a * b); },
+
+			//DOUBLE .. XX
+			[](const double& a,const int& b)->Value { return (a * b); },
+			[](const double& a,const bool& b)->Value { return (a * b); },
+			[](const double& a, const double& b)->Value { return (a * b); },
+			[](const double& a,  std::string & b)->Value { Errores::generarError(Errores::ERROR_MATH_MULT_STRING, Errores::outData, "double"); return std::monostate(); },
+			[](const double& a, const long long& b)->Value { return (a * b); },
+
+			//LONGLONG .. XX
+			[](const long long& a, const int& b)->Value { return (a * b); },
+			[](const long long& a, const bool& b)->Value { return (a * b); },
+			[](const long long& a, const double& b)->Value { return (a * b); },
+			[](const long long& a,  std::string & b)->Value
+			{
+				std::string ex = "";
+				for (int itr = 0; itr < a; itr++)
+					ex += b;
+				return (ex);
+			},
+			[](const long long& a, const long long& b)->Value { return (a * b); },
+
+				//STRING .. XX
+				[](std::string & a,int& b)->Value {
+					std::string ex = "";
+					for (int itr = 0; itr < b; itr++)
+						ex += a;
+					return (ex);
+				},
+				[](std::string & a,const bool& b)->Value { if (b) return (a); else return ""; },
+				[](std::string & a,const double& b)->Value { Errores::generarError(Errores::ERROR_MATH_MULT_STRING, Errores::outData, "double"); return std::monostate(); },
+				[](std::string & a, std::string & b)->Value {/*abc ab = aa ab ba bb ca cb*/ return (false); },
+				[](std::string & a,const long long& b)->Value { return (a + to_string_p(b)); },
+
+					//BOOL .. XX
+					[](const bool& a,const int& b)->Value { return (a * b); },
+					[](const bool& a,const bool& b)->Value { return (a * b); },
+					[](const bool& a, const double& b)->Value { return (a * b); },
+					[](const bool& a, std::string & b)->Value { if (a) return (b); else return ""; },
+					[](const bool& a, const long long& b)->Value { return (a * b); },
+
+
+					[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Multiplicacion(v1, *sss));
+						}
+						return std::move(r);
+					},
+
+					[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Multiplicacion(*sss, v2));
+						}
+						return std::move(r);
+					},
+					[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Multiplicacion(*sss, v2));
+						}
+						return std::move(r);
+					},
+					[&](std::shared_ptr<mdox_vector> & b, std::string&)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Multiplicacion(*sss, v2));
+						}
+						return std::move(r);
+					},
+					[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Multiplicacion(*sss, v2));
+						}
+						return std::move(r);
+					},
+
+					[&](std::shared_ptr<mdox_vector> & b, int&)->Value
+					{
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(b->vector.size());
+
+						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						{
+							r->vector.emplace_back(Value::Multiplicacion(*sss, v2));
+						}
+						return std::move(r);
+					},
+
+					[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector> & b)->Value
+					{
+						if (a->vector.size() == b->vector.size() && !a->vector.empty())
+						{
+							std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+							r->vector.reserve(a->vector.size());
+
+							int itr = 0;
+							for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+							{
+								r->vector.emplace_back(Value::Multiplicacion(*sss, b->vector[itr]));
+								itr++;
+							}
+							return std::move(r);
+						}
+
+						if (a->vector.empty() || b->vector.empty())
+						{
+							if (a->vector.empty())
+								return b;
+							else return a;
+						}
+
+						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+						r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+
+						Value* a1 = &*a->vector.begin();
+						Value* b1 = &*b->vector.begin();
+
+						Value* a2 = &a->vector.back();
+						Value* b2 = &b->vector.back();
+
+
+						while (true)
+						{
+							if (a1 == a2)
+							{
+								r->vector.emplace_back(Value::Multiplicacion(*a1, *b1));
+
+								if (b1 == b2)
+									return r;
+
+								b1++;
+
+								while (b1 != b2)
+								{
+									r->vector.emplace_back(std::monostate());
+									b1++;
+								}
+
+								r->vector.emplace_back(std::monostate());
+								return r;
+							}
+
+							if (b1 == b2)
+							{
+								r->vector.emplace_back(Value::Multiplicacion(*a1, *b1));
+
+								if (a1 == a2)
+									return r;
+
+								a1++;
+
+								while (a1 != a2)
+								{
+									r->vector.emplace_back(std::monostate());
+									a1++;
+								}
+								r->vector.emplace_back(std::monostate());
+								return r;
+							}
+
+							r->vector.emplace_back(Value::Multiplicacion(*a1, *b1));
+							a1++; b1++;
+						}
+					},
+
+					[](auto,auto)->Value { return std::monostate(); },
+
+		}, v1.value, v2.value);
+}
+
+
+Value Value::Div(Value& v1, Value& v2)
+{
+	return std::visit(overloaded{
+
+		//INTEGER .. XX
+		[](const int& a,const int& b)->Value { return (a / (double)b); },
+		[](const int& a,const bool& b)->Value { return (a / (double)b); },
+		[](const int& a,const double& b)->Value { return (a / b); },
+
+		[](const int& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
+		[](const int& a, const long long& b)->Value { return ((double)a / b); },
+
+		//DOUBLE .. XX
+		[](const double& a, const int& b)->Value { return (a / b); },
+		[](const double& a, const bool& b)->Value { return (a / b); },
+		[](const double& a, const double& b)->Value { return (a / b); },
+		[](const double& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
+		[](const double& a, const long long& b)->Value { return (a / b); },
+
+		//LONGLONG .. XX
+		[](const long long& a,const int& b)->Value { return (a / (double)b); },
+		[](const long long& a,const bool& b)->Value { return (a / (double)b); },
+		[](const long long& a, const double& b)->Value { return (a / b); },
+		[](const long long& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
+		[](const long long& a,const  long long& b)->Value { return (a / (double)b); },
+
+		//STRING .. XX
+		[](std::string & a,const int& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
+		[](std::string & a,const bool& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
+		[](std::string & a,const double& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
+		[](std::string & a, std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
+		[](std::string & a,const long long& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
+
+		//BOOL .. XX
+		[](const bool& a,const int& b)->Value { return ((double)a / b); },
+		[](const bool& a,const bool& b)->Value { return ((double)a / b); },
+		[](const bool& a,const  double& b)->Value { return (a / b); },
+		[](const bool& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
+		[](const bool& a, const long long& b)->Value { return ((double)a / b); },
+
+		[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Div(v1, *sss));
+				}
+				return std::move(r);
+		},
+
+		[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Div(*sss, v2));
+				}
+				return std::move(r);
+		},
+		[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Div(*sss, v2));
+				}
+				return std::move(r);
+		},
+		[&](std::shared_ptr<mdox_vector> & b, std::string&)->Value
+		{
+			Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate();
+		},
+		[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Div(*sss, v2));
+				}
+				return std::move(r);
+		},
+		[&](std::shared_ptr<mdox_vector> & b, int&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Div(*sss, v2));
+				}
+				return std::move(r);
+		},
+
+		[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector> & b)->Value
+		{
+			if (a->vector.size() == b->vector.size() && !a->vector.empty())
+			{
+				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(a->vector.size());
+
+				int itr = 0;
+				for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Div(*sss, b->vector[itr]));
+					itr++;
+				}
+				return std::move(r);
+			}
+
+			if (a->vector.empty() || b->vector.empty())
+			{
+				if (a->vector.empty())
+					return b;
+				else return a;
+			}
+
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+			r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+
+			Value* a1 = &*a->vector.begin();
+			Value* b1 = &*b->vector.begin();
+
+			Value* a2 = &a->vector.back();
+			Value* b2 = &b->vector.back();
+
+
+			while (true)
+			{
+				if (a1 == a2)
+				{
+					r->vector.emplace_back(Value::Div(*a1, *b1));
+
+					if (b1 == b2)
+						return r;
+
+					b1++;
+
+					while (b1 != b2)
+					{
+						r->vector.emplace_back(std::monostate());
+						b1++;
+					}
+
+					r->vector.emplace_back(std::monostate());
+					return r;
+				}
+
+				if (b1 == b2)
+				{
+					r->vector.emplace_back(Value::Div(*a1, *b1));
+
+					if (a1 == a2)
+						return r;
+
+					a1++;
+
+					while (a1 != a2)
+					{
+						r->vector.emplace_back(std::monostate());
+						a1++;
+					}
+					r->vector.emplace_back(std::monostate());
+					return r;
+				}
+
+				r->vector.emplace_back(Value::Div(*a1, *b1));
+				a1++; b1++;
+			}
+		},
+
+		[](auto,auto)->Value { return std::monostate(); },
+
+		}, v1.value, v2.value);
+}
+
+
+Value Value::DivEntera(Value& v1, Value& v2)
+{
+	return std::visit(overloaded{
+
+		//INTEGER .. XX
+		[](const int& a,const int& b)->Value { return ((int)(a / b)); },
+		[](const int& a,const bool& b)->Value { return ((int)(a / b)); },
+		[](const int& a, const double& b)->Value { return ((int)(a / b)); },
+
+		[](const int& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
+		[](const int& a, const long long& b)->Value { return ((int)(a / b)); },
+
+		//DOUBLE .. XX
+		[](const double& a,const int& b)->Value { return ((int)(a / b)); },
+		[](const double& a,const bool& b)->Value { return ((int)(a / b)); },
+		[](const double& a,const double& b)->Value { return (a / b); },
+		[](const double& a, std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
+		[](const double& a, const long long& b)->Value { return ((int)(a / b)); },
+
+		//LONGLONG .. XX
+		[](const long long& a,const int& b)->Value { return ((int)(a / b)); },
+		[](const long long& a,const bool& b)->Value { return ((int)(a / b)); },
+		[](const long long& a, const double& b)->Value { return ((int)(a / b)); },
+		[](const long long& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
+		[](const long long& a, const long long& b)->Value { return ((int)(a / b)); },
+
+		//STRING .. XX
+		[](std::string & a,const int& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
+		[](std::string & a,const bool& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
+		[](std::string & a,const double& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
+		[](std::string & a, std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
+		[](std::string & a,const long long& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
+
+		//BOOL .. XX
+		[](const bool& a,const int& b)->Value { return ((int)(a / b)); },
+		[](const bool& a,const bool& b)->Value { return ((int)(a / b)); },
+		[](const bool& a, const double& b)->Value { return ((int)(a / b)); },
+		[](const bool& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
+		[](const bool& a, const long long& b)->Value { return ((int)(a / b)); },
+
+		[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::DivEntera(v1, *sss));
+				}
+				return std::move(r);
+		},
+
+		[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::DivEntera(*sss,v2));
+				}
+				return std::move(r);
+		},
+		[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::DivEntera(*sss,v2));
+				}
+				return std::move(r);
+		},
+		[&](std::shared_ptr<mdox_vector> & b, std::string&)->Value
+		{
+			Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate();
+		},
+		[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::DivEntera(*sss,v2));
+				}
+				return std::move(r);
+		},
+		[&](std::shared_ptr<mdox_vector> & b, int&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::DivEntera(*sss,v2));
+				}
+				return std::move(r);
+		},
+
+		[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector> & b)->Value
+		{
+			if (a->vector.size() == b->vector.size() && !a->vector.empty())
+			{
+				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(a->vector.size());
+
+				int itr = 0;
+				for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::DivEntera(*sss, b->vector[itr]));
+					itr++;
+				}
+				return std::move(r);
+			}
+
+			if (a->vector.empty() || b->vector.empty())
+			{
+				if (a->vector.empty())
+					return b;
+				else return a;
+			}
+
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+			r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+
+			Value* a1 = &*a->vector.begin();
+			Value* b1 = &*b->vector.begin();
+
+			Value* a2 = &a->vector.back();
+			Value* b2 = &b->vector.back();
+
+
+			while (true)
+			{
+				if (a1 == a2)
+				{
+					r->vector.emplace_back(Value::DivEntera(*a1, *b1));
+
+					if (b1 == b2)
+						return r;
+
+					b1++;
+
+					while (b1 != b2)
+					{
+						r->vector.emplace_back(std::monostate());
+						b1++;
+					}
+
+					r->vector.emplace_back(std::monostate());
+					return r;
+				}
+
+				if (b1 == b2)
+				{
+					r->vector.emplace_back(Value::DivEntera(*a1, *b1));
+
+					if (a1 == a2)
+						return r;
+
+					a1++;
+
+					while (a1 != a2)
+					{
+						r->vector.emplace_back(std::monostate());
+						a1++;
+					}
+					r->vector.emplace_back(std::monostate());
+					return r;
+				}
+
+				r->vector.emplace_back(Value::DivEntera(*a1, *b1));
+				a1++; b1++;
+			}
+		},
+
+		[](auto,auto)->Value { return std::monostate(); },
+
+		}, v1.value, v2.value);
+}
+
+Value Value::Mod(Value& v1, Value& v2)
+{
+	return std::visit(overloaded{
+
+		//INTEGER .. XX
+		[](const int& a,const int& b)->Value { return (a % b); },
+		[](const int& a,const bool& b)->Value { return (a % b); },
+		[](const int& a, const double& b)->Value { return (fmod(a,b)); },
+		[](const int& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
+		[](const int& a, const long long& b)->Value { return (a % b); },
+
+		//DOUBLE .. XX
+		[](const double& a, const int& b)->Value { return (fmod(a,b)); },
+		[](const double& a, const bool& b)->Value { return (fmod(a,b)); },
+		[](const double& a, const double& b)->Value { return (fmod(a,b)); },
+		[](const double& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
+		[](const double& a, const long long& b)->Value { return (fmod(a,b)); },
+
+		//LONGLONG .. XX
+		[](const long long& a,const int& b)->Value { return (a % b); },
+		[](const long long& a,const bool& b)->Value { return (a % b); },
+		[](const long long& a,const double& b)->Value { return (fmod(a,b)); },
+		[](const long long& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
+		[](const long long& a,const long long& b)->Value { return (a % b); },
+
+		//STRING .. XX
+		[](std::string & a,const int& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
+		[](std::string & a,const bool& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
+		[](std::string & a,const double& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
+		[](std::string & a, std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
+		[](std::string & a,const long long& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
+
+		//BOOL .. XX
+		[](const bool& a, const int& b)->Value { return (a % b); },
+		[](const bool& a, const bool& b)->Value { return (a % b); },
+		[](const bool& a, const double& b)->Value { return (fmod(a,b)); },
+		[](const bool& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
+		[](const bool& a, const long long& b)->Value { return (a % b); },
+
+		[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Mod(v1,*sss));
+				}
+				return std::move(r);
+		},
+
+		[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Mod(*sss,v2));
+				}
+				return std::move(r);
+		},
+		[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Mod(*sss,v2));
+				}
+				return std::move(r);
+		},
+		[&](std::shared_ptr<mdox_vector> & b, std::string&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Mod(*sss,v2));
+				}
+				return std::move(r);
+		},
+		[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Mod(*sss,v2));
+				}
+				return std::move(r);
+		},
+		[&](std::shared_ptr<mdox_vector> & b, int&)->Value
+		{
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(b->vector.size());
+
+				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Mod(*sss,v2));
+				}
+				return std::move(r);
+		},
+
+
+		[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector> & b)->Value
+		{
+			if (a->vector.size() == b->vector.size() && !a->vector.empty())
+			{
+				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+				r->vector.reserve(a->vector.size());
+
+				int itr = 0;
+				for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+				{
+					r->vector.emplace_back(Value::Mod(*sss, b->vector[itr]));
+					itr++;
+				}
+				return std::move(r);
+			}
+
+			if (a->vector.empty() || b->vector.empty())
+			{
+				if (a->vector.empty())
+					return b;
+				else return a;
+			}
+
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+			r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+
+			Value* a1 = &*a->vector.begin();
+			Value* b1 = &*b->vector.begin();
+
+			Value* a2 = &a->vector.back();
+			Value* b2 = &b->vector.back();
+
+
+			while (true)
+			{
+				if (a1 == a2)
+				{
+					r->vector.emplace_back(Value::Mod(*a1, *b1));
+
+					if (b1 == b2)
+						return r;
+
+					b1++;
+
+					while (b1 != b2)
+					{
+						r->vector.emplace_back(std::monostate());
+						b1++;
+					}
+
+					r->vector.emplace_back(std::monostate());
+					return r;
+				}
+
+				if (b1 == b2)
+				{
+					r->vector.emplace_back(Value::Mod(*a1, *b1));
+
+					if (a1 == a2)
+						return r;
+
+					a1++;
+
+					while (a1 != a2)
+					{
+						r->vector.emplace_back(std::monostate());
+						a1++;
+					}
+					r->vector.emplace_back(std::monostate());
+					return r;
+				}
+
+				r->vector.emplace_back(Value::Mod(*a1, *b1));
+				a1++; b1++;
+			}
+		},
+
+		[](auto,auto)->Value { return std::monostate(); },
+
+		}, v1.value, v2.value);
+}
+
+Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 {
 	switch (op)
 	{
@@ -29,178 +1256,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 		// --------------------------------------------------------------------
 	case OP_ARIT_SUMA:
 	{
-		return std::visit(overloaded{
-
-			//INTEGER .. XX
-			[](const int& a, const int& b)->Value
-			{
-				int t = a + b;
-				if (addOvf(&t, a, b))
-					return (long long(a) + b);
-				return t;
-			},
-			[](const int& a, const bool& b)->Value
-			{
-				int t = a + b;
-				if (addOvf(&t, a, b))
-					return (long long(a) + b);
-				return (t);
-			},
-			[](const int& a, const double& b)->Value { return (a + b); },
-			[](const int& a,  std::string & b)->Value { return (to_string_p(a) + b); },
-			[](const int& a, const long long& b)->Value { return (a + b); }, // [](int x) {return x + 5; }
-
-			//DOUBLE .. XX
-			[](const double& a,const int& b)->Value { return (a + b); },
-			[](const double& a,const bool& b)->Value { return (a + b); },
-			[](const double& a, const double& b)->Value { return (a + b); },
-			[](const double& a,  std::string & b)->Value { return (to_string_p(a) + b); },
-			[](const double& a, const long long& b)->Value { return (a + b); },
-
-
-				//LONGLONG .. XX
-				[](const long long& a,const int& b)->Value { return (a + b); },
-				[](const long long& a,const bool& b)->Value { return (a + b); },
-				[](const long long& a, const double& b)->Value { return (a + b); },
-				[](const long long& a,  std::string & b)->Value { return (to_string_p(a) + b); },
-				[](const long long& a, const long long& b)->Value { return (a + b); },
-
-
-				//STRING .. XX
-					[](const std::string & a,const int& b)->Value { return (a + to_string_p(b)); },
-					[](const std::string & a,const bool& b)->Value { return (a + to_string_p(b)); },
-					[](const std::string & a,const double& b)->Value { return (a + to_string_p(b)); },
-					[](const std::string & a,const std::string & b)->Value { return (a + b); },
-					[](const std::string & a,const long long& b)->Value { return (a + to_string_p(b)); },
-
-				//BOOL .. XX
-				[](const bool& a,const int& b)->Value
-				{
-					int t = a + b;
-					if (addOvf(&t, a, b))
-						return (a + long long(b));
-					return (t);
-				},
-				[](const bool& a,const bool& b)->Value { return (a + b); },
-				[](const bool& a, const double& b)->Value { return (a + b); },
-				[](const bool& a, const std::string & b)->Value { return (to_string_p(a) + b); },
-				[](const bool& a, const long long& b)->Value { return (a + b); },
-
-
-
-				[&](auto&, std::vector<Value> & b)->Value
-				{
-					std::vector<Value> r;
-					r.resize(b.size());
-					std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_SUMA); });
-					return r;
-				},
-
-				[&](std::vector<Value> & b, const bool&)->Value
-				{
-					std::vector<Value> r;
-					r.resize(b.size());
-					std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_SUMA); });
-					return r;
-				},
-				[&](std::vector<Value> & b, const double&)->Value
-				{
-					std::vector<Value> r;
-					r.resize(b.size());
-					std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_SUMA); });
-					return r;
-				},
-				[&](std::vector<Value> & b, std::string&)->Value
-				{
-					std::vector<Value> r;
-					r.resize(b.size());
-					std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_SUMA); });
-					return r;
-				},
-				[&](std::vector<Value> & b, long long&)->Value
-				{
-					std::vector<Value> r;
-					r.resize(b.size());
-					std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_SUMA); });
-					return r;
-				},
-
-				[&](std::vector<Value> & b, int&)->Value
-				{
-					std::vector<Value> r(b.size());
-					//r.resize(b.size());
-					std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_SUMA); });
-					return r;
-				},
-				[&](std::vector<Value> & a, std::vector<Value> & b)->Value
-				{
-					if (a.empty() || b.empty())
-					{
-						if (a.empty())
-							return b;
-						else return a;
-					}
-
-					std::vector<Value> r;
-					r.resize(a.size() > b.size() ? a.size() : b.size());
-
-					Value * a1 = &*a.begin();
-					Value * a2 = &a.back();
-
-					Value * b1 = &*b.begin();
-					Value * b2 = &b.back();
-
-					Value * r1 = &*r.begin();
-
-					while (true)
-					{
-						if (a1 == a2)
-						{
-							*r1 = a1->operacion_Binaria(*b1, OP_ARIT_SUMA);
-
-							if (b1 == b2)
-								return r;
-
-							b1++; r1++;
-
-							while (b1 != b2)
-							{
-								*r1 = *b1;
-								b1++; r1++;
-							}
-
-							*r1 = *b1;
-							return r;
-						}
-
-						if (b1 == b2)
-						{
-							*r1 = a1->operacion_Binaria(*b1, OP_ARIT_SUMA);
-
-							if (a1 == a2)
-								return r;
-
-							a1++; r1++;
-
-							while (a1 != a2)
-							{
-								*r1 = *a1;
-								a1++; r1++;
-							}
-
-							*r1 = *a1;
-							return r;
-						}
-
-						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_SUMA);
-						a1++; b1++; r1++;
-					}
-				},
-
-				[](auto,auto)->Value { return std::monostate(); },
-
-			}, value, v.value);
-		break;
+		return Suma(*this, v);
 	}
 
 	// --------------------------------------------------------------------
@@ -208,399 +1264,14 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 	// --------------------------------------------------------------------
 	case OP_ARIT_RESTA:
 	{
-		return std::visit(overloaded{
-
-			//INTEGER .. XX
-			[](const int& a,const int& b)->Value
-			{
-				int t = a - b;
-				if (minOvf(&t, a, b))
-					return (long long(a) - b);
-				return (t);
-			},
-			[](const int& a, const bool& b)->Value
-			{
-				int t = a - b;
-				if (minOvf(&t, a, b))
-					return (long long(a) - b);
-				return (t);
-			},
-			[](const int& a, const double& b)->Value { return (a - b); },
-			[](const int& a, std::string & b)->Value
-			{
-				if (a < 0) return (b);
-				if (a > b.length()) return (std::string(""));
-				return (b.erase(0,a));
-			},
-			[](const int& a,const  long long& b)->Value { return (a - b); },
-
-				//DOUBLE .. XX
-				[](const double& a,const int& b)->Value { return (a - b); },
-				[](const double& a,const bool& b)->Value { return (a - b); },
-				[](const double& a, const double& b)->Value { return (a - b); },
-				[](const double& a,  std::string & b)->Value { Errores::generarError(Errores::ERROR_MATH_MINUS_STRING, Errores::outData, "double"); return std::monostate(); },
-				[](const double& a, const long long& b)->Value { return (a - b); },
-
-				//LONGLONG .. XX
-				[](const long long& a, const int& b)->Value { return (a - b); },
-				[](const long long& a, const bool& b)->Value { return (a - b); },
-				[](const long long& a, const double& b)->Value { return (a - b); },
-				[](const long long& a, std::string & b)->Value
-				{
-					if (a < 0) return (b);
-					if (a > b.length()) return (std::string(""));
-					return (b.erase(0,a));
-				},
-				[](const long long& a, const long long& b)->Value { return (a - b); },
-
-					//STRING .. XX
-					[](std::string & a,const int& b)->Value
-					{
-						if (b < 0) return (a);
-						if (b > a.length()) return "";
-						return (a.erase(a.length() - (b), b));
-					},
-					[](std::string & a,const bool& b)->Value
-					{
-						if (b > a.length()) return "";
-						if (b) return (a.erase(a.length() - 2, 1)); else return "";
-					},
-					[](std::string & a,const double& b)->Value { Errores::generarError(Errores::ERROR_MATH_MINUS_STRING, Errores::outData, "double"); return std::monostate(); },
-					[](std::string & a, std::string & b)->Value //TODO: FALLA
-					{
-
-						if (a.length() < b.length())
-							return a;
-
-						int inx = a.length() - b.length();
-						std::string tt = a.substr(inx, b.length());
-						if (tt == b)
-							return a.erase(inx, b.length());
-						else return a;
-
-
-					},
-					[](std::string & a,const long long& b)->Value
-					{
-						if (b < 0) return (a);
-						if (b > a.length()) return (std::string(""));
-						return (a.erase(a.length() - (b + 1), b));
-					},
-
-						//BOOL .. XX
-						[](const bool& a,const int& b)->Value { return (a - b); },
-						[](const bool& a,const bool& b)->Value { return (a - b); },
-						[](const bool& a, const double& b)->Value { return (a - b); },
-						[](const bool& a, std::string & b)->Value
-						{
-							if (a < 0) return (b);
-							if (a > b.length()) return (std::string(""));
-							return (b.erase(0,a));
-						},
-						[](const bool& a, const long long& b)->Value { return (a - b); },
-
-
-						[&](auto&, std::vector<Value> & b)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_RESTA); });
-							return r;
-						},
-
-						[&](std::vector<Value> & b, const bool&)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_RESTA); });
-							return r;
-						},
-						[&](std::vector<Value> & b, const double&)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_RESTA); });
-							return r;
-						},
-						[&](std::vector<Value> & b, std::string&)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_RESTA); });
-							return r;
-						},
-						[&](std::vector<Value> & b, long long&)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_RESTA); });
-							return r;
-						},
-						[&](std::vector<Value> & b, int&)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_RESTA); });
-							return r;
-						},
-
-						[&](std::vector<Value> & a, std::vector<Value> & b)->Value
-						{
-							if (a.empty() || b.empty())
-							{
-								if (a.empty())
-									return b;
-								else return a;
-							}
-
-							std::vector<Value> r;
-							r.resize(a.size() > b.size() ? a.size() : b.size());
-
-							Value * a1 = &*a.begin();
-							Value * a2 = &a.back();
-
-							Value * b1 = &*b.begin();
-							Value * b2 = &b.back();
-
-							Value * r1 = &*r.begin();
-
-							while (true)
-							{
-								if (a1 == a2)
-								{
-									*r1 = a1->operacion_Binaria(*b1, OP_ARIT_RESTA);
-
-									if (b1 == b2)
-										return r;
-
-									OPERADORES o = ELEM_NEG_FIRST;
-
-									b1++; r1++;
-
-									while (b1 != b2)
-									{
-										*r1 = *b1;
-										b1++; r1++;
-									}
-
-									*r1 = b1->operacion_Unitaria(o);
-
-									return r;
-								}
-
-								if (b1 == b2)
-								{
-									*r1 = a1->operacion_Binaria(*b1, OP_ARIT_RESTA);
-
-									if (a1 == a2)
-										return r;
-
-									OPERADORES o = ELEM_NEG_FIRST;
-
-									a1++; r1++;
-
-									while (a1 != a2)
-									{
-										*r1 = *a1;
-										a1++; r1++;
-									}
-
-									*r1 = a1->operacion_Unitaria(o);
-
-									return r;
-								}
-
-								*r1 = a1->operacion_Binaria(*b1, OP_ARIT_RESTA);
-								a1++; b1++; r1++;
-							}
-						},
-
-						[](auto,auto)->Value { return std::monostate(); },
-			}, value, v.value);
-		break;
+		return Resta(*this, v);
 	}
 	// --------------------------------------------------------------------
 	// ------------------ OPERACIÓN MULTIPLICACIÓN ------------------------
 	// --------------------------------------------------------------------
 	case OP_ARIT_MULT:
 	{
-		return std::visit(overloaded{
-
-			//INTEGER .. XX
-			[](const int& a,const int& b)->Value
-			{
-				int t = a * b;
-				if (multOvf(&t, a, b))
-					return (long long(a) * b);
-				return (t);
-			},
-			[](const int& a, const bool& b)->Value { return (a * b);	},
-			[](const int& a, const double& b)->Value { return (a * b); },
-			[](const int& a, std::string & b)->Value
-			{
-				std::string ex = "";
-				for (int itr = 0; itr < a; itr++)
-					ex += b;
-				return (ex);
-			},
-			[](const int& a, const long long& b)->Value { return (a * b); },
-
-				//DOUBLE .. XX
-				[](const double& a,const int& b)->Value { return (a * b); },
-				[](const double& a,const bool& b)->Value { return (a * b); },
-				[](const double& a, const double& b)->Value { return (a * b); },
-				[](const double& a,  std::string & b)->Value { Errores::generarError(Errores::ERROR_MATH_MULT_STRING, Errores::outData, "double"); return std::monostate(); },
-				[](const double& a, const long long& b)->Value { return (a * b); },
-
-				//LONGLONG .. XX
-				[](const long long& a, const int& b)->Value { return (a * b); },
-				[](const long long& a, const bool& b)->Value { return (a * b); },
-				[](const long long& a, const double& b)->Value { return (a * b); },
-				[](const long long& a,  std::string & b)->Value
-				{
-					std::string ex = "";
-					for (int itr = 0; itr < a; itr++)
-						ex += b;
-					return (ex);
-				},
-				[](const long long& a, const long long& b)->Value { return (a * b); },
-
-					//STRING .. XX
-					[](std::string & a,int& b)->Value {
-						std::string ex = "";
-						for (int itr = 0; itr < b; itr++)
-							ex += a;
-						return (ex);
-					},
-					[](std::string & a,const bool& b)->Value { if (b) return (a); else return ""; },
-					[](std::string & a,const double& b)->Value { Errores::generarError(Errores::ERROR_MATH_MULT_STRING, Errores::outData, "double"); return std::monostate(); },
-					[](std::string & a, std::string & b)->Value {/*abc ab = aa ab ba bb ca cb*/ return (false); },
-					[](std::string & a,const long long& b)->Value { return (a + to_string_p(b)); },
-
-						//BOOL .. XX
-						[](const bool& a,const int& b)->Value { return (a * b); },
-						[](const bool& a,const bool& b)->Value { return (a * b); },
-						[](const bool& a, const double& b)->Value { return (a * b); },
-						[](const bool& a, std::string & b)->Value { if (a) return (b); else return ""; },
-						[](const bool& a, const long long& b)->Value { return (a * b); },
-
-
-						[&](auto&, std::vector<Value> & b)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_MULT); });
-							return r;
-						},
-
-						[&](std::vector<Value> & b, const bool&)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) {return  v.operacion_Binaria(c, OP_ARIT_MULT); });
-							return r;
-						},
-						[&](std::vector<Value> & b, const double&)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MULT); });
-							return r;
-						},
-						[&](std::vector<Value> & b, std::string&)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MULT); });
-							return r;
-						},
-						[&](std::vector<Value> & b, long long&)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MULT); });
-							return r;
-						},
-
-						[&](std::vector<Value> & b, int&)->Value
-						{
-							std::vector<Value> r;
-							r.resize(b.size());
-							std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MULT); });
-							return r;
-						},
-
-						[&](std::vector<Value> & a, std::vector<Value> & b)->Value
-						{
-							if (a.empty() || b.empty())
-							{
-								if (a.empty())
-									return b;
-								else return a;
-							}
-
-							std::vector<Value> r;
-
-							r.resize(a.size() > b.size() ? a.size() : b.size());
-
-							Value * a1 = &*a.begin();
-							Value * a2 = &a.back();
-
-							Value * b1 = &*b.begin();
-							Value * b2 = &b.back();
-
-							Value * r1 = &*r.begin();
-
-							while (true)
-							{
-								if (a1 == a2)
-								{
-									*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MULT);
-
-									if (b1 == b2)
-										return r;
-
-									b1++; r1++;
-
-									while (b1 != b2)
-									{
-										*r1 = std::monostate();
-										b1++; r1++;
-									}
-
-									*r1 = std::monostate();;
-									return r;
-								}
-
-								if (b1 == b2)
-								{
-									*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MULT);
-
-									if (a1 == a2)
-										return r;
-
-									a1++; r1++;
-
-									while (a1 != a2)
-									{
-										*r1 = std::monostate();
-										a1++; r1++;
-									}
-
-									*r1 = std::monostate();
-
-									return r;
-								}
-
-								*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MULT);
-								a1++; b1++; r1++;
-							}
-						},
-
-						[](auto,auto)->Value { return std::monostate(); },
-
-			}, value, v.value);
-		break;
+		return Multiplicacion(*this, v);
 	}
 
 	// --------------------------------------------------------------------
@@ -608,156 +1279,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 	// --------------------------------------------------------------------
 	case OP_ARIT_DIV:
 	{
-		return std::visit(overloaded{
-
-			//INTEGER .. XX
-			[](const int& a,const int& b)->Value { return (a / (double)b); },
-			[](const int& a,const bool& b)->Value { return (a / (double)b); },
-			[](const int& a,const double& b)->Value { return (a / b); },
-
-			[](const int& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
-			[](const int& a, const long long& b)->Value { return ((double)a / b); },
-
-			//DOUBLE .. XX
-			[](const double& a, const int& b)->Value { return (a / b); },
-			[](const double& a, const bool& b)->Value { return (a / b); },
-			[](const double& a, const double& b)->Value { return (a / b); },
-			[](const double& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
-			[](const double& a, const long long& b)->Value { return (a / b); },
-
-			//LONGLONG .. XX
-			[](const long long& a,const int& b)->Value { return (a / (double)b); },
-			[](const long long& a,const bool& b)->Value { return (a / (double)b); },
-			[](const long long& a, const double& b)->Value { return (a / b); },
-			[](const long long& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
-			[](const long long& a,const  long long& b)->Value { return (a / (double)b); },
-
-			//STRING .. XX
-			[](std::string & a,const int& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
-			[](std::string & a,const bool& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
-			[](std::string & a,const double& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
-			[](std::string & a, std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
-			[](std::string & a,const long long& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
-
-			//BOOL .. XX
-			[](const bool& a,const int& b)->Value { return ((double)a / b); },
-			[](const bool& a,const bool& b)->Value { return ((double)a / b); },
-			[](const bool& a,const  double& b)->Value { return (a / b); },
-			[](const bool& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate(); },
-			[](const bool& a, const long long& b)->Value { return ((double)a / b); },
-
-			[&](auto&, std::vector<Value> & b)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_DIV); });
-				return r;
-			},
-
-			[&](std::vector<Value> & b, const bool&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV); });
-				return r;
-			},
-			[&](std::vector<Value> & b, const double&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV); });
-				return r;
-			},
-			[&](std::vector<Value> & b, std::string&)->Value
-			{
-				Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "/"); return std::monostate();
-			},
-			[&](std::vector<Value> & b, long long&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV); });
-				return r;
-			},
-			[&](std::vector<Value> & b, int&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV); });
-				return r;
-			},
-
-			[&](std::vector<Value> & a, std::vector<Value> & b)->Value
-			{
-				if (a.empty() || b.empty())
-				{
-					if (a.empty())
-						return b;
-					else return a;
-				}
-
-				std::vector<Value> r;
-				r.resize(a.size() > b.size() ? a.size() : b.size());
-
-				Value * a1 = &*a.begin();
-				Value * a2 = &a.back();
-
-				Value * b1 = &*b.begin();
-				Value * b2 = &b.back();
-
-				Value * r1 = &*r.begin();
-
-				while (true)
-				{
-					if (a1 == a2)
-					{
-						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV);
-
-						if (b1 == b2)
-							return r;
-
-						b1++; r1++;
-
-						while (b1 != b2)
-						{
-							*r1 = std::monostate();
-							b1++; r1++;
-						}
-
-						*r1 = std::monostate();;
-
-						return r;
-					}
-
-					if (b1 == b2)
-					{
-						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV);
-
-						if (a1 == a2)
-							return r;
-
-						a1++; r1++;
-
-						while (a1 != a2)
-						{
-							*r1 = std::monostate();
-							a1++; r1++;
-						}
-
-						*r1 = std::monostate();
-
-						return r;
-					}
-
-					*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV);
-					a1++; b1++; r1++;
-				}
-			},
-
-			[](auto,auto)->Value { return std::monostate(); },
-
-			}, value, v.value);
-		break;
+		return Div(*this, v);
 	}
 
 	// --------------------------------------------------------------------
@@ -765,157 +1287,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 	// --------------------------------------------------------------------
 	case OP_ARIT_DIV_ENTERA:
 	{
-		return std::visit(overloaded{
-
-			//INTEGER .. XX
-			[](const int& a,const int& b)->Value { return ((int)(a / b)); },
-			[](const int& a,const bool& b)->Value { return ((int)(a / b)); },
-			[](const int& a, const double& b)->Value { return ((int)(a / b)); },
-
-			[](const int& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
-			[](const int& a, const long long& b)->Value { return ((int)(a / b)); },
-
-			//DOUBLE .. XX
-			[](const double& a,const int& b)->Value { return ((int)(a / b)); },
-			[](const double& a,const bool& b)->Value { return ((int)(a / b)); },
-			[](const double& a,const double& b)->Value { return (a / b); },
-			[](const double& a, std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
-			[](const double& a, const long long& b)->Value { return ((int)(a / b)); },
-
-			//LONGLONG .. XX
-			[](const long long& a,const int& b)->Value { return ((int)(a / b)); },
-			[](const long long& a,const bool& b)->Value { return ((int)(a / b)); },
-			[](const long long& a, const double& b)->Value { return ((int)(a / b)); },
-			[](const long long& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
-			[](const long long& a, const long long& b)->Value { return ((int)(a / b)); },
-
-			//STRING .. XX
-			[](std::string & a,const int& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
-			[](std::string & a,const bool& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
-			[](std::string & a,const double& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
-			[](std::string & a, std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
-			[](std::string & a,const long long& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
-
-			//BOOL .. XX
-			[](const bool& a,const int& b)->Value { return ((int)(a / b)); },
-			[](const bool& a,const bool& b)->Value { return ((int)(a / b)); },
-			[](const bool& a, const double& b)->Value { return ((int)(a / b)); },
-			[](const bool& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate(); },
-			[](const bool& a, const long long& b)->Value { return ((int)(a / b)); },
-
-			[&](auto&, std::vector<Value> & b)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_DIV_ENTERA); });
-				return r;
-			},
-
-			[&](std::vector<Value> & b, const bool&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV_ENTERA); });
-				return r;
-			},
-			[&](std::vector<Value> & b, const double&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV_ENTERA); });
-				return r;
-			},
-			[&](std::vector<Value> & b, std::string&)->Value
-			{
-				Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "div"); return std::monostate();
-			},
-			[&](std::vector<Value> & b, long long&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV_ENTERA); });
-				return r;
-			},
-			[&](std::vector<Value> & b, int&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_DIV_ENTERA); });
-				return r;
-			},
-
-			[&](std::vector<Value> & a, std::vector<Value> & b)->Value
-			{
-
-				if (a.empty() || b.empty())
-				{
-					if (a.empty())
-						return b;
-					else return a;
-				}
-
-				std::vector<Value> r;
-				r.resize(a.size() > b.size() ? a.size() : b.size());
-
-				Value * a1 = &*a.begin();
-				Value * a2 = &a.back();
-
-				Value * b1 = &*b.begin();
-				Value * b2 = &b.back();
-
-				Value * r1 = &*r.begin();
-
-				while (true)
-				{
-					if (a1 == a2)
-					{
-						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV_ENTERA);
-
-						if (b1 == b2)
-							return r;
-
-						b1++; r1++;
-
-						while (b1 != b2)
-						{
-							*r1 = std::monostate();
-							b1++; r1++;
-						}
-
-						*r1 = std::monostate();;
-
-						return r;
-					}
-
-					if (b1 == b2)
-					{
-						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV_ENTERA);
-
-						if (a1 == a2)
-							return r;
-
-						a1++; r1++;
-
-						while (a1 != a2)
-						{
-							*r1 = std::monostate();
-							a1++; r1++;
-						}
-
-						*r1 = std::monostate();
-
-						return r;
-					}
-
-					*r1 = a1->operacion_Binaria(*b1, OP_ARIT_DIV_ENTERA);
-					a1++; b1++; r1++;
-				}
-			},
-
-			[](auto,auto)->Value { return std::monostate(); },
-
-			}, value, v.value);
-		break;
+		return DivEntera(*this, v);
 	}
 
 	// --------------------------------------------------------------------
@@ -923,159 +1295,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 	// --------------------------------------------------------------------
 	case OP_ARIT_MOD:
 	{
-		return std::visit(overloaded{
-
-			//INTEGER .. XX
-			[](const int& a,const int& b)->Value { return (a % b); },
-			[](const int& a,const bool& b)->Value { return (a % b); },
-			[](const int& a, const double& b)->Value { return (fmod(a,b)); },
-			[](const int& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
-			[](const int& a, const long long& b)->Value { return (a % b); },
-
-			//DOUBLE .. XX
-			[](const double& a, const int& b)->Value { return (fmod(a,b)); },
-			[](const double& a, const bool& b)->Value { return (fmod(a,b)); },
-			[](const double& a, const double& b)->Value { return (fmod(a,b)); },
-			[](const double& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
-			[](const double& a, const long long& b)->Value { return (fmod(a,b)); },
-
-			//LONGLONG .. XX
-			[](const long long& a,const int& b)->Value { return (a % b); },
-			[](const long long& a,const bool& b)->Value { return (a % b); },
-			[](const long long& a,const double& b)->Value { return (fmod(a,b)); },
-			[](const long long& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
-			[](const long long& a,const long long& b)->Value { return (a % b); },
-
-			//STRING .. XX
-			[](std::string & a,const int& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
-			[](std::string & a,const bool& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
-			[](std::string & a,const double& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
-			[](std::string & a, std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
-			[](std::string & a,const long long& b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
-
-			//BOOL .. XX
-			[](const bool& a, const int& b)->Value { return (a % b); },
-			[](const bool& a, const bool& b)->Value { return (a % b); },
-			[](const bool& a, const double& b)->Value { return (fmod(a,b)); },
-			[](const bool& a,  std::string & b)->Value {Errores::generarError(Errores::ERROR_MATH_STRING,  Errores::outData, "%"); return std::monostate(); },
-			[](const bool& a, const long long& b)->Value { return (a % b); },
-
-			[&](auto&, std::vector<Value> & b)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return this->operacion_Binaria(c, OP_ARIT_MOD); });
-				return r;
-			},
-
-			[&](std::vector<Value> & b, const bool&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MOD); });
-				return r;
-			},
-			[&](std::vector<Value> & b, const double&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MOD); });
-				return r;
-			},
-			[&](std::vector<Value> & b, std::string&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MOD); });
-				return r;
-			},
-			[&](std::vector<Value> & b, long long&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MOD); });
-				return r;
-			},
-			[&](std::vector<Value> & b, int&)->Value
-			{
-				std::vector<Value> r;
-				r.resize(b.size());
-				std::transform(b.begin(), b.end(), r.begin(), [&](Value & c) { return v.operacion_Binaria(c, OP_ARIT_MOD); });
-				return r;
-			},
-
-
-			[&](std::vector<Value> & a, std::vector<Value> & b)->Value
-			{
-				if (a.empty() || b.empty())
-				{
-					if (a.empty())
-						return b;
-					else return a;
-				}
-
-				std::vector<Value> r;
-				r.resize(a.size() > b.size() ? a.size() : b.size());
-
-				Value * a1 = &*a.begin();
-				Value * a2 = &a.back();
-
-				Value * b1 = &*b.begin();
-				Value * b2 = &b.back();
-
-				Value * r1 = &*r.begin();
-
-				while (true)
-				{
-					if (a1 == a2)
-					{
-						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MOD);
-
-						if (b1 == b2)
-							return r;
-
-						b1++; r1++;
-
-						while (b1 != b2)
-						{
-							*r1 = std::monostate();
-							b1++; r1++;
-						}
-
-						*r1 = std::monostate();;
-
-						return r;
-					}
-
-					if (b1 == b2)
-					{
-						*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MOD);
-
-						if (a1 == a2)
-							return r;
-
-						a1++; r1++;
-
-						while (a1 != a2)
-						{
-							*r1 = std::monostate();
-							a1++; r1++;
-						}
-
-						*r1 = std::monostate();
-
-						return r;
-					}
-
-					*r1 = a1->operacion_Binaria(*b1, OP_ARIT_MOD);
-					a1++; b1++; r1++;
-				}
-			},
-
-			[](auto,auto)->Value { return std::monostate(); },
-
-			}, value, v.value);
-		break;
+		return Mod(*this, v);
 	}
 
 	// --------------------------------------------------------------------
@@ -1129,7 +1349,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a && v.ValueToBool();
 			},
-			[](const int& a, std::vector<Value> & b) { return a && !b.empty(); },
+			[](const int& a, std::shared_ptr<mdox_vector> & b) { return a && !b->vector.empty(); },
 
 			[](const long long& a, const long long& b) { return a && b; },
 			[](const long long& a, const  bool& b) { return a && b; },
@@ -1139,7 +1359,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a && v.ValueToBool();
 			},
-			[](const long long& a, std::vector<Value> & b) { return a && !b.empty(); },
+			[](const long long& a, std::shared_ptr<mdox_vector> & b) { return a && !b->vector.empty(); },
 
 			[](const double& a, const double& b) { return a && b; },
 			[](const double& a, const int& b) { return a && b; },
@@ -1149,7 +1369,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a && v.ValueToBool();
 			},
-			[](const double& a, std::vector<Value> & b) { return a && !b.empty(); },
+			[](const double& a, std::shared_ptr<mdox_vector> & b) { return a && !b->vector.empty(); },
 
 			[](const bool& a, const double& b) { return a && b;  },
 			[](const bool& a, const int& b) { return a && b; },
@@ -1159,7 +1379,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a && v.ValueToBool();
 			},
-			[](const bool& a, std::vector<Value> & b) { return a && !b.empty(); },
+			[](const bool& a, std::shared_ptr<mdox_vector> & b) { return a && !b->vector.empty(); },
 
 			[this](const std::string & a, const double& b)
 			{
@@ -1181,18 +1401,18 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return this->ValueToBool() && v.ValueToBool();
 			},
-			[&](const std::string & a, std::vector<Value> & b) { return this->ValueToBool() && !b.empty(); },
+			[&](const std::string & a, std::shared_ptr<mdox_vector> & b) { return this->ValueToBool() && !b->vector.empty(); },
 
 
-			[](std::vector<Value> & a, const double& b) { return !a.empty() && b; },
-			[](std::vector<Value> & a, const int& b) { return !a.empty() && b; },
-			[](std::vector<Value> & a, const long long& b) { return !a.empty() && b; },
-			[](std::vector<Value> & a, const bool& b) { return !a.empty() && b; },
-			[&v](std::vector<Value> & a, const std::string&)
+			[](std::shared_ptr<mdox_vector> & a, const double& b) { return !a->vector.empty() && b; },
+			[](std::shared_ptr<mdox_vector> & a, const int& b) { return !a->vector.empty() && b; },
+			[](std::shared_ptr<mdox_vector> & a, const long long& b) { return !a->vector.empty() && b; },
+			[](std::shared_ptr<mdox_vector> & a, const bool& b) { return !a->vector.empty() && b; },
+			[&v](std::shared_ptr<mdox_vector> & a, const std::string&)
 			{
-				return !a.empty() && v.ValueToBool();
+				return !a->vector.empty() && v.ValueToBool();
 			},
-			[](std::vector<Value> & a, std::vector<Value> & b) { return !a.empty() && !b.empty(); },
+			[](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector> & b) { return !a->vector.empty() && !b->vector.empty(); },
 
 			[](auto,auto) { return false; },
 
@@ -1213,7 +1433,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a || v.ValueToBool();
 			},
-			[](const int& a, std::vector<Value> & b) { return a || !b.empty(); },
+			[](const int& a, std::shared_ptr<mdox_vector> & b) { return a || !b->vector.empty(); },
 
 			[](const long long& a, const long long& b) { return a || b; },
 			[](const long long& a, const  bool& b) { return a || b; },
@@ -1223,7 +1443,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a || v.ValueToBool();
 			},
-			[](const long long& a, std::vector<Value> & b) { return a || !b.empty(); },
+			[](const long long& a, std::shared_ptr<mdox_vector> & b) { return a || !b->vector.empty(); },
 
 			[](const double& a, const double& b) { return a || b; },
 			[](const double& a, const int& b) { return a || b; },
@@ -1233,7 +1453,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a || v.ValueToBool();
 			},
-			[](const double& a, std::vector<Value> & b) { return a || !b.empty(); },
+			[](const double& a, std::shared_ptr<mdox_vector> & b) { return a || !b->vector.empty(); },
 
 			[](const bool& a, const double& b) { return a || b;  },
 			[](const bool& a, const int& b) { return a || b; },
@@ -1243,7 +1463,7 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return a || v.ValueToBool();
 			},
-			[](const bool& a, std::vector<Value> & b) { return a || !b.empty(); },
+			[](const bool& a, std::shared_ptr<mdox_vector> & b) { return a || !b->vector.empty(); },
 
 			[this](const std::string & a, const double& b)
 			{
@@ -1265,18 +1485,18 @@ Value  Value::operacion_Binaria(Value& v, const OPERADORES op)
 			{
 				return this->ValueToBool() || v.ValueToBool();
 			},
-			[&](const std::string & a, std::vector<Value> & b) { return this->ValueToBool() || !b.empty(); },
+			[&](const std::string & a, std::shared_ptr<mdox_vector> & b) { return this->ValueToBool() || !b->vector.empty(); },
 
 
-			[](std::vector<Value> & a, const double& b) { return !a.empty() || b; },
-			[](std::vector<Value> & a, const int& b) { return !a.empty() || b; },
-			[](std::vector<Value> & a, const long long& b) { return !a.empty() || b; },
-			[](std::vector<Value> & a, const bool& b) { return !a.empty() || b; },
-			[&v](std::vector<Value> & a, const std::string&)
+			[](std::shared_ptr<mdox_vector> & a, const double& b) { return !a->vector.empty() || b; },
+			[](std::shared_ptr<mdox_vector> & a, const int& b) { return !a->vector.empty() || b; },
+			[](std::shared_ptr<mdox_vector> & a, const long long& b) { return !a->vector.empty() || b; },
+			[](std::shared_ptr<mdox_vector> & a, const bool& b) { return !a->vector.empty() || b; },
+			[&v](std::shared_ptr<mdox_vector> & a, const std::string&)
 			{
-				return !a.empty() || v.ValueToBool();
+				return !a->vector.empty() || v.ValueToBool();
 			},
-			[](std::vector<Value> & a, std::vector<Value> & b) { return !a.empty() || !b.empty(); },
+			[](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector> & b) { return !a->vector.empty() || !b->vector.empty(); },
 
 			[](auto,auto) { return false; },
 
@@ -1337,7 +1557,7 @@ void Value::inicializacion(Parser_Declarativo * tipo)
 	case tipos_parametros::PARAM_DOUBLE: value = (double)0; break;
 	case tipos_parametros::PARAM_BOOL: value = (bool)false; break;
 	case tipos_parametros::PARAM_STRING: value = (std::string)""; break;
-	case tipos_parametros::PARAM_VECTOR: value = std::vector<Value>{}; break;
+	case tipos_parametros::PARAM_VECTOR: value = std::make_shared<mdox_vector>(); break;
 	default: value = std::monostate(); break;
 	}
 }
@@ -1436,7 +1656,7 @@ bool Value::asignacion(Value & v, bool& fuerte)
 			[&](std::monostate&, auto&) { *this = v;  return true; },
 
 
-			[&](std::vector<Value>&, std::vector<Value> & b)
+			[&](std::shared_ptr<mdox_vector>&, std::shared_ptr<mdox_vector> & b)
 			{
 				*this = Value(b);
 				return true;
@@ -1563,12 +1783,12 @@ bool Value::Cast(const tipos_parametros tipo)
 	case PARAM_VECTOR:
 	{
 		return std::visit(overloaded{
-			[&](std::string & b) { *this = Value(std::vector<Value> { b }); return true; },
-			[&](const bool& a) {  *this = Value(std::vector<Value> { a });  return true; },
-			[&](const int& a) {  *this = Value(std::vector<Value> { a }); return true; },
-			[&](const long long& a) {  *this = Value(std::vector<Value> { a });  return true; },
-			[&](const double& a) { *this = Value(std::vector<Value> { a });  return true; },
-			[](std::vector<Value>&) { return true; },
+			[&](std::string & b) { *this = Value(std::make_shared<mdox_vector>(std::vector<Value>{b})); return true; },
+			[&](bool& a) {  *this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
+			[&](int& a) {  *this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a})); return true; },
+			[&](long long& a) {  *this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
+			[&](double& a) { *this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
+			[](std::shared_ptr<mdox_vector>&) { return true; },
 			[](auto) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
 			}, value);
 	}
@@ -1591,7 +1811,7 @@ bool Value::ValueToBool()
 		[](int& a) { return (bool)a; },
 		[](long long& a) { return (bool)a; },
 		[](double& a) { return (bool)a; },
-		[](std::vector<Value> & a) { return !a.empty(); },
+		[](std::shared_ptr<mdox_vector> & a) { return !a->vector.empty(); },
 
 		[](auto&) { return false; },
 		}, value);
@@ -1705,7 +1925,7 @@ bool Value::igualdad_Condicional(Value & v)
 		},
 		[](std::string & a,  std::string & b) { return a == b; },
 
-		[](std::vector<Value> & a,  std::vector<Value> & b) { return distance(a.begin(), a.end()) == distance(b.begin(), b.end()) && equal(a.begin(), a.end(), b.begin()); },
+		[](std::shared_ptr<mdox_vector> & a,  std::shared_ptr<mdox_vector> & b) { return distance(a->vector.begin(), a->vector.end()) == distance(b->vector.begin(), b->vector.end()) && equal(a->vector.begin(), a->vector.end(), b->vector.begin()); },
 
 		[](auto,auto) { return false; },
 
@@ -1823,19 +2043,19 @@ bool Value::mayorQue_Condicional(Value & v)
 		},
 		[](std::string & a,  std::string & b) { return a > b; },
 
-		[](std::vector<Value> & a,  std::vector<Value> & b)
+		[](std::shared_ptr<mdox_vector> & a,  std::shared_ptr<mdox_vector> & b)
 		{
-			if ((a.empty() && b.empty()) || (a.empty() && !b.empty()))
+			if ((a->vector.empty() && b->vector.empty()) || (a->vector.empty() && !b->vector.empty()))
 				return false;
 
-			if (b.empty())
+			if (b->vector.empty())
 				return true;
 
-			Value * v1 = &*a.begin();
-			Value * v1_end = &a.back();
+			Value * v1 = &*a->vector.begin();
+			Value * v1_end = &a->vector.back();
 
-			Value * v2 = &*b.begin();
-			Value * v2_end = &b.back();
+			Value * v2 = &*b->vector.begin();
+			Value * v2_end = &b->vector.back();
 
 
 			while (true)
@@ -1988,19 +2208,19 @@ bool Value::menorQue_Condicional(Value & v)
 		},
 		[](std::string & a,  std::string & b) { return a < b; },
 
-		[](std::vector<Value> & a,  std::vector<Value> & b)
+		[](std::shared_ptr<mdox_vector> & a,  std::shared_ptr<mdox_vector> & b)
 		{
-			if ((a.empty() && b.empty()) || (!a.empty() && b.empty()))
+			if ((a->vector.empty() && b->vector.empty()) || (!a->vector.empty() && b->vector.empty()))
 				return false;
 
-			if (a.empty())
+			if (a->vector.empty())
 				return true;
 
-			Value * v1 = &*a.begin();
-			Value * v1_end = &a.back();
+			Value * v1 = &*a->vector.begin();
+			Value * v1_end = &a->vector.back();
 
-			Value * v2 = &*b.begin();
-			Value * v2_end = &b.back();
+			Value * v2 = &*b->vector.begin();
+			Value * v2_end = &b->vector.back();
 
 			while (true)
 			{
@@ -2153,19 +2373,19 @@ bool Value::menorIgualQue_Condicional(Value & v)
 		},
 		[](std::string & a,  std::string & b) { return a <= b; },
 
-		[](std::vector<Value> & a,  std::vector<Value> & b)
+		[](std::shared_ptr<mdox_vector> & a,  std::shared_ptr<mdox_vector> & b)
 		{
-			if ((!a.empty() && b.empty()))
+			if ((!a->vector.empty() && b->vector.empty()))
 				return false;
 
-			if (a.empty() || (a.empty() && b.empty()))
+			if (a->vector.empty() || (a->vector.empty() && b->vector.empty()))
 				return true;
 
-			Value * v1 = &*a.begin();
-			Value * v1_end = &a.back();
+			Value * v1 = &*a->vector.begin();
+			Value * v1_end = &a->vector.back();
 
-			Value * v2 = &*b.begin();
-			Value * v2_end = &b.back();
+			Value * v2 = &*b->vector.begin();
+			Value * v2_end = &b->vector.back();
 
 			while (true)
 			{
@@ -2317,19 +2537,19 @@ bool Value::mayorIgualQue_Condicional(Value & v)
 		},
 		[](std::string & a,  std::string & b) { return a >= b; },
 
-		[](std::vector<Value> & a,  std::vector<Value> & b)
+		[](std::shared_ptr<mdox_vector> & a,  std::shared_ptr<mdox_vector> & b)
 		{
-			if (a.empty() && !b.empty())
+			if (a->vector.empty() && !b->vector.empty())
 				return false;
 
-			if (b.empty() || (a.empty() && b.empty()))
+			if (b->vector.empty() || (a->vector.empty() && b->vector.empty()))
 				return true;
 
-			Value * v1 = &*a.begin();
-			Value * v1_end = &a.back();
+			Value * v1 = &*a->vector.begin();
+			Value * v1_end = &a->vector.back();
 
-			Value * v2 = &*b.begin();
-			Value * v2_end = &b.back();
+			Value * v2 = &*b->vector.begin();
+			Value * v2_end = &b->vector.back();
 
 
 			while (true)
@@ -2387,31 +2607,31 @@ bool Value::operacion_Asignacion(Value & v, OPERADORES & op, bool fuerte)
 
 	case OPERADORES::OP_IG_EQUAL_SUM:
 	{
-		return this->asignacion(this->operacion_Binaria(v, OPERADORES::OP_ARIT_SUMA), fuerte);
+		return this->asignacion(Suma(*this,v), fuerte);
 		break;
 	}
 
 	case OPERADORES::OP_IG_EQUAL_MIN:
 	{
-		return this->asignacion(this->operacion_Binaria(v, OPERADORES::OP_ARIT_RESTA), fuerte);
+		return this->asignacion(Resta(*this,v), fuerte);
 		break;
 	}
 
 	case OPERADORES::OP_IG_EQUAL_MULT:
 	{
-		return this->asignacion(this->operacion_Binaria(v, OPERADORES::OP_ARIT_MULT), fuerte);
+		return this->asignacion(Multiplicacion(*this, v), fuerte);
 		break;
 	}
 
 	case OPERADORES::OP_IG_EQUAL_DIV:
 	{
-		return this->asignacion(this->operacion_Binaria(v, OPERADORES::OP_ARIT_DIV), fuerte);
+		return this->asignacion(Div(*this, v), fuerte);
 		break;
 	}
 
 	case OPERADORES::OP_IG_EQUAL_MOD:
 	{
-		return this->asignacion(this->operacion_Binaria(v, OPERADORES::OP_ARIT_MOD), fuerte);
+		return this->asignacion(Mod(*this, v), fuerte);
 		break;
 	}
 	}
@@ -2425,17 +2645,17 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 	case ELEM_NEG_FIRST:
 	{
 		return std::visit(overloaded{
-		[](const int& val)->Value {return -val; },
-		[](const double& val)->Value {return -val; },
-		[](const long long& val)->Value {return -val; },
-		[](const bool& val)->Value {return -val; },
-		[&](const std::string & val)->Value {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "-"); return std::monostate(); },
+		[](int& val)->Value {return -val; },
+		[](double& val)->Value {return -val; },
+		[](long long& val)->Value {return -val; },
+		[](bool& val)->Value {return -val; },
+		[&](std::string & val)->Value {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "-"); return std::monostate(); },
 
-		[&](std::vector<Value> & a)->Value
+		[&](std::shared_ptr<mdox_vector> & a)->Value
 		{
-			std::vector<Value> r;
-			r.resize(a.size());
-			std::transform(a.begin(), a.end(), r.begin(), [](Value & x) { OPERADORES o = ELEM_NEG_FIRST; return x.operacion_Unitaria(o); });
+			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
+			r->vector.resize(a->vector.size());
+			std::transform(a->vector.begin(), a->vector.end(), r->vector.begin(), [](Value & x) { OPERADORES o = ELEM_NEG_FIRST; return x.operacion_Unitaria(o); });
 			return r;
 		},
 		[](const auto&)->Value {return std::monostate(); },
@@ -2484,14 +2704,14 @@ void Value::print()
 {
 	std::visit(overloaded{
 		[&](std::monostate a) { std::cout << "<void>"; },
-		[&](std::vector<Value> & a) {
-			if (a.empty())
+		[&](std::shared_ptr<mdox_vector> & a) {
+			if (a->vector.empty())
 			{
 				std::cout << "[]";
 				return;
 			}
 			std::cout << "[";
-			std::for_each(a.begin(), a.end(), [](Value & x) { x.print(); std::cout << ", "; });
+			std::for_each(a->vector.begin(), a->vector.end(), [](Value & x) { x.print(); std::cout << ", "; });
 			/*std::string delim = "";
 			for (auto item : a)
 			{

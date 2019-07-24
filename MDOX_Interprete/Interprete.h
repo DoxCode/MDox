@@ -21,7 +21,7 @@ public:
 	std::vector<Value*>* entradas = NULL;
 
 	Interprete_Funcion_Entradas(std::vector<Value*>* a) : entradas(a) {}
-	
+
 	virtual ~Interprete_Funcion_Entradas()
 	{
 		for (std::vector<Value*>::iterator it = entradas->begin(); it != entradas->end(); ++it)
@@ -54,7 +54,7 @@ private:
 	bool return_activo = false;
 	Value _retorno;
 public:
-	static Interprete * instance;
+	static Interprete* instance;
 
 	Variable_Runtime* variables_globales;
 
@@ -66,7 +66,7 @@ public:
 	//Variable de retorno actual
 	void setRetorno(Value& v) { _retorno = v; return_activo = true; }
 	bool returnCalled() { if (return_activo) { return_activo = false; return true; } return false; }
-	void retornoSinValor() { _retorno = std::monostate(); return_activo = true;  }
+	void retornoSinValor() { _retorno = std::monostate(); return_activo = true; }
 	Value getRetorno() { return _retorno; }
 
 	//void setRetorno(Value * v) { delete _retorno; _retorno = v; }
@@ -77,7 +77,7 @@ public:
 	Value TratarMultiplesValores(multi_value* arr, Variable_Runtime* variables);
 	bool CargarDatos(Parser* parser);
 	void Interpretar(Parser* parser);
-	bool Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Runtime* variables);
+	bool Interprete_Sentencia(Parser_Sentencia* sentencia, Variable_Runtime* variables);
 	//VariablePreloaded * Interprete_NuevaVariable(Parser_Parametro * par, VariablePreloaded * variables);
 
 	std::vector<Value> transformarEntradasFuncion(Valor_Funcion* vF, Variable_Runtime* variables);
@@ -93,13 +93,13 @@ public:
 		Interprete::instance = this;
 	}
 
-   ~Interprete() 
-    {
+	~Interprete()
+	{
 
-	   for (std::vector<Parser_Funcion*>::iterator it = funciones.begin(); it != funciones.end(); ++it)
-	   {
-		   delete (*it);
-	   }
+		for (std::vector<Parser_Funcion*>::iterator it = funciones.begin(); it != funciones.end(); ++it)
+		{
+			delete (*it);
+		}
 	};
 };
 
