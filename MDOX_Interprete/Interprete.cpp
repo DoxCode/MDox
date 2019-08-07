@@ -27,7 +27,7 @@ bool Interprete::CargarDatos(Parser* parser)
 
 
 	this->nombre_ficheros.push_back(parser->tokenizer.fichero);
-	std::vector<Parser_Operacion*> var_globales;
+	std::vector<arbol_operacional*> var_globales;
 
 	//Interpretando datos...size_t
 	int local = 0;
@@ -46,7 +46,7 @@ bool Interprete::CargarDatos(Parser* parser)
 
 		parser->isGlobal = true;
 		std::vector<Variable> variables;
-		Parser_Operacion* p3 = parser->getOperacion(local, variables);
+		arbol_operacional* p3 = parser->getOperacion(local, variables);
 		parser->isGlobal = false;
 
 		if (p3)
@@ -67,9 +67,9 @@ bool Interprete::CargarDatos(Parser* parser)
 
 	this->variables_globales = new Variable_Runtime[parser->numero_variables_globales];
 
-	for (std::vector<Parser_Operacion*>::iterator it = var_globales.begin(); it != var_globales.end(); ++it)
+	for (std::vector<arbol_operacional*>::iterator it = var_globales.begin(); it != var_globales.end(); ++it)
 	{
-		lectura_arbol_operacional((*it)->val, NULL);
+		lectura_arbol_operacional((*it), NULL);
 	}
 
 	return true;
@@ -81,7 +81,6 @@ bool Interprete::CargarDatos(Parser* parser)
 
 void Interprete::Interpretar(Parser* parser)
 {
-
 	int local = 0;
 
 	//Parser_Sentencia * inst = new Sentencia_Recursiva()
@@ -126,22 +125,63 @@ void Interprete::Interpretar(Parser* parser)
 
 Value Interprete::TratarMultiplesValores(multi_value* arr, Variable_Runtime* variables)
 {
-	std::shared_ptr<mdox_vector> res = std::make_shared<mdox_vector>();
-	res->vector.reserve(arr->arr.size());
-
-	//int itr = 0;
-	for (std::vector<tipoValor>::iterator it = arr->arr.begin(); it != arr->arr.end(); ++it)
+	if (arr->is_vector)
 	{
-		res->vector.emplace_back(std::visit(overloaded
-			{
-				[&](Value & a)->Value {return a; },
-				[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a, variables);  },
-				[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
-				[&](Parser_Identificador * a)->Value { return a->var_global ? this->variables_globales[a->index].value : variables[a->index].value;  },
-				[&](auto&)->Value {  Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL); return std::monostate(); },
-			}, *it));
+		std::shared_ptr<mdox_vector> res = std::make_shared<mdox_vector>();
+		res->vector.reserve(arr->arr.size());
+
+		//int itr = 0;
+		for (std::vector<tipoValor>::iterator it = arr->arr.begin(); it != arr->arr.end(); ++it)
+		{
+			res->vector.emplace_back(std::visit(overloaded
+				{
+					[&](Value & a)->Value {return a; },
+					[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a, variables);  },
+					[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+					[&](Parser_Identificador * a)->Value { return a->var_global ? this->variables_globales[a->index].value : variables[a->index].value;  },
+					[&](auto&)->Value {  Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL); return std::monostate(); },
+				}, *it));
+		}
+		return std::move(res);
 	}
-	return std::move(res);
+	else if (arr->contenedor)
+	{
+		// Un contenedor obtiene una sucesión de operaciones con operadores de vectores.
+		//Por lo tanto siempre se tratará de un "OperadorEnVector"
+		if (!OperacionOperadoresVectores(arr->operacionesVector->v1, arr->operacionesVector->v2, arr->operacionesVector->operador1, variables))
+			return false;
+		
+		if (arr->operacionesVector->dobleOperador)
+		{
+			if (!OperacionOperadoresVectores(arr->operacionesVector->v2, arr->operacionesVector->v3, arr->operacionesVector->operador2, variables))
+				return false;
+		}
+	
+		return true;
+	}
+	else //Se tratan de operaciones del estilo:  a=2, b=3, c=2;
+	{
+		for (std::vector<tipoValor>::iterator it = arr->arr.begin(); it != arr->arr.end(); ++it)
+		{
+			std::visit(overloaded
+				{
+					[&](arbol_operacional * a) { lectura_arbol_operacional(a, variables);  },
+					[&](Valor_Funcion * a) { ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+					[&](Parser_Identificador * a)
+					{
+						Variable_Runtime* identificador = a->var_global ? &this->variables_globales[a->index] : &variables[a->index];
+
+						if (a->fuerte)
+						{
+							identificador->value.inicializacion(a->tipo);
+							identificador->fuerte = true;
+						}
+					},
+					[&](auto&) {},
+				}, *it);
+		}
+		return std::monostate();
+	}
 }
 
 
@@ -166,7 +206,10 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 					return identificador->value;
 				},
 				[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
-				[&](multi_value * a)->Value { return TratarMultiplesValores(a, variables);  },
+				[&](multi_value * a)->Value 
+				{ 
+						return TratarMultiplesValores(a, variables);  
+				},
 				[&](auto&)->Value { return std::monostate(); },
 			}, node->_v1);
 	}
@@ -174,7 +217,7 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 	if (is_single_operator(node->operador))
 	{
 		return std::visit(overloaded{
-		[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a, variables); },
+		[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a, variables).operacion_Unitaria(node->operador); },
 		[&](Value & a)->Value {return a.operacion_Unitaria(node->operador); },
 		[&](Parser_Identificador * a)->Value
 			{
@@ -329,9 +372,460 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 				[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return std::monostate(); },
 					}, node->_v2)
 					, node->operador);
-
 	}
 }
+
+
+//Devuelve el Identificador en caso de que lo sea.
+//RET es por defecto NULO.
+ValueCopyOrRef Interprete::tipoValorToValueOrRef(tipoValor& a, Variable_Runtime* variables, Parser_Identificador** ret)
+{
+ 	return std::visit(overloaded{
+		[&](arbol_operacional * a)->ValueCopyOrRef { return lectura_arbol_operacional(a, variables); },
+		[](Value & a)->ValueCopyOrRef {return a; },
+		[&](Parser_Identificador * a)->ValueCopyOrRef 
+		{ 
+			if (a->fuerte)
+			{
+				Variable_Runtime* vr = a->var_global ? &this->variables_globales[a->index] : &variables[a->index];
+				vr->fuerte = true;
+
+				//if (ret)
+					*ret = a;
+
+				return &vr->value;
+			}
+
+			//if (ret)
+				*ret = a;
+
+			return a->var_global ? &this->variables_globales[a->index].value : &variables[a->index].value;
+			
+		},
+		[&](Valor_Funcion * a)->ValueCopyOrRef { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+		[&](multi_value * a)->ValueCopyOrRef {  return TratarMultiplesValores(a, variables); },
+		[&](auto&)->ValueCopyOrRef { return std::monostate(); },
+		}, a);
+}
+
+bool Interprete::OperacionOperadoresVectores(tipoValor& v1, tipoValor& v2, OPERADORES& operador, Variable_Runtime* variables)
+{
+	Parser_Identificador* f1 = NULL;  Parser_Identificador* f2 = NULL;
+	//Value, Parser_Identificador*, Valor_Funcion*, arbol_operacional*, multi_value* 
+	return std::visit(overloaded{
+		//	[&](Value& a, Value& b)->bool { return a.OperadoresEspeciales(b, node->operador); },
+		//	[&](Value& a, Parser_Identificador * b)->bool { return a.OperadoresEspeciales((b->var_global ? this->variables_globales[b->index].value : variables[b->index].value), node->operador);  },
+		//	[&](Value& a, Valor_Funcion * b)->bool { return  a.OperadoresEspeciales(ExecFuncion(b->ID->nombre, transformarEntradasFuncion(b, variables)), node->operador); },
+		//	[&](Value& a, arbol_operacional * b)->bool { return  a.OperadoresEspeciales(lectura_arbol_operacional(b, variables), node->operador); },
+			
+		[&](Value & a, multi_value* b)->bool
+		{ 
+			if (operador == OP_CHECK_GET)
+			{
+				if (b->is_vector)
+				{
+					return a.OperadoresEspeciales_Check(TratarMultiplesValores(b,variables), -1);
+				}
+
+				//Dado que b no es un vector, el vector debe ser, en todo caso, a, de no serlo, la operación devolverá un error a posteriori.
+				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
+
+				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
+				int itr = b->arr.size()-1;
+				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
+				{
+					if (!a.OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL, f2))
+					{
+						return false;
+					}
+					itr--;
+				}
+			}
+			else // POP
+			{
+				if (b->is_vector)
+				{
+					return a.OperadoresEspeciales_Pop(TratarMultiplesValores(b,variables));
+				}
+
+				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
+				{
+					if (!a.OperadoresEspeciales_Pop(*tipoValorToValueOrRef(*it, variables, &f2).ref,NULL,f2))
+					{
+						return false;
+					}
+				}
+			}
+			return true;
+		},
+
+		[&](Parser_Identificador * a, multi_value * b)->bool
+		{
+			Value * _a = a->var_global ? &this->variables_globales[a->index].value : &variables[a->index].value;
+
+			if (operador == OP_CHECK_GET)
+			{
+				if (b->is_vector)
+				{
+					return _a->OperadoresEspeciales_Check(TratarMultiplesValores(b,variables), -1, a);
+				}
+
+				//Dado que b no es un vector, el vector debe ser, en todo caso, a, de no serlo, la operación devolverá un error a posteriori.
+				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
+
+				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
+				int itr = b->arr.size() - 1;
+				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
+				{
+					if (!_a->OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, a,f2))
+					{
+						return false;
+					}
+					itr--;
+				}
+			}
+			else // POP
+			{
+				if (b->is_vector)
+				{
+					return _a->OperadoresEspeciales_Pop(TratarMultiplesValores(b,variables), a);
+				}
+
+				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
+				{
+					if (!_a->OperadoresEspeciales_Pop(*tipoValorToValueOrRef(*it, variables, &f2).ref, a,f2))
+					{
+						return false;
+					}
+				}
+			}
+			return true;
+		},
+
+		[&](Valor_Funcion * a, multi_value * b)->bool
+		{
+			Value _a = ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables));
+
+			if (operador == OP_CHECK_GET)
+			{
+				if (b->is_vector)
+				{
+					return _a.OperadoresEspeciales_Check(TratarMultiplesValores(b,variables), -1);
+				}
+
+				//Dado que b no es un vector, el vector debe ser, en todo caso, a, de no serlo, la operación devolverá un error a posteriori.
+				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
+
+				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
+				int itr = b->arr.size() - 1;
+				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
+				{
+					if (!_a.OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL, f2))
+					{
+						return false;
+					}
+					itr--;
+				}
+			}
+			else // POP
+			{
+				if (b->is_vector)
+				{
+					return _a.OperadoresEspeciales_Pop(TratarMultiplesValores(b,variables));
+				}
+
+				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
+				{
+					if (!_a.OperadoresEspeciales_Pop(*tipoValorToValueOrRef(*it, variables,&f2).ref, NULL, f2))
+					{
+						return false;
+					}
+				}
+			}
+			return true;
+		},
+
+		[&](arbol_operacional* a, multi_value* b)->bool
+		{
+			Value _a = lectura_arbol_operacional(a, variables);
+
+			if (operador == OP_CHECK_GET)
+			{
+				if (b->is_vector)
+				{
+					return _a.OperadoresEspeciales_Check(TratarMultiplesValores(b, variables), -1);
+				}
+
+				//Dado que b no es un vector, el vector debe ser, en todo caso, a, de no serlo, la operación devolverá un error a posteriori.
+				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
+
+				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
+				int itr = b->arr.size() - 1;
+				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
+				{
+					if (!_a.OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL,f2))
+					{
+						return false;
+					}
+					itr--;
+				}
+			}
+			else // POP
+			{
+				if (b->is_vector)
+				{
+					return _a.OperadoresEspeciales_Pop(TratarMultiplesValores(b, variables));
+				}
+
+				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
+				{
+					if (!_a.OperadoresEspeciales_Pop(*tipoValorToValueOrRef(*it, variables, &f2).ref, NULL,f2))
+					{
+						return false;
+					}
+				}
+			}
+			return true;
+		},
+
+
+		[&](multi_value* a, Value& b)->bool
+		{
+			if (operador == OP_CHECK_GET)
+			{
+				if (a->is_vector)
+				{
+					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(b, -1);
+				}
+
+				//Dado que a no es un vector, el vector debe ser, en todo caso, b, de no serlo, la operación devolverá un error a posteriori.
+				//Igualmente, trabajaremos considerando B-> vector, y dejamos el error al check del operador.
+
+				//Esto implica que los valores se checkean desde atrás->   [a,b,c::vector]
+				int itr = 0;
+				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+				{					
+					 if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Check(b, itr,f1))
+						 return false;
+					itr++;
+				}
+			}
+			else // POP
+			{
+				if (a->is_vector)
+				{
+					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(b);
+				}
+				
+				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+				{
+					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Pop(b,f1))
+						return false;
+				}
+			}
+			return true;
+		},
+
+		[&](multi_value* a, Parser_Identificador* b)->bool
+		{
+			Value* _p = b->var_global ? &this->variables_globales[b->index].value : &variables[b->index].value;
+
+			if (operador == OP_CHECK_GET)
+			{
+				if (a->is_vector)
+				{
+					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(*_p, -1, b);
+				}
+
+				//Dado que a no es un vector, el vector debe ser, en todo caso, b, de no serlo, la operación devolverá un error a posteriori.
+				//Igualmente, trabajaremos considerando B-> vector, y dejamos el error al check del operador.
+
+				//Esto implica que los valores se checkean desde atrás->   [a,b,c::vector]
+				int itr = 0;
+				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+				{
+					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Check(*_p, itr, f1, b))
+						return false; 
+					itr++;
+				}
+			}
+			else // POP
+			{
+				if (a->is_vector)
+				{
+					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(*_p, b);
+				}
+
+				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+				{
+					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Pop(*_p, f1, b))
+						return false;
+				}
+			}
+			return true;
+		},
+
+		[&](multi_value* a, Valor_Funcion* b)->bool
+		{
+			Value _p = ExecFuncion(b->ID->nombre, transformarEntradasFuncion(b, variables));
+
+			if (operador == OP_CHECK_GET)
+			{
+				if (a->is_vector)
+				{
+					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(_p, -1);
+				}
+
+				//Dado que a no es un vector, el vector debe ser, en todo caso, b, de no serlo, la operación devolverá un error a posteriori.
+				//Igualmente, trabajaremos considerando B-> vector, y dejamos el error al check del operador.
+
+				//Esto implica que los valores se checkean desde atrás->   [a,b,c::vector]
+				int itr = 0;
+				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+				{
+					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Check(_p, itr,f1))
+						return false;
+					itr++;
+				}
+			}
+			else // POP
+			{
+				if (a->is_vector)
+				{
+					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(_p);
+				}
+
+				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+				{
+					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Pop(_p,f1))
+						return false;
+				}
+			}
+			return true;
+		},
+
+		[&](multi_value* a, arbol_operacional* b)->bool
+		{
+			Value _p = lectura_arbol_operacional(b, variables);
+
+			if (operador == OP_CHECK_GET)
+			{
+				if (a->is_vector)
+				{
+					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(_p, -1);
+				}
+
+				//Dado que a no es un vector, el vector debe ser, en todo caso, b, de no serlo, la operación devolverá un error a posteriori.
+				//Igualmente, trabajaremos considerando B-> vector, y dejamos el error al check del operador.
+
+				//Esto implica que los valores se checkean desde atrás->   [a,b,c::vector]
+				int itr = 0;
+				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+				{
+					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Check(_p, itr,f1))
+						return false;
+					itr++;
+				}
+			}
+			else // POP
+			{
+				if (a->is_vector)
+				{
+					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(_p);
+				}
+
+				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+				{
+					 if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Pop(_p,f1))
+						 return false;
+				}
+			}
+			return true;
+		},
+
+		//Se trata de un caso especial, primero habría que descubrir cual de los dos es el vector, después actuar en consecuencia.
+		[&](multi_value* a, multi_value* b)->bool
+		{
+			if (operador == OP_CHECK_GET)
+			{
+
+				if (a->is_vector)
+				{
+					//Si tanto A como B son vectores, se tratan ambos, se opera con ellos y se devuelve el resultado.
+					if (b->is_vector)
+						return TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(TratarMultiplesValores(b, variables), -1);
+					else //Si A es vector y b no, implica  vectorA::a,b,c
+					{
+						int itr = b->arr.size() - 1;
+						for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
+						{
+								if (!TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL, f2))
+									return false;
+							itr--;
+						}
+					}
+				}
+				else // Es decir, A NO es un vector.
+				{
+					if (b->is_vector) //Si B es un vector se trata de un patrón del estilo a,b,c::vectorB
+					{
+						Value vectorB = TratarMultiplesValores(a, variables);
+						int itr = 0;
+						for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+						{
+							if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Check(vectorB, itr, f1))
+								return false;
+							itr++;
+						}
+					}
+				}
+			}
+			else // Hacemos lo mismo para POP
+			{
+				if (a->is_vector)
+				{
+					//Si tanto A como B son vectores, se tratan ambos, se opera con ellos y se devuelve el resultado.
+					if (b->is_vector)
+						return TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(TratarMultiplesValores(b, variables));
+					else //Si A es vector y b no, implica  vectorA::a,b,c
+					{
+						for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
+						{
+							f2 = false;
+							if (!TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(*tipoValorToValueOrRef(*it, variables, &f2).ref, NULL, f2))
+								return false;
+						}
+					}
+				}
+				else // Es decir, A NO es un vector.
+				{
+					if (b->is_vector) //Si B es un vector se trata de un patrón del estilo a,b,c::vectorB
+					{
+						Value vectorB = TratarMultiplesValores(a, variables);
+						for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+						{
+							f1 = false;
+							if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Pop(vectorB, f1))
+								return false;
+						}
+					}
+				}
+			}
+			return true;
+		},
+
+
+			[&](auto&,auto&)->bool {
+				if(operador == OP_CHECK_GET)
+					return tipoValorToValueOrRef(v1, variables, &f1).ref->OperadoresEspeciales_Check(*tipoValorToValueOrRef(v2, variables, &f2).ref, -1, f1,f2);
+				else 
+					return tipoValorToValueOrRef(v1, variables, &f1).ref->OperadoresEspeciales_Pop(*tipoValorToValueOrRef(v2, variables, &f2).ref, f1,f2);
+			},
+		}, v1, v2);
+
+
+}
+
 
 bool Interprete::Relacional_rec_arbol(arbol_operacional * node, Variable_Runtime * variables, Value & v2)
 {
@@ -372,9 +866,9 @@ std::vector<Value> Interprete::transformarEntradasFuncion(Valor_Funcion * vF, Va
 
 
 	int k = 0;
-	for (std::vector<Parser_Operacion*>::iterator entrada = vF->entradas.begin(); entrada != vF->entradas.end(); ++entrada)
+	for (std::vector<arbol_operacional*>::iterator entrada = vF->entradas.begin(); entrada != vF->entradas.end(); ++entrada)
 	{
-		entradas[k] = lectura_arbol_operacional((*entrada)->val, variables);
+		entradas[k] = lectura_arbol_operacional((*entrada), variables);
 		k++;
 	}
 	return entradas;
@@ -409,7 +903,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 	case SENT_OP:
 	{
 		Sentencia_Operacional* x = static_cast<Sentencia_Operacional*>(sentencia);
-		lectura_arbol_operacional(x->pOp->val, variables);
+		lectura_arbol_operacional(x->pOp, variables);
 		return true;
 	}
 	// FUNCION SALIDA DATOS :
@@ -417,7 +911,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 	case SENT_PRINT:
 	{
 		Sentencia_Print* x = static_cast<Sentencia_Print*>(sentencia);
-		Value v = lectura_arbol_operacional(x->pOp->val, variables);
+		Value v = lectura_arbol_operacional(x->pOp, variables);
 
 		v.print();
 		return true;
@@ -428,7 +922,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 		Sentencia_Return* x = static_cast<Sentencia_Return*>(sentencia);
 		if (x->pOp)
 		{
-			setRetorno(lectura_arbol_operacional(x->pOp->val, variables));
+			setRetorno(lectura_arbol_operacional(x->pOp, variables));
 		}
 		else retornoSinValor();
 
@@ -440,7 +934,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 	{
 		Sentencia_IF* x = static_cast<Sentencia_IF*>(sentencia);
 
-		Value b = lectura_arbol_operacional(x->pCond->val, variables);
+		Value b = lectura_arbol_operacional(x->pCond, variables);
 
 		if (b.ValueToBool())
 		{
@@ -479,7 +973,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 
 		while (true)
 		{
-			Value b = lectura_arbol_operacional(x->pCond->val, variables);
+			Value b = lectura_arbol_operacional(x->pCond, variables);
 
 			if (b.ValueToBool())
 			{
@@ -507,7 +1001,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 
 		if (x->pIguald)
 		{
-			lectura_arbol_operacional(x->pIguald->val, variables);
+			lectura_arbol_operacional(x->pIguald, variables);
 		}
 
 		while (true)
@@ -516,7 +1010,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 
 			if (x->pCond)
 			{
-				res = lectura_arbol_operacional(x->pCond->val, variables).ValueToBool();
+				res = lectura_arbol_operacional(x->pCond, variables).ValueToBool();
 			}
 
 			if (res)
@@ -529,7 +1023,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 
 				if (x->pOp)
 				{
-					lectura_arbol_operacional(x->pOp->val, variables);
+					lectura_arbol_operacional(x->pOp, variables);
 				}
 			}
 			else
@@ -621,9 +1115,9 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 			bool entradas_incorrectas = false;
 
 			int ent_itr = 0;
-			for (std::vector<Parser_Operacion*>::iterator it = (*funcion)->entradas.begin(); it != (*funcion)->entradas.end(); ++it)
+			for (std::vector<arbol_operacional*>::iterator it = (*funcion)->entradas.begin(); it != (*funcion)->entradas.end(); ++it)
 			{
-				if ((*it)->val->operador == OP_NONE)
+				if ((*it)->operador == OP_NONE)
 				{
 					if (!std::visit(overloaded
 						{
@@ -642,9 +1136,38 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 								return identificador->value.asignacion(entradas[ent_itr], identificador->fuerte);
 							},
 							[&](Valor_Funcion * a) { return entradas[ent_itr].igualdad_Condicional(ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a,variables))); },
-							[&](multi_value * a) {  return entradas[ent_itr].igualdad_Condicional(TratarMultiplesValores(a, variables)); },
+							[&](multi_value * a) 
+							{  
+								if (a->contenedor)
+								{
+									if (!a->operacionesVector->onlyValue && a->operacionesVector->id_v)
+									{
+										Variable_Runtime* identificador = a->operacionesVector->id_v->var_global ? &this->variables_globales[a->operacionesVector->id_v->index] : &variables[a->operacionesVector->id_v->index];
+
+										if (!identificador->value.asignacion(entradas[ent_itr], false))
+											return false;
+
+										if (a->operacionesVector->dobleOperador)
+										{			
+											if (!OperacionOperadoresVectores(a->operacionesVector->v1, a->operacionesVector->v2, a->operacionesVector->operador1, variables))
+												return false;
+
+											if (!OperacionOperadoresVectores(a->operacionesVector->v2, a->operacionesVector->v3, a->operacionesVector->operador2, variables))
+												return false;
+
+											return true;
+										}
+										else //No hay doble operador
+										{
+											return OperacionOperadoresVectores(a->operacionesVector->v1, a->operacionesVector->v2, a->operacionesVector->operador1, variables);
+										}
+									}
+								}
+
+								return entradas[ent_itr].igualdad_Condicional(TratarMultiplesValores(a, variables)); 
+							},
 							[&](auto&) { return false; },
-						}, (*it)->val->_v1))
+						}, (*it)->_v1))
 					{
 						entradas_incorrectas = true;
 						break;
@@ -652,7 +1175,7 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 				}
 				else
 				{
-					if (!lectura_arbol_operacional((*it)->val, variables).igualdad_Condicional(entradas[ent_itr]))
+					if (!lectura_arbol_operacional((*it), variables).igualdad_Condicional(entradas[ent_itr]))
 					{
 						entradas_incorrectas = true;
 						break;

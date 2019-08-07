@@ -179,7 +179,7 @@ enum OPERADORES {
 	OP_NONE,
 
 	//Operadores aritméticos
-	//Prior 6
+	//Prior 7
 	OP_SCOPE_LEFT,
 	OP_SCOPE_RIGHT,
 	OP_NEGADO,
@@ -187,18 +187,18 @@ enum OPERADORES {
 	OP_ITR_PLUS,
 	OP_ITR_MIN,
 
-	//Prior 5
+	//Prior 6
 	OP_ARIT_MULT,
 	OP_ARIT_DIV,
 	OP_ARIT_DIV_ENTERA,
 	OP_ARIT_MOD,
 
-	//Prior 4
+	//Prior 5
 	OP_ARIT_SUMA,
 	OP_ARIT_RESTA,
 
 	//Operadores relacionales
-	//Prior 3
+	//Prior 4
 	OP_REL_EQUAL, //NO MOD
 	OP_REL_NOT_EQUAL,
 	OP_REL_MINOR,
@@ -207,13 +207,17 @@ enum OPERADORES {
 	OP_REL_MAJOR_OR_EQUAL, //NO MOD
 
 	//Operadores lógicos
-	//Prior 2
+	//Prior 3
 	OP_LOG_ADD,
 	OP_LOG_OR,
 
+	//Operadores especiales
+	//Prior 2
+	OP_POP_ADD, // :  -> xs:x
+	OP_CHECK_GET, // ::  -> xs::x
+
 	//Operadores igualdad
 	//Prior 1
-	OP_GET_ADD_BACK, // :  -> xs:x
 	OP_IG_EQUAL,
 	OP_IG_EQUAL_SUM,
 	OP_IG_EQUAL_MIN,
@@ -245,6 +249,13 @@ static bool is_assignment_operator(OPERADORES & p)
 	return false;
 }
 
+static bool is_mult_value_operator(OPERADORES& p)
+{
+	if (p >= OP_POP_ADD && p <= OP_CHECK_GET)
+		return true;
+	return false;
+}
+
 static bool is_left(OPERADORES & p)
 {
 	switch (p)
@@ -269,15 +280,18 @@ static bool transform_left(OPERADORES & p)
 }
 
 #define PRIORIDAD_IGUALDAD  1
-#define PRIORIDAD_LOGICA  2
-#define PRIORIDAD_RELACIONAL  3
-#define PRIORIDAD_SUMATORIA 4
-#define PRIORIDAD_MULT 5
-#define PRIORIDAD_SCOPES_EXP 6
+#define PRIORIDAD_MULT_VALUE_OP  2
+#define PRIORIDAD_LOGICA  3
+#define PRIORIDAD_RELACIONAL  4
+#define PRIORIDAD_SUMATORIA 5
+#define PRIORIDAD_MULT 6
+#define PRIORIDAD_SCOPES_EXP 7
 
 static int prioridad(OPERADORES & a) {
 	if (a == OP_ARIT_SUMA || a == OP_ARIT_RESTA)
 		return PRIORIDAD_SUMATORIA;
+	else if (a == OP_POP_ADD || a == OP_CHECK_GET)
+		return PRIORIDAD_MULT_VALUE_OP;
 	else if (a >= OP_ARIT_MULT && a <= OP_ARIT_MOD)
 		return PRIORIDAD_MULT;
 	else if (a == OP_LOG_ADD || a == OP_LOG_OR)
@@ -290,6 +304,7 @@ static int prioridad(OPERADORES & a) {
 }
 
 static bool isRelationalOperator(OPERADORES a) { return (a >= OP_REL_EQUAL && a <= OP_REL_MAJOR_OR_EQUAL); }
+
 
 class Value;
 
@@ -310,7 +325,8 @@ public:
 };
 
 
-using val_variant = std::variant<int, bool, double, std::shared_ptr<mdox_vector>, std::monostate, long long, std::string>;
+using val_variant = std::variant< std::monostate, int, bool, double, std::shared_ptr<mdox_vector>, long long, std::string>;
+class Parser_Identificador;
 
 //template <class valueType>
 class Value {
@@ -326,11 +342,13 @@ public:
 	static Value Value::DivEntera(Value& v1, Value& v2);
 	static Value Value::Mod(Value& v1, Value& v2);
 
+	bool OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador * f1 = NULL, Parser_Identificador * f2 = NULL);
+	bool OperadoresEspeciales_Pop(Value& v, Parser_Identificador * f1 = NULL, Parser_Identificador * f2 = NULL);
 	Value operacion_Binaria(Value& v, const OPERADORES op);
 	bool OperacionRelacional(Value& v, const OPERADORES op);
 	Value operacion_Unitaria(OPERADORES& op);
 	bool operacion_Asignacion(Value& v, OPERADORES& op, bool fuerte);
-	bool asignacion(Value& v, bool& fuerte);
+	bool asignacion(Value& v, bool fuerte);
 	void inicializacion(Parser_Declarativo* tipo);
 
 	void print();
@@ -448,7 +466,7 @@ public:
 };
 
 
-class Parser_Operacion;
+class arbol_operacional;
 
 
 
@@ -461,10 +479,10 @@ class Valor_Funcion : public Parser_Valor, public Parser_NODE
 {
 public:
 	Parser_Identificador* ID;
-	std::vector<Parser_Operacion*> entradas;
+	std::vector<arbol_operacional*> entradas;
 
 	Valor_Funcion(Parser_Identificador* a) : ID(a), Parser_Valor(VAL_FUNC) {}
-	Valor_Funcion(Parser_Identificador* a, std::vector<Parser_Operacion*> b) : ID(a), entradas(b), Parser_Valor(VAL_FUNC) {}
+	Valor_Funcion(Parser_Identificador* a, std::vector<arbol_operacional*> b) : ID(a), entradas(b), Parser_Valor(VAL_FUNC) {}
 
 	virtual ~Valor_Funcion()
 	{
@@ -479,29 +497,114 @@ class arbol_operacional;
 class multi_value;
 
 using tipoValor = std::variant<Value, Parser_Identificador*, Valor_Funcion*, arbol_operacional*, multi_value* >;
+//using ValueCopyOrRef = std::variant<Value, Value*, std::monostate>;
+
+class ValueCopyOrRef
+{
+public:
+	Value* ref;
+	
+	ValueCopyOrRef(Value& a) : ref(&a) {};
+	ValueCopyOrRef(Value * a) : ref(a) {};
+	ValueCopyOrRef(std::monostate&) : ref(NULL) {};
+};
+
+class OperacionesEnVector
+{
+public:
+	tipoValor v1; // Será el vector si se tratan de dos operaciones
+	tipoValor v2; // Será el vector en caso de 3 operaciones
+	tipoValor v3;
+
+	bool onlyValue = false; // Si es true, no existen identificadores las operaciones
+	bool dobleOperador = true;
+
+	Parser_Identificador* id_v =  NULL;
+	/**
+	 Funcion que comprueba si el dato introducido se trata de un Valor que puede tratarse de un vector.
+	 Devolverá valor a id_v si se trata de un identificador débil, pues puede tratarse de un vector.
+	 Devolverá NULL si es un multivalor o un identificador fuerte.
+	**/
+	void isOnlyValue()
+	{
+		onlyValue = !std::visit(overloaded{
+			[&](Parser_Identificador * a) { if (a->fuerte) return false; else { id_v = a;  return true; } },
+			[](auto&) { return false; },
+			}, v1);
+
+		if (!onlyValue && !dobleOperador)
+			return;
+
+		onlyValue = !std::visit(overloaded{
+		[&](Value&) {return false; },
+		[&](Parser_Identificador * a) { if (a->fuerte) return false; else { id_v = a;  return true; } },
+		[&](multi_value * a) { return false; },
+		[&](Valor_Funcion * a) { return false; },
+		[&](arbol_operacional * a) { return false; },
+			}, v2);
+
+		if (!onlyValue || !dobleOperador)
+			return;
+
+		onlyValue = !std::visit(overloaded{
+		[&](Value&) {return false; },
+		[&](Parser_Identificador * a) { return !a->fuerte; },
+		[&](multi_value * a) { return false; },
+		[&](Valor_Funcion * a) { return false; },
+		[&](arbol_operacional * a) { return false; },
+		}, v3);
+	}
+
+	//Si existen operador1 y operador2, el vector DEBE estar en v2
+	OPERADORES operador1; // OP v1-v2
+	OPERADORES operador2; // OP v2-v3
+
+
+	OperacionesEnVector(tipoValor& l, tipoValor& v, OPERADORES& op) : v1(l), v2(v), operador1(op), operador2(OP_NONE), dobleOperador(false) { isOnlyValue(); };
+	OperacionesEnVector(tipoValor&& l, tipoValor&& v, OPERADORES& op) : v1(std::move(l)), v2(std::move(v)), operador1(op), operador2(OP_NONE), dobleOperador(false) { isOnlyValue(); };
+	OperacionesEnVector(tipoValor& l, tipoValor&& v, OPERADORES& op) : v1(l), v2(std::move(v)), operador1(op), operador2(OP_NONE), dobleOperador(false) { isOnlyValue(); };
+	OperacionesEnVector(tipoValor&& l, tipoValor& v, OPERADORES& op) : v1(std::move(l)), v2(v), operador1(op), operador2(OP_NONE), dobleOperador(false) { isOnlyValue(); };
+	
+	OperacionesEnVector(tipoValor& l, tipoValor& v, OPERADORES& op, tipoValor& v2, OPERADORES& op2) : v1(l), v2(v), operador1(op), operador2(op2), v3(v2) { isOnlyValue();  };
+
+	OperacionesEnVector(tipoValor&& l, tipoValor& v, OPERADORES& op, tipoValor& v2, OPERADORES& op2) : v1(std::move(l)), v2(v), operador1(op), operador2(op2), v3(v2) { isOnlyValue(); };
+	OperacionesEnVector(tipoValor&& l, tipoValor&& v, OPERADORES& op, tipoValor& v2, OPERADORES& op2) : v1(std::move(l)), v2(std::move(v)), operador1(op), operador2(op2), v3(v2) { isOnlyValue(); };
+	OperacionesEnVector(tipoValor&& l, tipoValor& v, OPERADORES& op, tipoValor&& v2, OPERADORES& op2) : v1(std::move(l)), v2(v), operador1(op), operador2(op2), v3(std::move(v2)) { isOnlyValue(); };
+
+	OperacionesEnVector(tipoValor&& l, tipoValor&& v, OPERADORES& op, tipoValor&& v2, OPERADORES& op2) : v1(std::move(l)), v2(std::move(v)), operador1(op), operador2(op2), v3(std::move(v2)) { isOnlyValue(); };
+	OperacionesEnVector(tipoValor& l, tipoValor&& v, OPERADORES& op, tipoValor&& v2, OPERADORES& op2) : v1(l), v2(std::move(v)), operador1(op), operador2(op2), v3(std::move(v2)) { isOnlyValue(); };
+	OperacionesEnVector(tipoValor& l, tipoValor&& v, OPERADORES& op, tipoValor& v2, OPERADORES& op2) : v1(l), v2(std::move(v)), operador1(op), operador2(op2), v3(v2) { isOnlyValue(); };
+	OperacionesEnVector(tipoValor& l, tipoValor& v, OPERADORES& op, tipoValor&& v2, OPERADORES& op2) : v1(l), v2(v), operador1(op), operador2(op2), v3(std::move(v2)) { isOnlyValue(); };
+};
+
+
 
 class multi_value
 {
 public:
 	std::vector<tipoValor> arr;
-	//	bool is_vector = false;
+	bool is_vector = false; // Si no es un vector, es multivalor/operacion, es decir (a,b,c)-> EJ: a = 1, b = 2, c = 3;
+	bool contenedor = false; // Si es true, implica operaciones de editado de vectores ':' o '::' 
+
+	OperacionesEnVector* operacionesVector = NULL;
 
 	~multi_value()
 	{
+		deletePtr(operacionesVector);
 		for (std::vector<tipoValor>::iterator it = arr.begin(); it != arr.end(); ++it)
 		{
 			std::visit(overloaded{
-			[](auto & a) { delete a; },
+			[](auto & a) { if(a) deletePtr(a); },
 			[](Value&) {},
 				}, *it);
 		}
 	}
 };
 
-using conmp = std::variant< std::shared_ptr<Value>, Parser_Identificador*, Valor_Funcion*, OPERADORES, multi_value* >;
+using conmp = std::variant< std::shared_ptr<Value>, Parser_Identificador*, Valor_Funcion*, OPERADORES, multi_value*, std::monostate >;
 using stack_conmp = std::deque<conmp>;
 
-class arbol_operacional
+class arbol_operacional : public Parser_NODE
 {
 public:
 	OPERADORES operador;
@@ -526,7 +629,7 @@ public:
 
 	}
 };
-
+/*
 class Parser_Operacion : public Parser_NODE {
 public:
 	arbol_operacional* val;
@@ -539,7 +642,7 @@ public:
 	{
 		delete val;
 	}
-};
+};*/
 
 // ############################################################
 // ####################### SENTENCIA ########################## 
@@ -587,14 +690,14 @@ public:
 
 class Sentencia_IF : public Parser_Sentencia {
 public:
-	Parser_Operacion* pCond;
+	arbol_operacional* pCond;
 	Parser_Sentencia* pS;
 	Parser_Sentencia* pElse;
 
 	// Sentencia IF sin ELSE asignado.
-	Sentencia_IF(Parser_Operacion* a, Parser_Sentencia* b) : pCond(a), pS(b), pElse(NULL), Parser_Sentencia(SENT_IF) {}
+	Sentencia_IF(arbol_operacional* a, Parser_Sentencia* b) : pCond(a), pS(b), pElse(NULL), Parser_Sentencia(SENT_IF) {}
 	// Sentencia IF con ELSE asignado
-	Sentencia_IF(Parser_Operacion* a, Parser_Sentencia* b, Parser_Sentencia* c) : pCond(a), pS(b), pElse(c), Parser_Sentencia(SENT_IF) {}
+	Sentencia_IF(arbol_operacional* a, Parser_Sentencia* b, Parser_Sentencia* c) : pCond(a), pS(b), pElse(c), Parser_Sentencia(SENT_IF) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_IF() {
@@ -606,10 +709,10 @@ public:
 
 class Sentencia_WHILE : public Parser_Sentencia {
 public:
-	Parser_Operacion* pCond;
+	arbol_operacional* pCond;
 	Parser_Sentencia* pS;
 
-	Sentencia_WHILE(Parser_Operacion* a, Parser_Sentencia* b) : pCond(a), pS(b), Parser_Sentencia(SENT_WHILE) {}
+	Sentencia_WHILE(arbol_operacional* a, Parser_Sentencia* b) : pCond(a), pS(b), Parser_Sentencia(SENT_WHILE) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_WHILE() {
@@ -620,12 +723,12 @@ public:
 
 class Sentencia_FOR : public Parser_Sentencia {
 public:
-	Parser_Operacion* pIguald;
-	Parser_Operacion* pCond;
-	Parser_Operacion* pOp;
+	arbol_operacional* pIguald;
+	arbol_operacional* pCond;
+	arbol_operacional* pOp;
 	Parser_Sentencia* pS;
 
-	Sentencia_FOR(Parser_Operacion* a, Parser_Operacion* b, Parser_Operacion* c, Parser_Sentencia* d) : pIguald(a), pCond(b), pOp(c), pS(d), Parser_Sentencia(SENT_FOR) {};
+	Sentencia_FOR(arbol_operacional* a, arbol_operacional* b, arbol_operacional* c, Parser_Sentencia* d) : pIguald(a), pCond(b), pOp(c), pS(d), Parser_Sentencia(SENT_FOR) {};
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_FOR() {
@@ -638,9 +741,9 @@ public:
 
 class Sentencia_Return : public Parser_Sentencia {
 public:
-	Parser_Operacion* pOp;
+	arbol_operacional* pOp;
 
-	Sentencia_Return(Parser_Operacion* a) : pOp(a), Parser_Sentencia(SENT_RETURN) {}
+	Sentencia_Return(arbol_operacional* a) : pOp(a), Parser_Sentencia(SENT_RETURN) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_Return() {
@@ -650,9 +753,9 @@ public:
 
 class Sentencia_Print : public Parser_Sentencia {
 public:
-	Parser_Operacion* pOp;
+	arbol_operacional* pOp;
 
-	Sentencia_Print(Parser_Operacion* a) : pOp(a), Parser_Sentencia(SENT_PRINT) {}
+	Sentencia_Print(arbol_operacional* a) : pOp(a), Parser_Sentencia(SENT_PRINT) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_Print() {
@@ -662,9 +765,9 @@ public:
 
 class Sentencia_Operacional : public Parser_Sentencia {
 public:
-	Parser_Operacion* pOp;
+	arbol_operacional* pOp;
 
-	Sentencia_Operacional(Parser_Operacion* a) : pOp(a), Parser_Sentencia(SENT_OP) {}
+	Sentencia_Operacional(arbol_operacional* a) : pOp(a), Parser_Sentencia(SENT_OP) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_Operacional() {
@@ -679,7 +782,7 @@ public:
 class Parser_Funcion : public Parser_NODE {
 public:
 	Parser_Identificador* pID;
-	std::vector<Parser_Operacion*> entradas;
+	std::vector<arbol_operacional*> entradas;
 	Parser_Declarativo* salida;
 	Parser_Sentencia* body;
 
@@ -687,9 +790,9 @@ public:
 	int preload_var = 0;
 
 	// Función sin valor devuelto, el valor devuelto puede ser automático o no tenerlo
-	Parser_Funcion(Parser_Identificador* a, std::vector<Parser_Operacion*> b, Parser_Sentencia* c) : pID(a), entradas(b), body(c), salida(NULL) {}
+	Parser_Funcion(Parser_Identificador* a, std::vector<arbol_operacional*> b, Parser_Sentencia* c) : pID(a), entradas(b), body(c), salida(NULL) {}
 	//Función completa
-	Parser_Funcion(Parser_Identificador* a, std::vector<Parser_Operacion*> b, Parser_Sentencia* c, Parser_Declarativo* d) : pID(a), entradas(b), body(c), salida(d) {}
+	Parser_Funcion(Parser_Identificador* a, std::vector<arbol_operacional*> b, Parser_Sentencia* c, Parser_Declarativo* d) : pID(a), entradas(b), body(c), salida(d) {}
 
 	virtual NODE_type node_type() { return NODE_FUNCION; }
 
@@ -700,7 +803,7 @@ public:
 		delete salida;
 		delete body;
 
-		for (std::vector<Parser_Operacion*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
+		for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
 		{
 			delete (*it);
 		}

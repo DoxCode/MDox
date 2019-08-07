@@ -210,6 +210,57 @@ Parser_Identificador* Parser::getIdentificador(int& local_index)
 // ######################### VALOR  ########################### 
 // ############################################################
 
+
+multi_value* Parser::getValorList(bool& all_value, int& local_index, std::vector<Variable>& variables)
+{
+	int index = local_index;
+
+	multi_value* mv = new multi_value();
+
+	while (true)
+	{
+		int index2 = index;
+		arbol_operacional* c = getOperacion(index2, variables, false);
+
+		if (!c)
+		{
+			delete mv;
+			return NULL;
+		}
+
+		if (c->operador == OP_NONE && all_value)
+		{
+			std::visit(overloaded
+				{
+					[&](Value & a) {mv->arr.emplace_back(std::move(a)); },
+					[&](auto & a) { mv->arr.emplace_back(std::move(a));  all_value = false; },
+				}, c->_v1);
+			//delete c;
+		}
+		else
+		{
+			all_value = false;
+			if(c->operador == OP_NONE)
+				mv->arr.emplace_back(std::move(c->_v1));
+			else mv->arr.emplace_back(std::move(c));
+		//	delete c;
+		}
+
+		if (tokenizer.getTokenValue(index2) == ",")
+		{
+			index = index2;
+			continue;
+		}
+		else
+		{
+			index2--;
+			local_index = index2;
+			return mv;
+		}
+	}
+
+}
+
 conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& variables)
 {
 	int index = local_index;
@@ -263,73 +314,207 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 		int indexX = index;
 		if (tokenizer.getTokenValue(index) == "]")
 		{
-			local_index = index;
-			return new multi_value;
+			local_index = index; 
+			return std::make_shared<Value>(Value(std::make_shared<mdox_vector>()));
 		}
 
 		index = indexX;
-		multi_value* mv = new multi_value();
 
+		multi_value* contenedor_operacion_vector = new multi_value();
+		contenedor_operacion_vector->contenedor = true;
+
+		bool is_vector = true;
 		bool all_value = true;
 
-		while (true)
-		{
 			int index2 = index;
-			Parser_Operacion* c = getOperacion(index2, variables, true);
+			multi_value* c = getValorList(all_value, index2, variables);
+
 			if (!c)
 			{
-				delete mv;
+				delete contenedor_operacion_vector;
 				ret = false;
-				return std::make_shared<Value>(false);
-			}
-
-			if (c->val->operador == OP_NONE)
-			{
-				std::visit(overloaded
-					{
-						[&](Value & a) {mv->arr.push_back(a); },
-						[&](auto & a) { mv->arr.push_back(a);  all_value = false; },
-					}, c->val->_v1);
-			}
-			else
-			{
-				all_value = false;
-				mv->arr.push_back(c->val);
+				return std::monostate();
 			}
 
 			std::string ss_v = tokenizer.getTokenValue(index2);
 			if (ss_v == "]")
 			{
 				local_index = index2;
-				if (all_value)
+				if (is_vector)
 				{
-					std::shared_ptr<mdox_vector> res = std::make_shared<mdox_vector>();
-					res->vector.resize(mv->arr.size());
-					int itr = 0;
-					for (std::vector<tipoValor>::iterator it = mv->arr.begin(); it != mv->arr.end(); ++it)
+					c->is_vector = true;
+					if (all_value)
 					{
-						res->vector[itr] = std::get<Value>(*it);
-						itr++;
+						std::shared_ptr<mdox_vector> res = std::make_shared<mdox_vector>();
+						res->vector.resize(c->arr.size());
+						int itr = 0;
+						for (std::vector<tipoValor>::iterator it = c->arr.begin(); it != c->arr.end(); ++it)
+						{
+							res->vector[itr] = std::get<Value>(*it);
+							itr++;
+						}
+						delete c;
+						return std::make_shared<Value>(Value(std::move(res)));
 					}
-					delete mv;
-					return std::make_shared<Value>(Value(std::move(res)));
+					return c;
 				}
-				return mv;
+
+				//Aqui no deberia poder llegar.
+				delete c;
+				delete contenedor_operacion_vector;
+
+				ret = false;
+				return std::monostate();
+
 			}
-			else if (ss_v == ",")
+			else if (ss_v == ":" || ss_v == "::")
 			{
-				index = index2;
-				continue;
+				index2--;
+				OPERADORES operador = getOperador(index2);
+
+				int indexRet = index2;
+				multi_value* nt2 = getValorList(all_value, indexRet, variables);
+
+				if (nt2 == NULL)
+				{
+					delete c;
+					delete contenedor_operacion_vector;
+					ret = false;
+					return std::monostate();
+				}
+
+				ss_v = tokenizer.getTokenValue(indexRet);
+
+				if (ss_v == "]") // Solo hay 1 operador: x:xs ó x::xs -> Donde el vector puede ser x ó xs
+				{
+					if (c->arr.size() == 1 && nt2->arr.size() == 1)
+					{
+						contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2->arr[0], operador);
+						c->arr.clear();
+						nt2->arr.clear();
+						delete c;
+						delete nt2;
+					}
+					else if (c->arr.size() == 1)
+					{
+						contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2, operador);
+						c->arr.clear();
+						delete c;
+					}
+					else if (nt2->arr.size() == 1)
+					{
+						contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, nt2->arr[0], operador);
+						nt2->arr.clear();
+						delete nt2;
+					}
+					else
+					{
+						contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, nt2, operador);
+					}
+
+					local_index = indexRet;
+					return contenedor_operacion_vector;
+				}
+				else if (ss_v == ":" || ss_v == "::")
+				{
+					indexRet--;
+					OPERADORES operador2 = getOperador(indexRet);
+					multi_value* nt3 = getValorList(all_value, indexRet, variables);
+
+					if (nt3 == NULL)
+					{
+						delete c;
+						delete nt2;
+						delete contenedor_operacion_vector;
+						ret = false;
+						return std::monostate();
+					}
+
+					ss_v = tokenizer.getTokenValue(indexRet);
+
+					if (ss_v == "]")
+					{
+						if (c->arr.size() == 1 && nt2->arr.size() == 1 && nt3->arr.size() == 1)
+						{
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2->arr[0], operador, nt3->arr[0], operador2);
+							c->arr.clear();
+							nt2->arr.clear();
+							nt3->arr.clear();
+							delete c;
+							delete nt2;
+							delete nt3;
+						}
+						else if (c->arr.size() == 1 && nt2->arr.size() == 1)
+						{
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2->arr[0], operador, nt3, operador2);
+							c->arr.clear();
+							nt2->arr.clear();
+							delete c;
+							delete nt2;
+						}
+						else if (c->arr.size() == 1 && nt3->arr.size() == 1)
+						{
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2, operador, nt3->arr[0], operador2);
+							c->arr.clear();
+							nt3->arr.clear();
+							delete c;
+							delete nt3;
+						}
+						else if (nt2->arr.size() == 1 && nt3->arr.size() == 1)
+						{
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, nt2->arr[0], operador, nt3->arr[0], operador2);
+							nt2->arr.clear();
+							nt3->arr.clear();
+							delete nt2;
+							delete nt3;
+						}
+						else if (nt2->arr.size() == 1)
+						{
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, nt2->arr[0], operador, nt3, operador2);
+							nt2->arr.clear();
+							delete nt2;
+						}
+						else if (nt3->arr.size() == 1)
+						{
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, nt2, operador, nt3->arr[0], operador2);
+							nt3->arr.clear();
+							delete nt3;
+						}
+						else if (c->arr.size() == 1)
+						{
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2, operador, nt3, operador2);
+							c->arr.clear();
+							delete c;
+						}
+						else
+						{
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, nt2, operador, nt3, operador2);
+						}
+
+						local_index = indexRet;
+						return contenedor_operacion_vector;
+					}
+					else
+					{
+						delete c;
+						delete contenedor_operacion_vector;
+						delete nt2;
+						delete nt3;
+						ret = false;
+						return std::monostate();
+					}
+				}
 			}
 			else
 			{
-				delete mv;
-				ret = false;
-				return std::make_shared<Value>(false);
-			}
-		}
-	}
+				delete c;
+				delete contenedor_operacion_vector;
 
+				ret = false;
+				return std::monostate();
+			}
+		
+	}
 
 
 	//En caso de no ser un literal, podrá ser o una llamada a una función o un identificador.
@@ -341,12 +526,12 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 		int i_index = index;
 		if (tokenizer.getTokenValue(i_index) == "(") // Identificador (x1,x2,x3...) -> LLamada  a una función. Entradas = parámetros
 		{
-			std::vector<Parser_Operacion*> entradas;
+			std::vector<arbol_operacional*> entradas;
 
 			while (true)
 			{
 				int t_index = i_index;
-				Parser_Operacion* p = getOperacion(t_index, variables, true);
+				arbol_operacional* p = getOperacion(t_index, variables, true);
 
 				if (p)
 				{
@@ -367,7 +552,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 					}
 					else
 					{
-						for (std::vector<Parser_Operacion*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
+						for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
 						{
 							deletePtr(*it);
 						}
@@ -387,7 +572,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 						return v;
 					}
 
-					for (std::vector<Parser_Operacion*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
+					for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
 					{
 						deletePtr(*it);
 					}
@@ -450,7 +635,8 @@ OPERADORES Parser::getOperador(int& local_index)
 	else if (v == "&&") return OPERADORES::OP_LOG_ADD;
 	else if (v == "||") return OPERADORES::OP_LOG_OR;
 
-	else if (v == ":") return OPERADORES::OP_GET_ADD_BACK;
+	else if (v == ":") return OPERADORES::OP_POP_ADD;
+	else if (v == "::") return OPERADORES::OP_CHECK_GET;
 
 	else
 	{
@@ -559,6 +745,7 @@ arbol_operacional* GenerarArbolDesdeShuntingYard(stack_conmp & res)
 		if (std::visit(overloaded{
 			 [](const OPERADORES&) { return false; },
 			 [&](std::shared_ptr<Value> & v) {  arbol = new arbol_operacional(*v); return true;  },
+			 [&](std::monostate&) { return false; },
 			 [&](const auto & v) { arbol = new arbol_operacional(v); return true; },
 			}, res.back())
 			) return arbol;
@@ -641,8 +828,50 @@ arbol_operacional* GenerarArbolDesdeShuntingYard(stack_conmp & res)
 
 }
 
+arbol_operacional* Parser::getOperacionInd(int& local_index, std::vector<Variable>& variables, bool inside)
+{
+	int index = local_index;
+	arbol_operacional * Op = getOperacion(index, variables, inside);
 
-Parser_Operacion * Parser::getOperacion(int& local_index, std::vector<Variable> & variables, bool inside)
+	if (Op)
+	{
+		std::string next_token = tokenizer.getTokenValue(index);
+		if (next_token == ",")
+		{
+			multi_value* mv = new multi_value();
+			mv->arr.emplace_back(Op);
+
+			do {
+				arbol_operacional * t1 = getOperacion(index, variables, inside);
+				if (t1)
+				{
+					mv->arr.emplace_back(t1);
+				}
+				else
+				{
+					delete mv;
+					return NULL;
+				}
+
+				next_token = tokenizer.getTokenValue(index);
+
+			} while (next_token == ",");
+
+			index--;
+			local_index = index;
+			return new arbol_operacional(mv);
+		}
+
+		index--;
+		local_index = index;
+		return Op;
+	}
+
+	return NULL;
+}
+
+
+arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable> & variables, bool inside)
 {
 	int index = local_index;
 	//Posibilidades
@@ -807,6 +1036,11 @@ Parser_Operacion * Parser::getOperacion(int& local_index, std::vector<Variable> 
 					else return NULL;
 				}
 			}
+			else if (aux == OPERADORES::OP_POP_ADD || aux == OPERADORES::OP_CHECK_GET)
+			{
+				index--;
+				break;
+			}
 			else
 			{
 				normal_operator_do(left_scope, is_op, aux, stack, op_stack);
@@ -944,7 +1178,7 @@ Parser_Operacion * Parser::getOperacion(int& local_index, std::vector<Variable> 
 		return NULL;
 
 
-	return new Parser_Operacion(rr);
+	return rr;
 }
 
 
@@ -999,7 +1233,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 	{
 		if (tokenizer.getTokenValue(index) == "(")
 		{
-			Parser_Operacion* pCond = getOperacion(index, variables, true);
+			arbol_operacional* pCond = getOperacion(index, variables, true);
 
 			if (pCond)
 			{
@@ -1054,7 +1288,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 	{
 		if (tokenizer.getTokenValue(index) == "(")
 		{
-			Parser_Operacion* pCond = getOperacion(index, variables, true);
+			arbol_operacional* pCond = getOperacion(index, variables, true);
 
 			if (pCond)
 			{
@@ -1089,14 +1323,14 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 	{
 		if (tokenizer.getTokenValue(index) == "(")
 		{
-			Parser_Operacion* pIg = getOperacion(index, variables, true);
+			arbol_operacional* pIg = getOperacion(index, variables, true);
 			if (tokenizer.getTokenValue(index) == ";")
 			{
-				Parser_Operacion* pCond = getOperacion(index, variables, true);
+				arbol_operacional* pCond = getOperacion(index, variables, true);
 
 				if (tokenizer.getTokenValue(index) == ";")
 				{
-					Parser_Operacion* pOp = getOperacion(index, variables, true);
+					arbol_operacional* pOp = getOperacion(index, variables, true);
 
 					if (tokenizer.getTokenValue(index) == ")")
 					{
@@ -1145,7 +1379,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 
 	if (tokenizer.getTokenValue(index) == "return")
 	{
-		Parser_Operacion* pOp = getOperacion(index, variables, true);
+		arbol_operacional* pOp = getOperacion(index, variables, true);
 
 		if (pOp)
 		{
@@ -1173,7 +1407,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 	index = local_index;
 	if (tokenizer.getTokenValue(index) == "<::")
 	{
-		Parser_Operacion* pOp = getOperacion(index, variables, true);
+		arbol_operacional* pOp = getOperacion(index, variables, true);
 		if (pOp)
 		{
 			if (tokenizer.getTokenValue(index) == ";")
@@ -1191,7 +1425,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 	//##########   -- SENTENCIA OPERACIONAL --   ##########
 	index = local_index;
 
-	Parser_Operacion* pOp = getOperacion(index, variables);
+	arbol_operacional* pOp = getOperacionInd(index, variables); //IND : Una o varias operaciones.
 
 	if (pOp)
 	{
@@ -1233,17 +1467,17 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 				this->isGlobal = false;
 				std::vector<Variable> variables_funcion;
 
-				std::vector<Parser_Operacion*> entradas;
+				std::vector<arbol_operacional*> entradas;
 
 				int t_index = index;
 				while (true)
 				{
 					int t2_index = t_index;
-					Parser_Operacion* pFve = getOperacion(t2_index, variables_funcion);
+					arbol_operacional* pFve = getOperacion(t2_index, variables_funcion);
 
 					if (pFve)
 					{
-						entradas.push_back(pFve);
+						entradas.emplace_back(pFve);
 
 						std::string token = tokenizer.getTokenValue(t2_index);
 
@@ -1261,7 +1495,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 						{
 							deletePtr(pID);
 
-							for (std::vector<Parser_Operacion*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
+							for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
 							{
 								deletePtr(*it);
 							}
@@ -1275,7 +1509,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 						{
 							deletePtr(pID);
 
-							for (std::vector<Parser_Operacion*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
+							for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
 							{
 								deletePtr(*it);
 							}
@@ -1311,7 +1545,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 							deletePtr(pDecl);
 							deletePtr(pID);
 
-							for (std::vector<Parser_Operacion*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
+							for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
 							{
 								deletePtr(*it);
 							}
@@ -1322,7 +1556,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 					{
 						deletePtr(pID);
 
-						for (std::vector<Parser_Operacion*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
+						for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
 						{
 							deletePtr(*it);
 						}
@@ -1344,7 +1578,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 					{
 						deletePtr(pID);
 
-						for (std::vector<Parser_Operacion*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
+						for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
 						{
 							deletePtr(*it);
 						}
@@ -1424,9 +1658,10 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 		return;
 	}
 
+
 	//Igualdad implicaría que una nueva variable se declara dentro de la operación.
 	// La variable siempre estará en la izquierda, el valor en la derecha.
-	if (arbol->operador == OP_IG_EQUAL)
+	if (arbol->operador == OP_IG_EQUAL || arbol->operador == OP_CHECK_GET || arbol->operador == OP_POP_ADD)
 	{
 		std::visit(overloaded
 			{

@@ -47,7 +47,7 @@ public:
 };
 
 
-Value lectura_arbol_operacional(arbol_operacional* node);
+
 
 class Interprete {
 private:
@@ -69,6 +69,9 @@ public:
 	void retornoSinValor() { _retorno = std::monostate(); return_activo = true; }
 	Value getRetorno() { return _retorno; }
 
+	ValueCopyOrRef tipoValorToValueOrRef(tipoValor& a, Variable_Runtime* variables, Parser_Identificador** ret = NULL);
+	bool OperacionOperadoresVectores(tipoValor& v1, tipoValor& v2, OPERADORES& op, Variable_Runtime* variables);
+	Value lectura_arbol_operacional(arbol_operacional* node, Variable_Runtime* variables);
 	//void setRetorno(Value * v) { delete _retorno; _retorno = v; }
 	//Value * getRetorno() { Value * t = _retorno; _retorno = NULL; return t; }
 	//Value * viewRetorno() { return _retorno; }
@@ -81,7 +84,6 @@ public:
 	//VariablePreloaded * Interprete_NuevaVariable(Parser_Parametro * par, VariablePreloaded * variables);
 
 	std::vector<Value> transformarEntradasFuncion(Valor_Funcion* vF, Variable_Runtime* variables);
-	Value lectura_arbol_operacional(arbol_operacional* node, Variable_Runtime* variables);
 	bool Relacional_rec_arbol(arbol_operacional* node, Variable_Runtime* variables, Value& val_r);
 
 	Value ExecFuncion(std::string name, std::vector<Value> entradas);

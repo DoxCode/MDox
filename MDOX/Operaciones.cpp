@@ -59,11 +59,12 @@ Value Value::Suma(Value& v1, Value& v2)
 
 
 			//STRING .. XX
-				[](const std::string & a,const int& b)->Value { return (a + to_string_p(b)); },
-				[](const std::string & a,const bool& b)->Value { return (a + to_string_p(b)); },
-				[](const std::string & a,const double& b)->Value { return (a + to_string_p(b)); },
-				[](const std::string & a,const std::string & b)->Value { return (a + b); },
-				[](const std::string & a,const long long& b)->Value { return (a + to_string_p(b)); },
+				[]( std::string & a,const int& b)->Value { return (a + to_string_p(b)); },
+				[]( std::string & a,const bool& b)->Value { return (a + to_string_p(b)); },
+				[]( std::string & a,const double& b)->Value { return (a + to_string_p(b)); },
+				[]( std::string & a, std::string & b)->Value { return (a + b); },
+				[]( std::string & a,const long long& b)->Value { return (a + to_string_p(b)); },
+				[](std::string & a,std::monostate)->Value { return a; },
 
 			//BOOL .. XX
 			[](const bool& a,const int& b)->Value
@@ -75,7 +76,7 @@ Value Value::Suma(Value& v1, Value& v2)
 			},
 			[](const bool& a,const bool& b)->Value { return (a + b); },
 			[](const bool& a, const double& b)->Value { return (a + b); },
-			[](const bool& a, const std::string & b)->Value { return (to_string_p(a) + b); },
+			[](const bool& a, std::string & b)->Value { return (to_string_p(a) + b); },
 			[](const bool& a, const long long& b)->Value { return (a + b); },
 
 
@@ -1332,6 +1333,7 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 		return this->menorIgualQue_Condicional(v);
 	}
 
+
 	// --------------------------------------------------------------------
 	// ---------------------- OPERACIÓNES LÓGICAS -------------------------
 	// --------------------------------------------------------------------
@@ -1345,7 +1347,7 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 			[](const int& a,const bool& b) { return a && b; },
 			[](const int& a,const long long& b) { return a && b; },
 			[](const int& a,const double& b) { return a && b; },
-			[&v](const int& a,const std::string&)
+			[&v](const int& a, std::string&)
 			{
 				return a && v.ValueToBool();
 			},
@@ -1355,7 +1357,7 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 			[](const long long& a, const  bool& b) { return a && b; },
 			[](const long long& a, const int& b) { return a && b; },
 			[](const long long& a, const double& b) { return a && b; },
-			[&v](const long long& a, const std::string&)
+			[&v](const long long& a,  std::string&)
 			{
 				return a && v.ValueToBool();
 			},
@@ -1365,7 +1367,7 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 			[](const double& a, const int& b) { return a && b; },
 			[](const double& a, const long long& b) { return a && b; },
 			[](const double& a, const bool& b) { return a && b; },
-			[&v](const double& a, const std::string&)
+			[&v](const double& a,  std::string&)
 			{
 				return a && v.ValueToBool();
 			},
@@ -1375,40 +1377,40 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 			[](const bool& a, const int& b) { return a && b; },
 			[](const bool& a, const long long& b) { return a && b; },
 			[](const bool& a, const bool& b) { return a && b;  },
-			[&v](const bool& a, const std::string&)
+			[&v](const bool& a,  std::string&)
 			{
 				return a && v.ValueToBool();
 			},
 			[](const bool& a, std::shared_ptr<mdox_vector> & b) { return a && !b->vector.empty(); },
 
-			[this](const std::string & a, const double& b)
+			[this]( std::string & a, const double& b)
 			{
 				return this->ValueToBool() && b;
 			},
-			[this](const std::string & a, const int& b)
+			[this]( std::string & a, const int& b)
 			{
 				return this->ValueToBool() && b;
 			},
-			[this](const std::string & a, const long long& b)
+			[this]( std::string & a, const long long& b)
 			{
 				return this->ValueToBool() && b;
 			},
-			[this](const std::string & a, const bool& b)
+			[this]( std::string & a, const bool& b)
 			{
 				return this->ValueToBool() && b;
 			},
-			[&](const std::string & a, const std::string & b)
+			[&]( std::string & a,  std::string & b)
 			{
 				return this->ValueToBool() && v.ValueToBool();
 			},
-			[&](const std::string & a, std::shared_ptr<mdox_vector> & b) { return this->ValueToBool() && !b->vector.empty(); },
+			[&]( std::string & a, std::shared_ptr<mdox_vector> & b) { return this->ValueToBool() && !b->vector.empty(); },
 
 
 			[](std::shared_ptr<mdox_vector> & a, const double& b) { return !a->vector.empty() && b; },
 			[](std::shared_ptr<mdox_vector> & a, const int& b) { return !a->vector.empty() && b; },
 			[](std::shared_ptr<mdox_vector> & a, const long long& b) { return !a->vector.empty() && b; },
 			[](std::shared_ptr<mdox_vector> & a, const bool& b) { return !a->vector.empty() && b; },
-			[&v](std::shared_ptr<mdox_vector> & a, const std::string&)
+			[&v](std::shared_ptr<mdox_vector> & a,  std::string&)
 			{
 				return !a->vector.empty() && v.ValueToBool();
 			},
@@ -1429,7 +1431,7 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 			[](const int& a,const bool& b) { return a || b; },
 			[](const int& a,const long long& b) { return a || b; },
 			[](const int& a,const double& b) { return a || b; },
-			[&v](const int& a,const std::string&)
+			[&v](const int& a, std::string&)
 			{
 				return a || v.ValueToBool();
 			},
@@ -1439,7 +1441,7 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 			[](const long long& a, const  bool& b) { return a || b; },
 			[](const long long& a, const int& b) { return a || b; },
 			[](const long long& a, const double& b) { return a || b; },
-			[&v](const long long& a, const std::string&)
+			[&v](const long long& a,  std::string&)
 			{
 				return a || v.ValueToBool();
 			},
@@ -1449,7 +1451,7 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 			[](const double& a, const int& b) { return a || b; },
 			[](const double& a, const long long& b) { return a || b; },
 			[](const double& a, const bool& b) { return a || b; },
-			[&v](const double& a, const std::string&)
+			[&v](const double& a,  std::string&)
 			{
 				return a || v.ValueToBool();
 			},
@@ -1459,40 +1461,40 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 			[](const bool& a, const int& b) { return a || b; },
 			[](const bool& a, const long long& b) { return a || b; },
 			[](const bool& a, const bool& b) { return a || b;  },
-			[&v](const bool& a, const std::string&)
+			[&v](const bool& a,  std::string&)
 			{
 				return a || v.ValueToBool();
 			},
 			[](const bool& a, std::shared_ptr<mdox_vector> & b) { return a || !b->vector.empty(); },
 
-			[this](const std::string & a, const double& b)
+			[this]( std::string & a, const double& b)
 			{
 				return this->ValueToBool() || b;
 			},
-			[this](const std::string & a, const int& b)
+			[this]( std::string & a, const int& b)
 			{
 				return this->ValueToBool() || b;
 			},
-			[this](const std::string & a, const long long& b)
+			[this]( std::string & a, const long long& b)
 			{
 				return this->ValueToBool() || b;
 			},
-			[this](const std::string & a, const bool& b)
+			[this]( std::string & a, const bool& b)
 			{
 				return this->ValueToBool() || b;
 			},
-			[&](const std::string & a, const std::string & b)
+			[&]( std::string & a,  std::string & b)
 			{
 				return this->ValueToBool() || v.ValueToBool();
 			},
-			[&](const std::string & a, std::shared_ptr<mdox_vector> & b) { return this->ValueToBool() || !b->vector.empty(); },
+			[&]( std::string & a, std::shared_ptr<mdox_vector> & b) { return this->ValueToBool() || !b->vector.empty(); },
 
 
 			[](std::shared_ptr<mdox_vector> & a, const double& b) { return !a->vector.empty() || b; },
 			[](std::shared_ptr<mdox_vector> & a, const int& b) { return !a->vector.empty() || b; },
 			[](std::shared_ptr<mdox_vector> & a, const long long& b) { return !a->vector.empty() || b; },
 			[](std::shared_ptr<mdox_vector> & a, const bool& b) { return !a->vector.empty() || b; },
-			[&v](std::shared_ptr<mdox_vector> & a, const std::string&)
+			[&v](std::shared_ptr<mdox_vector> & a,  std::string&)
 			{
 				return !a->vector.empty() || v.ValueToBool();
 			},
@@ -1506,6 +1508,184 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 	}
 	}
 }
+
+/*f1 indica si el valor de la izquierda es fuerte, f2 indica si lo es el de la derecha*/
+bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador* f1, Parser_Identificador* f2)
+{
+	if (index < 0)
+	{
+		return std::visit(overloaded{
+			[&](std::shared_ptr<mdox_vector> & a, std::monostate)->bool
+			{
+				if (a->vector.size() > 0)
+				{
+					if (f2 && f2->fuerte)
+					{
+						v.inicializacion(f2->tipo);
+						v.asignacion(a->vector.back(), f2->fuerte);
+					}
+					else
+					{
+						v.asignacion(a->vector.back(), false);
+					}
+					return true;
+				}
+				else return false;
+			},
+			[&](std::monostate, std::shared_ptr<mdox_vector> & a)->bool
+			{
+				if (a->vector.size() > 0)
+				{
+					if (f1 && f1->fuerte)
+					{
+						this->inicializacion(f1->tipo);
+						this->asignacion(a->vector.front(), f1->fuerte);
+					}
+					else
+					{
+						this->asignacion(a->vector.front(), false);
+					}
+					return true;
+				}
+				else return false;
+			},
+		//	[&](std::shared_ptr<mdox_vector> & a, auto&)->Value { return a->vector.back().igualdad_Condicional(v); },
+		//	[&](auto&, std::shared_ptr<mdox_vector>& a)->Value {  return a->vector.front().igualdad_Condicional(*this); },
+
+			[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool { if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, int&)->bool { if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, double&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, long long&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
+
+			[&](int&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*this); },
+			[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <=  0) return false; return a->vector.front().igualdad_Condicional(*this); },
+			[&](bool&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*this); },
+			[&](double&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*this); },
+			[&](long long&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*this); },
+			//[&](std::shared_ptr<mdox_vector>&, std::shared_ptr<mdox_vector>& a) {  return a->vector.front().igualdad_Condicional(*this); },
+
+			[](auto&,auto&)->bool { Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "::"); return false; },
+			}, value, v.value);
+	}
+	else
+	{
+		return std::visit(overloaded{
+
+			[&](std::shared_ptr<mdox_vector> & a, std::monostate)->bool 
+			{ 
+				if (a->vector.size() > index) 
+				{  
+					if (f2 && f2->fuerte)
+					{
+						v.inicializacion(f2->tipo);
+						v.asignacion(a->vector[index], f2->fuerte);
+					}
+					else
+					{
+						v.asignacion(a->vector[index], false);
+					}
+					return true; 
+				} 
+				else return false; 
+			},
+			[&](std::monostate, std::shared_ptr<mdox_vector> & a)->bool 
+			{ 
+				if (a->vector.size() > index) 
+				{ 
+					if (f1 && f1->fuerte)
+					{
+						this->inicializacion(f1->tipo);
+						this->asignacion(a->vector[index], f1->fuerte);
+					}
+					else
+					{
+						this->asignacion(a->vector[index], false);
+					}
+					return true; 
+				}
+				else return false; 
+			},
+
+		//	[&](std::shared_ptr<mdox_vector> & a, auto&)->Value { return a->vector.back().igualdad_Condicional(v); },
+		//	[&](auto&, std::shared_ptr<mdox_vector>& a)->Value {  return a->vector.front().igualdad_Condicional(*this); },
+
+			[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, int&)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, double&)->bool {if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, long long&)->bool {if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(v); },
+
+			[&](int&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },
+			[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },
+			[&](bool&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },
+			[&](double&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },
+			[&](long long&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },
+			//[&](std::shared_ptr<mdox_vector>&, std::shared_ptr<mdox_vector>& a) {  return a->vector.front().igualdad_Condicional(*this); },
+
+			[](auto&,auto&)->bool { Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "::"); return false; },
+			}, value, v.value);
+	}
+}
+
+bool Value::OperadoresEspeciales_Pop(Value& v, Parser_Identificador* f1, Parser_Identificador* f2)
+{
+	return std::visit(overloaded{
+		[&](std::shared_ptr<mdox_vector> & a, std::monostate)->bool
+		{
+			if (a->vector.size() == 0) return false;
+			if (f2 && f2->fuerte)
+			{
+				v.inicializacion(f2->tipo);
+				v.asignacion(a->vector.back(),f2->fuerte);
+				a->vector.pop_back(); 
+				return true;
+			}
+			v.asignacion(a->vector.back(), false);
+			a->vector.pop_back();
+			return true;
+		},
+		[&](std::monostate, std::shared_ptr<mdox_vector> & a)->bool 
+		{ 
+			if (a->vector.size() == 0) return false;  
+			if (f1 && f1->fuerte)
+			{
+				this->inicializacion(f1->tipo);
+				this->asignacion(a->vector.front(), f1->fuerte);
+				a->vector.erase(a->vector.begin());
+				return true;
+			}
+
+			this->asignacion(a->vector.front(), false);
+			a->vector.erase(a->vector.begin());
+			return true;
+		}, //NO recomendado su uso.
+
+		//[&](std::shared_ptr<mdox_vector>& a, auto&) {  a->vector.emplace_back(v); return v; },
+		[&](std::shared_ptr<mdox_vector> & a, int&)->bool { a->vector.emplace_back(v); return true; },
+		[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {  a->vector.emplace_back(v); return true; },
+		[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {  a->vector.emplace_back(v); return true; },
+		[&](std::shared_ptr<mdox_vector> & a, long long&)->bool { a->vector.emplace_back(v); return true; },
+		[&](std::shared_ptr<mdox_vector> & a, double&)->bool {  a->vector.emplace_back(v); return true; },
+		[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool {a->vector.emplace_back(v); return true; },
+
+		//[&](auto&, std::shared_ptr<mdox_vector>& a) {  a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return *this; },
+		[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool {a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](int&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](double&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](long long&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](bool&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		//[&](std::shared_ptr<mdox_vector>& a, std::shared_ptr<mdox_vector>& b) {  a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return *this; },
+
+
+		[](auto,auto)->bool { Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, ":"); return false; },
+		}, value, v.value);
+	
+}
+
+
 
 bool Value::OperacionRelacional(Value & v, const OPERADORES op)
 {
@@ -1562,7 +1742,7 @@ void Value::inicializacion(Parser_Declarativo * tipo)
 	}
 }
 
-bool Value::asignacion(Value & v, bool& fuerte)
+bool Value::asignacion(Value & v, bool fuerte)
 {
 	if (!fuerte)
 	{
@@ -1590,7 +1770,7 @@ bool Value::asignacion(Value & v, bool& fuerte)
 				*this = Value((int)number);
 				return true;
 			},
-			[&](int&, std::monostate&) { *this = std::monostate();  return true; },
+			[&](int&, std::monostate&) { Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "int"); return false; },
 
 
 			[&](long long&, long long& b) { *this = v;  return true;  },
@@ -1610,7 +1790,7 @@ bool Value::asignacion(Value & v, bool& fuerte)
 				*this = Value(number);
 				return true;
 			},
-			[&](long long&, std::monostate&) { *this = std::monostate();  return true; },
+			[&](long long&, std::monostate&) { Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "lint"); return false; },
 
 			[&](double&,  double& b) { *this = v;   return true; },
 			[&](double&,  int& b) { *this = Value((double)b);  return true;  },
@@ -1629,7 +1809,7 @@ bool Value::asignacion(Value & v, bool& fuerte)
 				*this = Value(number);
 				return true;
 			},
-			[&](double&, std::monostate&) { *this = std::monostate();  return true; },
+			[&](double&, std::monostate&) { Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "double"); return false; },
 
 			[&](bool&,  double& b) { *this = Value((bool)b);   return true; },
 			[&](bool&,  int& b) { *this = Value((bool)b);  return true; },
@@ -1644,14 +1824,14 @@ bool Value::asignacion(Value & v, bool& fuerte)
 
 				return true;
 			},
-			[&](bool&, std::monostate&) { *this = std::monostate();  return true; },
+			[&](bool&, std::monostate&) { Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "bool"); return false; },
 
 			[&](std::string&,  double& b) { *this = Value(to_string_p(b));  return true;  },
 			[&](std::string&,  int& b) { *this = Value(to_string_p(b));  return true; },
 			[&](std::string&,  long long& b) { *this = Value(to_string_p(b));   return true; },
 			[&](std::string&,  bool& b) { *this = Value(to_string_p(b));  return true;  },
 			[&](std::string&,  std::string & b) { *this = v;   return true; },
-			[&](std::string&, std::monostate&) { *this = std::monostate();  return true; },
+			[&](std::string&, std::monostate&) { Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "string"); return false; },
 
 			[&](std::monostate&, auto&) { *this = v;  return true; },
 
@@ -2331,7 +2511,7 @@ bool Value::menorIgualQue_Condicional(Value & v)
 				return (true <= a);
 		},
 
-		[](const std::string & a, const double& b)
+		[]( std::string & a, const double& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2668,7 +2848,7 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 			[](const double& val)->Value {return val - 1; },
 			[](const long long& val)->Value {return val - 1; },
 			[](const bool& val)->Value {return val - 1; },
-			[&](const std::string & val)->Value {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "--"); return std::monostate(); },
+			[&]( std::string & val)->Value {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "--"); return std::monostate(); },
 			[&](const auto&)->Value {Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO, Errores::outData, "--");  return std::monostate(); },
 			}, value);
 	}
@@ -2680,7 +2860,7 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 			[](const double& val)->Value {return val + 1; },
 			[](const long long& val)->Value {return val + 1; },
 			[](const bool& val)->Value {return val + 1; },
-			[&](const std::string & val)->Value {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "++"); return std::monostate(); },
+			[&]( std::string & val)->Value {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "++"); return std::monostate(); },
 			[&](const auto&)->Value {Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO, Errores::outData, "++");  return std::monostate(); },
 			}, value);
 	}

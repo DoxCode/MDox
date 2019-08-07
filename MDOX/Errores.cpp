@@ -217,11 +217,14 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 
 	case Errores::ERROR_OPERADOR_INVALIDO:
 		Errores::generarCabeceraError(node, 2017, tipo);
-		std::cout << "No se ha podido aplicar el operador" << value << ". Es posible que el tipo de elemento no permita el uso del mismo. \n ";
+		std::cout << "No se ha podido aplicar el operador " << value << ". Es posible que el tipo de elemento no permita el uso del mismo. \n ";
 		break;
 
-		
-		
+	case Errores::ERROR_ASIGNACION_VALOR_VOID:
+		Errores::generarCabeceraError(node, 2018, tipo);
+		std::cout << "No se puede establecer una variable con un valor vacio si esta fue fijada como '" << value << "' con anterioridad. \n ";
+		break;
+
 		
 	}
 }

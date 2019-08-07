@@ -37,8 +37,12 @@ public:
 	Value getLiteral(bool& v, int& local_index);
 	Parser_Declarativo* getDeclarativo(int& local_index);
 	Parser_Identificador* getIdentificador(int& local_index);
+	//multi_value* getValorLista(int& local_index, std::vector<Variable>& variables);
+	//conmp getValorItr(bool& ret, int& local_index, std::vector<Variable>& variables);
 	conmp getValor(bool& v, int& local_index, std::vector<Variable>& variables);
-	Parser_Operacion* getOperacion(int& local_index, std::vector<Variable>& variables, bool inside = false);
+	multi_value* getValorList(bool& all_value, int& local_index, std::vector<Variable>& variables);
+	arbol_operacional* getOperacion(int& local_index, std::vector<Variable>& variables, bool inside = false);
+	arbol_operacional* getOperacionInd(int& local_index, std::vector<Variable>& variables, bool inside = false);
 	OPERADORES getOperador(int& local_index);
 	Parser_Sentencia* getSentencia(int& local_index, std::vector<Variable>& variables);
 	Parser_Funcion* getFuncion(int& local_index);
