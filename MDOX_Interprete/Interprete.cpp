@@ -431,14 +431,14 @@ bool Interprete::OperacionOperadoresVectores(tipoValor& v1, tipoValor& v2, OPERA
 				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
 
 				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
-				int itr = b->arr.size()-1;
+				int itr = 0;
 				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
 				{
 					if (!a.OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL, f2))
 					{
 						return false;
 					}
-					itr--;
+					itr++;
 				}
 			}
 			else // POP
@@ -474,14 +474,14 @@ bool Interprete::OperacionOperadoresVectores(tipoValor& v1, tipoValor& v2, OPERA
 				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
 
 				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
-				int itr = b->arr.size() - 1;
+				int itr = 0;
 				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
 				{
 					if (!_a->OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, a,f2))
 					{
 						return false;
 					}
-					itr--;
+					itr++;
 				}
 			}
 			else // POP
@@ -517,14 +517,14 @@ bool Interprete::OperacionOperadoresVectores(tipoValor& v1, tipoValor& v2, OPERA
 				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
 
 				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
-				int itr = b->arr.size() - 1;
+				int itr = 0;
 				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
 				{
 					if (!_a.OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL, f2))
 					{
 						return false;
 					}
-					itr--;
+					itr++;
 				}
 			}
 			else // POP
@@ -560,14 +560,14 @@ bool Interprete::OperacionOperadoresVectores(tipoValor& v1, tipoValor& v2, OPERA
 				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
 
 				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
-				int itr = b->arr.size() - 1;
+				int itr = 0;
 				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
 				{
 					if (!_a.OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL,f2))
 					{
 						return false;
 					}
-					itr--;
+					itr++;
 				}
 			}
 			else // POP
@@ -756,12 +756,12 @@ bool Interprete::OperacionOperadoresVectores(tipoValor& v1, tipoValor& v2, OPERA
 						return TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(TratarMultiplesValores(b, variables), -1);
 					else //Si A es vector y b no, implica  vectorA::a,b,c
 					{
-						int itr = b->arr.size() - 1;
+						int itr = 0;
 						for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
 						{
 								if (!TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL, f2))
 									return false;
-							itr--;
+							itr++;
 						}
 					}
 				}
