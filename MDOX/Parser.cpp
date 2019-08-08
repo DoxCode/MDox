@@ -1648,6 +1648,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 							variables.push_back(Variable(a->nombre, this->getLastIndex()));
 							IncrementarVariables();
 							a->index = variables.back().index;
+							a->inicializando = true;
 						}
 					}
 					else a->index = var->index;
@@ -1678,12 +1679,14 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 							IncrementarVariables();
 							a->index = this->variables_globales.back().index;
 							a->var_global = true;
+							a->inicializando = true;
 						}
 						else
 						{
 							variables.push_back(Variable(a->nombre, this->getLastIndex()));
 							IncrementarVariables();
 							a->index = variables.back().index;
+							a->inicializando = true;
 						}
 					}
 					else a->index = var->index;
@@ -1706,12 +1709,14 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 									IncrementarVariables();
 									a2->index = this->variables_globales.back().index;
 									a2->var_global = true;
+									a2->inicializando = true;
 								}
 								else
 								{
 									variables.push_back(Variable(a2->nombre, this->getLastIndex()));
 									IncrementarVariables();
 									a2->index = variables.back().index;
+									a2->inicializando = true;
 								}
 							}
 							else a2->index = var2->index;

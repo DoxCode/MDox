@@ -1126,14 +1126,16 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 							{
 								Variable_Runtime* identificador = a->var_global ? &this->variables_globales[a->index] : &variables[a->index];
 
-								//Es posible que aquí hubiera que comprobar si la variable ya tiene un valor, ejemplo void aaa(x, x) -> El segundo valor debe ser x no agregar x.
-
 								if (a->fuerte)
 								{
 									identificador->value.inicializacion(a->tipo);
 									identificador->fuerte = true;
 								}
-								return identificador->value.asignacion(entradas[ent_itr], identificador->fuerte);
+
+								if (a->inicializando)
+									return identificador->value.asignacion(entradas[ent_itr], identificador->fuerte);
+								else
+									return identificador->value.igualdad_Condicional(entradas[ent_itr]);
 							},
 							[&](Valor_Funcion * a) { return entradas[ent_itr].igualdad_Condicional(ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a,variables))); },
 							[&](multi_value * a) 

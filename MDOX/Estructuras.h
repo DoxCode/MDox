@@ -457,6 +457,7 @@ public:
 	int index;
 	std::string nombre;
 	bool fuerte = false;
+	bool inicializando = false;
 
 	Parser_Declarativo* tipo = NULL;
 

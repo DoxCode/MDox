@@ -2877,7 +2877,7 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 // para poder acceder a la función se debe cumplir que:
 // a deberá ser entero, y sólamente entero.
 // b podrá ser otro valor transformado, por ejemplo: un booleano true, devolverá b = 1 o un double 5.32 devolverá b = 5.
-// inclusive un string con un valor numérico como "743", dará como resultado b=743
+// inclusive un string con un valor numérico como "743j", dará como resultado b=743
 
 
 void Value::print()
