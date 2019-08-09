@@ -1248,6 +1248,53 @@ Value Value::Mod(Value& v1, Value& v2)
 		}, v1.value, v2.value);
 }
 
+Value Value::Offset(Value& v1, Value& v2)
+{
+	return std::visit(overloaded{
+		
+		[&](std::shared_ptr<mdox_vector> & a, int& b)->Value
+		{
+			if (b > a->vector.size() || b < 0)
+			{
+				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, b);
+				return std::monostate();
+			}
+			return a->vector[b];
+		},
+
+		[&](std::shared_ptr<mdox_vector> & a, long long& b)->Value
+		{
+			if (b > a->vector.size() || b < 0)
+			{
+				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, b);
+				return std::monostate();
+			}
+			return a->vector[b];
+		},
+
+		[&](std::shared_ptr<mdox_vector> & a, auto&)->Value
+		{
+			if (v2.Cast(PARAM_LINT))
+			{
+				long long tr = std::get<long long>(v2.value);
+				if (tr > a->vector.size() || tr < 0)
+				{
+					Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, tr);
+					return std::monostate();
+				}
+				return a->vector[tr];
+			}
+			else
+			{
+				 Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "[]"); 
+				 return std::monostate();
+			}
+		},
+		[](auto,auto)->Value {  Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "[]"); return std::monostate(); },
+
+		}, v1.value, v2.value);
+}
+
 Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 {
 	switch (op)
@@ -1297,6 +1344,14 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 	case OP_ARIT_MOD:
 	{
 		return Mod(*this, v);
+	}
+
+	// --------------------------------------------------------------------
+	// ------------------------- OPERACIÓN OFFSET ----------------------------
+	// --------------------------------------------------------------------
+	case OP_BRACKET_LEFT:
+	{
+		return Offset(*this, v);
 	}
 
 	// --------------------------------------------------------------------
@@ -1575,7 +1630,7 @@ bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador
 
 			[&](std::shared_ptr<mdox_vector> & a, std::monostate)->bool 
 			{ 
-				int f_index = a->vector.size() - (index + 1);
+				int f_index = (a->vector.size() - index) + 1;
 				if (a->vector.size() > f_index)
 				{  
 					if (f2 && f2->fuerte)
@@ -1612,12 +1667,12 @@ bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador
 		//	[&](std::shared_ptr<mdox_vector> & a, auto&)->Value { return a->vector.back().igualdad_Condicional(v); },
 		//	[&](auto&, std::shared_ptr<mdox_vector>& a)->Value {  return a->vector.front().igualdad_Condicional(*this); },
 
-			[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool { int f_index = a->vector.size() - (index + 1);  if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, int&)->bool {int f_index = a->vector.size() - (index + 1); if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {int f_index = a->vector.size() - (index + 1); if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {int f_index = a->vector.size() - (index + 1); if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, double&)->bool {int f_index = a->vector.size() - (index + 1); if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, long long&)->bool {int f_index = a->vector.size() - (index + 1); if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool { int f_index = (a->vector.size() - index) + 1;  if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, int&)->bool {int f_index = (a->vector.size() - index) + 1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {int f_index = (a->vector.size() - index) + 1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {int f_index = (a->vector.size() - index) + 1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, double&)->bool {int f_index = (a->vector.size() - index) + 1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, long long&)->bool {int f_index = (a->vector.size() - index) + 1; if (a->vector.size() <= f_index) return false; return a->vector[index].igualdad_Condicional(v); },
 
 			[&](int&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },
 			[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },

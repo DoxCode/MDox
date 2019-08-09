@@ -607,6 +607,9 @@ OPERADORES Parser::getOperador(int& local_index)
 	if (v == "(") return OPERADORES::OP_SCOPE_LEFT;
 	else if (v == ")") return OPERADORES::OP_SCOPE_RIGHT;
 
+	else if (v == "[") return OPERADORES::OP_BRACKET_LEFT;
+	else if (v == "]") return OPERADORES::OP_BRACKET_RIGHT;
+
 	else if (v == "!") return OPERADORES::OP_NEGADO;
 	else if (v == "++") return OPERADORES::OP_ITR_PLUS;
 	else if (v == "--") return OPERADORES::OP_ITR_MIN;
@@ -828,6 +831,8 @@ arbol_operacional* GenerarArbolDesdeShuntingYard(stack_conmp & res)
 
 }
 
+
+
 arbol_operacional* Parser::getOperacionInd(int& local_index, std::vector<Variable>& variables, bool inside)
 {
 	int index = local_index;
@@ -900,6 +905,20 @@ arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable>
 			OPERADORES aux = this->getOperador(index);
 			if (aux == OPERADORES::OP_NONE)
 			{
+				bool ok;
+				conmp pV = this->getValor(ok, index, variables);
+
+				if (!ok)
+				{
+					return NULL;
+				}
+				stack.push_back(std::move(pV));
+				is_op = 2;
+				continue;
+			}
+			else if (aux == OPERADORES::OP_BRACKET_LEFT)
+			{
+				index--;
 				bool ok;
 				conmp pV = this->getValor(ok, index, variables);
 
@@ -1035,6 +1054,29 @@ arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable>
 					}
 					else return NULL;
 				}
+			}
+			else if (aux == OPERADORES::OP_BRACKET_LEFT)
+			{			
+				normal_operator_do(left_scope, is_op, aux, stack, op_stack);
+				is_op = 0;
+				op_stack.push_back(OPERADORES::OP_SCOPE_LEFT);
+				left_scope++;
+				continue;
+			}
+			else if (aux == OPERADORES::OP_BRACKET_RIGHT)
+			{
+				if (scope_right_do(left_scope, is_op, stack, op_stack))
+					continue;
+				else
+				{
+					if (left_scope < 0)
+					{
+						index--;
+						break;
+					}
+					else return NULL;
+				}
+				continue;
 			}
 			else if (aux == OPERADORES::OP_POP_ADD || aux == OPERADORES::OP_CHECK_GET)
 			{

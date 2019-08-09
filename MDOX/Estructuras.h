@@ -179,6 +179,10 @@ enum OPERADORES {
 	OP_NONE,
 
 	//Operadores aritméticos
+	//Prior 8
+	OP_BRACKET_LEFT, //El operador offset es [op]
+	OP_BRACKET_RIGHT,
+
 	//Prior 7
 	OP_SCOPE_LEFT,
 	OP_SCOPE_RIGHT,
@@ -286,10 +290,13 @@ static bool transform_left(OPERADORES & p)
 #define PRIORIDAD_SUMATORIA 5
 #define PRIORIDAD_MULT 6
 #define PRIORIDAD_SCOPES_EXP 7
+#define PRIORIDAD_OP_EJ 8
 
 static int prioridad(OPERADORES & a) {
 	if (a == OP_ARIT_SUMA || a == OP_ARIT_RESTA)
 		return PRIORIDAD_SUMATORIA;
+	else if (a == OP_BRACKET_LEFT || a == OP_BRACKET_RIGHT)
+		return PRIORIDAD_OP_EJ;
 	else if (a == OP_POP_ADD || a == OP_CHECK_GET)
 		return PRIORIDAD_MULT_VALUE_OP;
 	else if (a >= OP_ARIT_MULT && a <= OP_ARIT_MOD)
@@ -341,6 +348,7 @@ public:
 	static Value Value::Div(Value& v1, Value& v2);
 	static Value Value::DivEntera(Value& v1, Value& v2);
 	static Value Value::Mod(Value& v1, Value& v2);
+	static Value Value::Offset(Value& v1, Value& v2); //[x]
 
 	bool OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador * f1 = NULL, Parser_Identificador * f2 = NULL);
 	bool OperadoresEspeciales_Pop(Value& v, Parser_Identificador * f1 = NULL, Parser_Identificador * f2 = NULL);

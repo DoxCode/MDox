@@ -225,7 +225,11 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "No se puede establecer una variable con un valor vacio si esta fue fijada como '" << value << "' con anterioridad. \n ";
 		break;
 
-		
+	case Errores::ERROR_OFFSET_INVALIDO:
+		Errores::generarCabeceraError(node, 2019, tipo);
+		std::cout << "El valor introducido como offset ('" << value << "') está fuera del rango aceptado. \n ";
+		break;
+
 	}
 }
 
