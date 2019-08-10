@@ -273,7 +273,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 	if (l)
 	{
 		local_index = index;
-		return std::make_shared<Value>(v1);
+		return std::move(v1);
 	}
 
 	// ###### Comprobamos si se trata de un declarativo `+ Identificador ######
@@ -315,7 +315,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 		if (tokenizer.getTokenValue(index) == "]")
 		{
 			local_index = index; 
-			return std::make_shared<Value>(Value(std::make_shared<mdox_vector>()));
+			return Value(std::make_shared<mdox_vector>());
 		}
 
 		index = indexX;
@@ -354,7 +354,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 							itr++;
 						}
 						delete c;
-						return std::make_shared<Value>(Value(std::move(res)));
+						return Value(std::move(res));
 					}
 					return c;
 				}
@@ -592,6 +592,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 	index = local_index;
 
 	ret = false;
+	return std::monostate();
 }
 
 // ############################################################
@@ -1141,7 +1142,7 @@ arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable>
 						 [&](Value b)
 						{
 							res.pop_back();
-							res.push_back(std::make_shared<Value>(b.operacion_Unitaria(a)));
+							res.push_back(b.operacion_Unitaria(a));
 							stack.pop_front();
 						},
 					}, res.back());
@@ -1151,11 +1152,13 @@ arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable>
 				{
 					res.push_back(stack.front());
 					stack.pop_front();
+					return true;
 				}
 				else if (isRelationalOperator(a))
 				{
 					res.push_back(stack.front());
 					stack.pop_front();
+					return true;
 				}
 				else
 				{
@@ -1170,7 +1173,7 @@ arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable>
 								res.pop_back();
 								res.pop_back();
 
-								res.push_back(std::make_shared<Value>(_op));
+								res.push_back(_op);
 								stack.pop_front();
 								return true;
 							},
@@ -1182,6 +1185,7 @@ arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable>
 							},
 							}, res.back(),*(res.end() - 2));
 					}
+				return false;
 				},
 			}, stack.front());
 

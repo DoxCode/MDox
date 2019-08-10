@@ -590,8 +590,6 @@ public:
 	OperacionesEnVector(tipoValor& l, tipoValor& v, OPERADORES& op, tipoValor&& v2, OPERADORES& op2) : v1(l), v2(v), operador1(op), operador2(op2), v3(std::move(v2)) { isOnlyValue(); };
 };
 
-
-
 class multi_value
 {
 public:
@@ -614,7 +612,7 @@ public:
 	}
 };
 
-using conmp = std::variant< std::shared_ptr<Value>, Parser_Identificador*, Valor_Funcion*, OPERADORES, multi_value*, std::monostate >;
+using conmp = std::variant< std::monostate, Value, Parser_Identificador*, Valor_Funcion*, OPERADORES, multi_value*>;
 using stack_conmp = std::deque<conmp>;
 
 class arbol_operacional : public Parser_NODE

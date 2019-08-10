@@ -1562,6 +1562,7 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 		break;
 	}
 	}
+	return std::monostate();
 }
 
 /*f1 indica si el valor de la izquierda es fuerte, f2 indica si lo es el de la derecha*/
@@ -1783,6 +1784,7 @@ bool Value::OperacionRelacional(Value & v, const OPERADORES op)
 		return this->menorIgualQue_Condicional(v);
 	}
 	}
+	return false;
 }
 
 void Value::inicializacion(Parser_Declarativo * tipo)
@@ -2872,6 +2874,7 @@ bool Value::operacion_Asignacion(Value & v, OPERADORES & op, bool fuerte)
 		break;
 	}
 	}
+	return false;
 }
 
 Value Value::operacion_Unitaria(OPERADORES & op)
@@ -2923,6 +2926,7 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 	}
 
 	}
+	return std::monostate();
 }
 
 // --------------------------------------------------------------
