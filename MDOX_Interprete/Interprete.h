@@ -70,7 +70,11 @@ public:
 	Value getRetorno() { return _retorno; }
 
 	ValueCopyOrRef tipoValorToValueOrRef(tipoValor& a, Variable_Runtime* variables, Parser_Identificador** ret = NULL);
-	bool OperacionOperadoresVectores(tipoValor& v1, tipoValor& v2, OPERADORES& op, Variable_Runtime* variables);
+	//bool OperacionOperadoresVectores(multi_value*, multi_value*, OPERADORES& op, Variable_Runtime* variables);
+	bool OperacionOperadoresVectores(Value*, multi_value*, OPERADORES& operador, Variable_Runtime* variables, bool& isPop, bool& left, Parser_Identificador* f1 = NULL, Parser_Identificador* f2 = NULL);
+	bool OperacionOperadoresVectores(multi_value*, Value*, OPERADORES& operador, Variable_Runtime* variables, bool& isPop, bool& left, Parser_Identificador* f1 = NULL, Parser_Identificador* f2 = NULL);
+	bool OperacionOperadoresVectores(Value*, Value*, OPERADORES& operador, bool& isPop, bool& left, Parser_Identificador* f1 = NULL, Parser_Identificador* f2 = NULL);
+
 	Value lectura_arbol_operacional(arbol_operacional* node, Variable_Runtime* variables);
 	//void setRetorno(Value * v) { delete _retorno; _retorno = v; }
 	//Value * getRetorno() { Value * t = _retorno; _retorno = NULL; return t; }

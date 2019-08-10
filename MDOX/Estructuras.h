@@ -351,7 +351,7 @@ public:
 	static Value Value::Offset(Value& v1, Value& v2); //[x]
 
 	bool OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador * f1 = NULL, Parser_Identificador * f2 = NULL);
-	bool OperadoresEspeciales_Pop(Value& v, Parser_Identificador * f1 = NULL, Parser_Identificador * f2 = NULL);
+	bool OperadoresEspeciales_Pop(Value& v, bool& left, Parser_Identificador * f1 = NULL, Parser_Identificador * f2 = NULL);
 	Value operacion_Binaria(Value& v, const OPERADORES op);
 	bool OperacionRelacional(Value& v, const OPERADORES op);
 	Value operacion_Unitaria(OPERADORES& op);
@@ -510,11 +510,15 @@ using tipoValor = std::variant<Value, Parser_Identificador*, Valor_Funcion*, arb
 
 class ValueCopyOrRef
 {
+	Value _v;
 public:
-	Value* ref;
+	Value* ref = NULL;
+	multi_value* mv = NULL;
 	
+	ValueCopyOrRef(Value&& a) : _v(std::move(a)), ref(&_v) {};
 	ValueCopyOrRef(Value& a) : ref(&a) {};
 	ValueCopyOrRef(Value * a) : ref(a) {};
+	ValueCopyOrRef(multi_value* a) : mv(a) {};
 	ValueCopyOrRef(std::monostate&) : ref(NULL) {};
 };
 

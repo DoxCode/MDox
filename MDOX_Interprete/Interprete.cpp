@@ -148,13 +148,67 @@ Value Interprete::TratarMultiplesValores(multi_value* arr, Variable_Runtime* var
 	{
 		// Un contenedor obtiene una sucesión de operaciones con operadores de vectores.
 		//Por lo tanto siempre se tratará de un "OperadorEnVector"
-		if (!OperacionOperadoresVectores(arr->operacionesVector->v1, arr->operacionesVector->v2, arr->operacionesVector->operador1, variables))
-			return false;
+
+
+		Parser_Identificador* f1 = NULL;
+		Parser_Identificador* f2 = NULL;
+
+		ValueCopyOrRef v1 = tipoValorToValueOrRef(arr->operacionesVector->v1, variables, &f1);
+		ValueCopyOrRef v2 = tipoValorToValueOrRef(arr->operacionesVector->v2, variables, &f2);
+
+		bool left = false;
+		bool isPop, isPop2;
+		if (v1.ref)
+		{
+			if (v2.ref)
+			{		
+				if (!OperacionOperadoresVectores(v1.ref, v2.ref, arr->operacionesVector->operador1, isPop, left, f1,f2))
+					return false;
+			}
+			else
+			{
+				if (!OperacionOperadoresVectores(v1.ref, v2.mv, arr->operacionesVector->operador1, variables, isPop, left, f1, f2))
+					return false;
+			}
+		}
+		else
+		{
+			if (v2.ref)
+			{
+				if (!OperacionOperadoresVectores(v1.mv, v2.ref, arr->operacionesVector->operador1, variables, isPop, left, f1, f2))
+					return false;
+			}
+		}
 		
 		if (arr->operacionesVector->dobleOperador)
 		{
-			if (!OperacionOperadoresVectores(arr->operacionesVector->v2, arr->operacionesVector->v3, arr->operacionesVector->operador2, variables))
+			if (v2.ref == NULL)
 				return false;
+
+			ValueCopyOrRef v3 = tipoValorToValueOrRef(arr->operacionesVector->v3, variables, &f1);
+
+			if (v3.ref)
+			{
+				if (!OperacionOperadoresVectores(v2.ref, v3.ref, arr->operacionesVector->operador2, isPop2, left,f2,f1))
+					return false;
+			}
+			else
+			{
+				if (!OperacionOperadoresVectores(v2.ref, v3.mv, arr->operacionesVector->operador2,variables, isPop2, left, f2, f1))
+					return false;
+			}
+
+			if (isPop || isPop2)
+				return *v2.ref;
+
+			return true;
+		}
+
+		if (isPop)
+		{
+			if (left)
+				return *v1.ref;
+			else return *v2.ref;
 		}
 	
 		return true;
@@ -389,443 +443,94 @@ ValueCopyOrRef Interprete::tipoValorToValueOrRef(tipoValor& a, Variable_Runtime*
 			{
 				Variable_Runtime* vr = a->var_global ? &this->variables_globales[a->index] : &variables[a->index];
 				vr->fuerte = true;
-
-				//if (ret)
-					*ret = a;
+				*ret = a;
 
 				return &vr->value;
 			}
-
-			//if (ret)
-				*ret = a;
-
+			*ret = a;
 			return a->var_global ? &this->variables_globales[a->index].value : &variables[a->index].value;
 			
 		},
 		[&](Valor_Funcion * a)->ValueCopyOrRef { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
-		[&](multi_value * a)->ValueCopyOrRef {  return TratarMultiplesValores(a, variables); },
+		[&](multi_value * a)->ValueCopyOrRef {  if (a->is_vector) return TratarMultiplesValores(a, variables); return a; },
 		[&](auto&)->ValueCopyOrRef { return std::monostate(); },
 		}, a);
 }
 
-bool Interprete::OperacionOperadoresVectores(tipoValor& v1, tipoValor& v2, OPERADORES& operador, Variable_Runtime* variables)
+bool Interprete::OperacionOperadoresVectores(Value * v1, Value * v2, OPERADORES& operador, bool& isPop, bool& left, Parser_Identificador* f1, Parser_Identificador * f2)
 {
-	Parser_Identificador* f1 = NULL;  Parser_Identificador* f2 = NULL;
-	//Value, Parser_Identificador*, Valor_Funcion*, arbol_operacional*, multi_value* 
-	return std::visit(overloaded{
-		//	[&](Value& a, Value& b)->bool { return a.OperadoresEspeciales(b, node->operador); },
-		//	[&](Value& a, Parser_Identificador * b)->bool { return a.OperadoresEspeciales((b->var_global ? this->variables_globales[b->index].value : variables[b->index].value), node->operador);  },
-		//	[&](Value& a, Valor_Funcion * b)->bool { return  a.OperadoresEspeciales(ExecFuncion(b->ID->nombre, transformarEntradasFuncion(b, variables)), node->operador); },
-		//	[&](Value& a, arbol_operacional * b)->bool { return  a.OperadoresEspeciales(lectura_arbol_operacional(b, variables), node->operador); },
-			
-		[&](Value & a, multi_value* b)->bool
-		{ 
-			if (operador == OP_CHECK_GET)
-			{
-				if (b->is_vector)
-				{
-					return a.OperadoresEspeciales_Check(TratarMultiplesValores(b,variables), -1);
-				}
-
-				//Dado que b no es un vector, el vector debe ser, en todo caso, a, de no serlo, la operación devolverá un error a posteriori.
-				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
-
-				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
-				int itr = 0;
-				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
-				{
-					if (!a.OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL, f2))
-					{
-						return false;
-					}
-					itr++;
-				}
-			}
-			else // POP
-			{
-				if (b->is_vector)
-				{
-					return a.OperadoresEspeciales_Pop(TratarMultiplesValores(b,variables));
-				}
-
-				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
-				{
-					if (!a.OperadoresEspeciales_Pop(*tipoValorToValueOrRef(*it, variables, &f2).ref,NULL,f2))
-					{
-						return false;
-					}
-				}
-			}
-			return true;
-		},
-
-		[&](Parser_Identificador * a, multi_value * b)->bool
-		{
-			Value * _a = a->var_global ? &this->variables_globales[a->index].value : &variables[a->index].value;
-
-			if (operador == OP_CHECK_GET)
-			{
-				if (b->is_vector)
-				{
-					return _a->OperadoresEspeciales_Check(TratarMultiplesValores(b,variables), -1, a);
-				}
-
-				//Dado que b no es un vector, el vector debe ser, en todo caso, a, de no serlo, la operación devolverá un error a posteriori.
-				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
-
-				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
-				int itr = 0;
-				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
-				{
-					if (!_a->OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, a,f2))
-					{
-						return false;
-					}
-					itr++;
-				}
-			}
-			else // POP
-			{
-				if (b->is_vector)
-				{
-					return _a->OperadoresEspeciales_Pop(TratarMultiplesValores(b,variables), a);
-				}
-
-				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
-				{
-					if (!_a->OperadoresEspeciales_Pop(*tipoValorToValueOrRef(*it, variables, &f2).ref, a,f2))
-					{
-						return false;
-					}
-				}
-			}
-			return true;
-		},
-
-		[&](Valor_Funcion * a, multi_value * b)->bool
-		{
-			Value _a = ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables));
-
-			if (operador == OP_CHECK_GET)
-			{
-				if (b->is_vector)
-				{
-					return _a.OperadoresEspeciales_Check(TratarMultiplesValores(b,variables), -1);
-				}
-
-				//Dado que b no es un vector, el vector debe ser, en todo caso, a, de no serlo, la operación devolverá un error a posteriori.
-				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
-
-				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
-				int itr = 0;
-				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
-				{
-					if (!_a.OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL, f2))
-					{
-						return false;
-					}
-					itr++;
-				}
-			}
-			else // POP
-			{
-				if (b->is_vector)
-				{
-					return _a.OperadoresEspeciales_Pop(TratarMultiplesValores(b,variables));
-				}
-
-				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
-				{
-					if (!_a.OperadoresEspeciales_Pop(*tipoValorToValueOrRef(*it, variables,&f2).ref, NULL, f2))
-					{
-						return false;
-					}
-				}
-			}
-			return true;
-		},
-
-		[&](arbol_operacional* a, multi_value* b)->bool
-		{
-			Value _a = lectura_arbol_operacional(a, variables);
-
-			if (operador == OP_CHECK_GET)
-			{
-				if (b->is_vector)
-				{
-					return _a.OperadoresEspeciales_Check(TratarMultiplesValores(b, variables), -1);
-				}
-
-				//Dado que b no es un vector, el vector debe ser, en todo caso, a, de no serlo, la operación devolverá un error a posteriori.
-				//Igualmente, trabajaremos considerando A-> vector, y dejamos el error al check del operador.
-
-				//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
-				int itr = 0;
-				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
-				{
-					if (!_a.OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL,f2))
-					{
-						return false;
-					}
-					itr++;
-				}
-			}
-			else // POP
-			{
-				if (b->is_vector)
-				{
-					return _a.OperadoresEspeciales_Pop(TratarMultiplesValores(b, variables));
-				}
-
-				for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
-				{
-					if (!_a.OperadoresEspeciales_Pop(*tipoValorToValueOrRef(*it, variables, &f2).ref, NULL,f2))
-					{
-						return false;
-					}
-				}
-			}
-			return true;
-		},
-
-
-		[&](multi_value* a, Value& b)->bool
-		{
-			if (operador == OP_CHECK_GET)
-			{
-				if (a->is_vector)
-				{
-					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(b, -1);
-				}
-
-				//Dado que a no es un vector, el vector debe ser, en todo caso, b, de no serlo, la operación devolverá un error a posteriori.
-				//Igualmente, trabajaremos considerando B-> vector, y dejamos el error al check del operador.
-
-				//Esto implica que los valores se checkean desde atrás->   [a,b,c::vector]
-				int itr = 0;
-				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
-				{					
-					 if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Check(b, itr,f1))
-						 return false;
-					itr++;
-				}
-			}
-			else // POP
-			{
-				if (a->is_vector)
-				{
-					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(b);
-				}
-				
-				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
-				{
-					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Pop(b,f1))
-						return false;
-				}
-			}
-			return true;
-		},
-
-		[&](multi_value* a, Parser_Identificador* b)->bool
-		{
-			Value* _p = b->var_global ? &this->variables_globales[b->index].value : &variables[b->index].value;
-
-			if (operador == OP_CHECK_GET)
-			{
-				if (a->is_vector)
-				{
-					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(*_p, -1, b);
-				}
-
-				//Dado que a no es un vector, el vector debe ser, en todo caso, b, de no serlo, la operación devolverá un error a posteriori.
-				//Igualmente, trabajaremos considerando B-> vector, y dejamos el error al check del operador.
-
-				//Esto implica que los valores se checkean desde atrás->   [a,b,c::vector]
-				int itr = 0;
-				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
-				{
-					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Check(*_p, itr, f1, b))
-						return false; 
-					itr++;
-				}
-			}
-			else // POP
-			{
-				if (a->is_vector)
-				{
-					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(*_p, b);
-				}
-
-				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
-				{
-					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Pop(*_p, f1, b))
-						return false;
-				}
-			}
-			return true;
-		},
-
-		[&](multi_value* a, Valor_Funcion* b)->bool
-		{
-			Value _p = ExecFuncion(b->ID->nombre, transformarEntradasFuncion(b, variables));
-
-			if (operador == OP_CHECK_GET)
-			{
-				if (a->is_vector)
-				{
-					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(_p, -1);
-				}
-
-				//Dado que a no es un vector, el vector debe ser, en todo caso, b, de no serlo, la operación devolverá un error a posteriori.
-				//Igualmente, trabajaremos considerando B-> vector, y dejamos el error al check del operador.
-
-				//Esto implica que los valores se checkean desde atrás->   [a,b,c::vector]
-				int itr = 0;
-				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
-				{
-					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Check(_p, itr,f1))
-						return false;
-					itr++;
-				}
-			}
-			else // POP
-			{
-				if (a->is_vector)
-				{
-					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(_p);
-				}
-
-				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
-				{
-					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Pop(_p,f1))
-						return false;
-				}
-			}
-			return true;
-		},
-
-		[&](multi_value* a, arbol_operacional* b)->bool
-		{
-			Value _p = lectura_arbol_operacional(b, variables);
-
-			if (operador == OP_CHECK_GET)
-			{
-				if (a->is_vector)
-				{
-					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(_p, -1);
-				}
-
-				//Dado que a no es un vector, el vector debe ser, en todo caso, b, de no serlo, la operación devolverá un error a posteriori.
-				//Igualmente, trabajaremos considerando B-> vector, y dejamos el error al check del operador.
-
-				//Esto implica que los valores se checkean desde atrás->   [a,b,c::vector]
-				int itr = 0;
-				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
-				{
-					if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Check(_p, itr,f1))
-						return false;
-					itr++;
-				}
-			}
-			else // POP
-			{
-				if (a->is_vector)
-				{
-					return TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(_p);
-				}
-
-				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
-				{
-					 if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Pop(_p,f1))
-						 return false;
-				}
-			}
-			return true;
-		},
-
-		//Se trata de un caso especial, primero habría que descubrir cual de los dos es el vector, después actuar en consecuencia.
-		[&](multi_value* a, multi_value* b)->bool
-		{
-			if (operador == OP_CHECK_GET)
-			{
-
-				if (a->is_vector)
-				{
-					//Si tanto A como B son vectores, se tratan ambos, se opera con ellos y se devuelve el resultado.
-					if (b->is_vector)
-						return TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(TratarMultiplesValores(b, variables), -1);
-					else //Si A es vector y b no, implica  vectorA::a,b,c
-					{
-						int itr = 0;
-						for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
-						{
-								if (!TratarMultiplesValores(a, variables).OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL, f2))
-									return false;
-							itr++;
-						}
-					}
-				}
-				else // Es decir, A NO es un vector.
-				{
-					if (b->is_vector) //Si B es un vector se trata de un patrón del estilo a,b,c::vectorB
-					{
-						Value vectorB = TratarMultiplesValores(a, variables);
-						int itr = 0;
-						for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
-						{
-							if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Check(vectorB, itr, f1))
-								return false;
-							itr++;
-						}
-					}
-				}
-			}
-			else // Hacemos lo mismo para POP
-			{
-				if (a->is_vector)
-				{
-					//Si tanto A como B son vectores, se tratan ambos, se opera con ellos y se devuelve el resultado.
-					if (b->is_vector)
-						return TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(TratarMultiplesValores(b, variables));
-					else //Si A es vector y b no, implica  vectorA::a,b,c
-					{
-						for (std::vector<tipoValor>::iterator it = b->arr.begin(); it != b->arr.end(); ++it)
-						{
-							f2 = false;
-							if (!TratarMultiplesValores(a, variables).OperadoresEspeciales_Pop(*tipoValorToValueOrRef(*it, variables, &f2).ref, NULL, f2))
-								return false;
-						}
-					}
-				}
-				else // Es decir, A NO es un vector.
-				{
-					if (b->is_vector) //Si B es un vector se trata de un patrón del estilo a,b,c::vectorB
-					{
-						Value vectorB = TratarMultiplesValores(a, variables);
-						for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
-						{
-							f1 = false;
-							if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Pop(vectorB, f1))
-								return false;
-						}
-					}
-				}
-			}
-			return true;
-		},
-
-
-			[&](auto&,auto&)->bool {
-				if(operador == OP_CHECK_GET)
-					return tipoValorToValueOrRef(v1, variables, &f1).ref->OperadoresEspeciales_Check(*tipoValorToValueOrRef(v2, variables, &f2).ref, -1, f1,f2);
-				else 
-					return tipoValorToValueOrRef(v1, variables, &f1).ref->OperadoresEspeciales_Pop(*tipoValorToValueOrRef(v2, variables, &f2).ref, f1,f2);
-			},
-		}, v1, v2);
-
-
+	if (operador == OP_CHECK_GET)
+	{
+		isPop = false;
+		return v1->OperadoresEspeciales_Check(*v2, -1, f1, f2);
+	}
+	else
+	{
+		isPop = true;
+		return v1->OperadoresEspeciales_Pop(*v2, left, f1, f2);
+	}
 }
 
+bool Interprete::OperacionOperadoresVectores(multi_value* v1, Value* v2,  OPERADORES& operador, Variable_Runtime* variables, bool& isPop, bool& left, Parser_Identificador* f1, Parser_Identificador* f2)
+{
+	if (operador == OP_CHECK_GET)
+	{
+		isPop = false;
+		//Dado que v1 no puede ser un vector, el vector debe ser, en todo caso, v2, de no serlo, la operación devolverá un error a posteriori.
+		//Igualmente, trabajaremos considerando v2-> vector, y dejamos el error al check del operador.
+		//Esto implica que los valores se checkean desde atrás->   [a,b,c::vector]
+		int itr = 0;
+		for (std::vector<tipoValor>::iterator it = v1->arr.begin(); it != v1->arr.end(); ++it)
+		{
+			if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Check(*v2, itr, f1))
+				return false;
+			itr++;
+		}
+	}
+	else // POP
+	{
+		isPop = true;
+		for (std::vector<tipoValor>::iterator it = v1->arr.begin(); it != v1->arr.end(); ++it)
+		{
+			if (!tipoValorToValueOrRef(*it, variables, &f1).ref->OperadoresEspeciales_Pop(*v2, left, f1))
+				return false;
+		}
+	}
+	return true;
+}
+
+bool Interprete::OperacionOperadoresVectores(Value* v1, multi_value* v2, OPERADORES& operador, Variable_Runtime* variables, bool& isPop, bool& left, Parser_Identificador* f1, Parser_Identificador* f2)
+{
+	if (operador == OP_CHECK_GET)
+	{
+		isPop = false;
+		//Dado que v2 no es un vector, el vector debe ser, en todo caso, a, de no serlo, la operación devolverá un error a posteriori.
+		//Igualmente, trabajaremos considerando v1-> vector, y dejamos el error al check del operador.
+
+		//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
+		int itr = 0;
+		for (std::vector<tipoValor>::iterator it = v2->arr.begin(); it != v2->arr.end(); ++it)
+		{
+			if (!v1->OperadoresEspeciales_Check(*tipoValorToValueOrRef(*it, variables, &f2).ref, itr, NULL, f2))
+			{
+				return false;
+			}
+			itr++;
+		}
+	}
+	else // POP
+	{
+		isPop = true;
+		for (std::vector<tipoValor>::iterator it = v2->arr.begin(); it != v2->arr.end(); ++it)
+		{
+			if (!v1->OperadoresEspeciales_Pop(*tipoValorToValueOrRef(*it, variables, &f2).ref, left, NULL, f2))
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
 
 bool Interprete::Relacional_rec_arbol(arbol_operacional * node, Variable_Runtime * variables, Value & v2)
 {
@@ -1149,20 +854,58 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 										if (!identificador->value.asignacion(entradas[ent_itr], false))
 											return false;
 
+										Parser_Identificador* f1 = NULL;
+										Parser_Identificador* f2 = NULL;
+
+										ValueCopyOrRef v1 = tipoValorToValueOrRef(a->operacionesVector->v1, variables, &f1);
+										ValueCopyOrRef v2 = tipoValorToValueOrRef(a->operacionesVector->v2, variables, &f2);
+
+										bool left = false;
+										bool isPop;
+
+										if (v1.ref)
+										{
+											if (v2.ref)
+											{
+												if (!OperacionOperadoresVectores(v1.ref, v2.ref, a->operacionesVector->operador1, isPop, left, f1, f2))
+													return false;
+											}
+											else
+											{
+												if (!OperacionOperadoresVectores(v1.ref, v2.mv, a->operacionesVector->operador1, variables, isPop, left, f1, f2))
+													return false;
+											}
+										}
+										else
+										{
+											if (v2.ref)
+											{
+												if (!OperacionOperadoresVectores(v1.mv, v2.ref, a->operacionesVector->operador1, variables, isPop, left, f1, f2))
+													return false;
+											}
+										}
+
 										if (a->operacionesVector->dobleOperador)
-										{			
-											if (!OperacionOperadoresVectores(a->operacionesVector->v1, a->operacionesVector->v2, a->operacionesVector->operador1, variables))
+										{
+											if (v2.ref == NULL)
 												return false;
 
-											if (!OperacionOperadoresVectores(a->operacionesVector->v2, a->operacionesVector->v3, a->operacionesVector->operador2, variables))
-												return false;
+											ValueCopyOrRef v3 = tipoValorToValueOrRef(a->operacionesVector->v3, variables, &f1);
 
+											if (v3.ref)
+											{
+												if (!OperacionOperadoresVectores(v2.ref, v3.ref, a->operacionesVector->operador2, isPop, left, f2, f1))
+													return false;
+											}
+											else
+											{
+												if (!OperacionOperadoresVectores(v2.ref, v3.mv, a->operacionesVector->operador2, variables, isPop, left, f2, f1))
+													return false;
+											}
 											return true;
 										}
-										else //No hay doble operador
-										{
-											return OperacionOperadoresVectores(a->operacionesVector->v1, a->operacionesVector->v2, a->operacionesVector->operador1, variables);
-										}
+
+										return true;
 									}
 								}
 

@@ -1256,7 +1256,7 @@ Value Value::Offset(Value& v1, Value& v2)
 		{
 			if (b > a->vector.size() || b < 0)
 			{
-				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, b);
+				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(b));
 				return std::monostate();
 			}
 			return a->vector[b];
@@ -1266,7 +1266,7 @@ Value Value::Offset(Value& v1, Value& v2)
 		{
 			if (b > a->vector.size() || b < 0)
 			{
-				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, b);
+				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(b));
 				return std::monostate();
 			}
 			return a->vector[b];
@@ -1279,7 +1279,7 @@ Value Value::Offset(Value& v1, Value& v2)
 				long long tr = std::get<long long>(v2.value);
 				if (tr > a->vector.size() || tr < 0)
 				{
-					Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, tr);
+					Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(tr));
 					return std::monostate();
 				}
 				return a->vector[tr];
@@ -1686,7 +1686,7 @@ bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador
 	}
 }
 
-bool Value::OperadoresEspeciales_Pop(Value& v, Parser_Identificador* f1, Parser_Identificador* f2)
+bool Value::OperadoresEspeciales_Pop(Value& v, bool& left, Parser_Identificador* f1, Parser_Identificador* f2)
 {
 	return std::visit(overloaded{
 		[&](std::shared_ptr<mdox_vector> & a, std::monostate)->bool
@@ -1696,16 +1696,17 @@ bool Value::OperadoresEspeciales_Pop(Value& v, Parser_Identificador* f1, Parser_
 			{
 				v.inicializacion(f2->tipo);
 				v.asignacion(a->vector.back(),f2->fuerte);
-				a->vector.pop_back(); 
+				a->vector.pop_back();
 				return true;
 			}
 			v.asignacion(a->vector.back(), false);
 			a->vector.pop_back();
+			left = true;
 			return true;
 		},
-		[&](std::monostate, std::shared_ptr<mdox_vector> & a)->bool 
+		[&](std::monostate, std::shared_ptr<mdox_vector> & a)->bool
 		{ 
-			if (a->vector.size() == 0) return false;  
+			if (a->vector.size() == 0) return false;
 			if (f1 && f1->fuerte)
 			{
 				this->inicializacion(f1->tipo);
@@ -1720,12 +1721,12 @@ bool Value::OperadoresEspeciales_Pop(Value& v, Parser_Identificador* f1, Parser_
 		}, //NO recomendado su uso.
 
 		//[&](std::shared_ptr<mdox_vector>& a, auto&) {  a->vector.emplace_back(v); return v; },
-		[&](std::shared_ptr<mdox_vector> & a, int&)->bool { a->vector.emplace_back(v); return true; },
-		[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {  a->vector.emplace_back(v); return true; },
-		[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {  a->vector.emplace_back(v); return true; },
-		[&](std::shared_ptr<mdox_vector> & a, long long&)->bool { a->vector.emplace_back(v); return true; },
-		[&](std::shared_ptr<mdox_vector> & a, double&)->bool {  a->vector.emplace_back(v); return true; },
-		[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool {a->vector.emplace_back(v); return true; },
+		[&](std::shared_ptr<mdox_vector> & a, int&)->bool { a->vector.emplace_back(v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {  a->vector.emplace_back(v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {  a->vector.emplace_back(v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, long long&)->bool { a->vector.emplace_back(v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, double&)->bool {  a->vector.emplace_back(v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool {a->vector.emplace_back(v); left = true; return true; },
 
 		//[&](auto&, std::shared_ptr<mdox_vector>& a) {  a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return *this; },
 		[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool {a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
