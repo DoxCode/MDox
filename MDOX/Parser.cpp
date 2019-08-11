@@ -548,6 +548,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 						Valor_Funcion* v = new Valor_Funcion(i, entradas);
 						local_index = i_index;
 						v->generarPosicion(&tokenizer);
+						this->valores_funciones.emplace_back(v);
 						return v;
 					}
 					else
@@ -569,6 +570,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 						Valor_Funcion* v = new Valor_Funcion(i, entradas);
 						local_index = t_index;
 						v->generarPosicion(&tokenizer);
+						this->valores_funciones.emplace_back(v);
 						return v;
 					}
 
@@ -1103,21 +1105,6 @@ arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable>
 		stack.push_back(op_stack.back());
 		op_stack.pop_back();
 	}
-	//std::cout << "#4. \n";
-
-
-	//DEBUG  
-	//Value, Parser_Identificador*, Valor_Funcion*, OPERADORES
-	/*for (auto it = stack.begin(); it != stack.end(); ++it)
-	{
-		std::visit(overloaded{
-			 [](auto) {std::cout << "-Var o Funcion-"; },
-			 [](Value & a) {  a.print(); std::cout << ", "; },
-			 [](Parser_Identificador * a) { std::cout << a->nombre << ", "; },
-			 [](OPERADORES & a) { std::cout << "OP: " << a << ", ";  },
-			}, *it);
-	}*/
-
 
 	stack_conmp res;
 
@@ -1804,6 +1791,39 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 			}, arbol->_v2);
 
 	}
+}
+
+void Parser::preloadFunciones(std::vector<Parser_Funcion*> funciones)
+{
+	for (std::vector<Valor_Funcion*>::iterator it = this->valores_funciones.begin(); it != this->valores_funciones.end(); ++it)
+	{
+		//Core::core_functions
+		for (int itr = 0; itr < Core::core_functions.size(); itr++)
+		{
+			if (Core::core_functions[itr]->nombre == (*it)->ID->nombre)
+			{
+				if (Core::core_functions[itr]->entradas.size() != (*it)->entradas.size())
+					continue;
+
+				(*it)->funcionesCoreItrData.emplace_back(itr);
+			}
+		}
+
+		for(int itr= 0; itr < funciones.size(); itr++)
+		{
+			//Debe coincidir el nombre de la misma.
+			if (funciones[itr]->pID->nombre == (*it)->ID->nombre)
+			{
+				//si no tiene el mismo numero de entradas, saltamos, no es esta función.
+				if (funciones[itr]->entradas.size() != (*it)->entradas.size())
+					continue;
+
+				(*it)->funcionesItrData.emplace_back(itr);
+			}
+		}
+	}
+	this->valores_funciones.clear();
+	this->valores_funciones.shrink_to_fit();
 }
 
 

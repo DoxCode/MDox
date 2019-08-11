@@ -35,6 +35,7 @@ bool Interprete::CargarDatos(Parser* parser)
 	{
 		//	std::cout << "--:: " << parser.tokenizer.tokens.at(local) << " :: " << local << " \n";
 
+
 		Parser_Funcion* p2 = parser->getFuncion(local);
 
 		if (p2)
@@ -64,6 +65,9 @@ bool Interprete::CargarDatos(Parser* parser)
 		return false;
 
 	}
+	
+	// Tratamiento de valores de funciones por el parser.
+	parser->preloadFunciones(this->funciones);
 
 	this->variables_globales = new Variable_Runtime[parser->numero_variables_globales];
 
@@ -137,7 +141,7 @@ Value Interprete::TratarMultiplesValores(multi_value* arr, Variable_Runtime* var
 				{
 					[&](Value & a)->Value {return a; },
 					[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a, variables);  },
-					[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+					[&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 					[&](Parser_Identificador * a)->Value { return a->var_global ? this->variables_globales[a->index].value : variables[a->index].value;  },
 					[&](auto&)->Value {  Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL); return std::monostate(); },
 				}, *it));
@@ -220,7 +224,7 @@ Value Interprete::TratarMultiplesValores(multi_value* arr, Variable_Runtime* var
 			std::visit(overloaded
 				{
 					[&](arbol_operacional * a) { lectura_arbol_operacional(a, variables);  },
-					[&](Valor_Funcion * a) { ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+					[&](Valor_Funcion * a) { ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 					[&](Parser_Identificador * a)
 					{
 						Variable_Runtime* identificador = a->var_global ? &this->variables_globales[a->index] : &variables[a->index];
@@ -259,7 +263,7 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 
 					return identificador->value;
 				},
-				[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+				[&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 				[&](multi_value * a)->Value 
 				{ 
 						return TratarMultiplesValores(a, variables);  
@@ -288,7 +292,7 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 					return id->operacion_Unitaria(node->operador);
 				}
 			},
-		[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)).operacion_Unitaria(node->operador); },
+		[&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)).operacion_Unitaria(node->operador); },
 		[&](multi_value * a)->Value { return TratarMultiplesValores(a, variables).operacion_Unitaria(node->operador);  },
 		[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL);  return false; },
 			}, node->_v2);
@@ -314,7 +318,7 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 					{
 						return a->var_global ? this->variables_globales[a->index].value : variables[a->index].value;
 					},
-				[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+				[&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 				[&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables); },
 				[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL);  return std::monostate(); },
 					}, node->_v2)
@@ -324,7 +328,7 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 
 			return identificador->value;
 		},
-		[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+		[&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 
 			//Arbol operacional para aceptar casos como: a = b = 5;
 		[&](arbol_operacional * a)->Value
@@ -333,7 +337,7 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 			[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a,variables); },
 			[](Value & a)->Value {return a; },
 			[&](Parser_Identificador * a)->Value { return a->var_global ? this->variables_globales[a->index].value : variables[a->index].value;  },
-			[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+			[&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 			[&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables); },
 			[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL);  return std::monostate(); },
 				}, node->_v2);
@@ -368,7 +372,7 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 		[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a,variables); },
 		[](Value & a)->Value {return a; },
 		[&](Parser_Identificador * a)->Value { return a->var_global ? this->variables_globales[a->index].value : variables[a->index].value;  },
-		[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+		[&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 		[&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables); },
 		[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return std::monostate(); },
 			}, node->_v2);
@@ -383,7 +387,7 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 						 [&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a,variables); },
 						 [](Value & a)->Value {return a; },
 						 [&](Parser_Identificador * a)->Value { return a->var_global ? this->variables_globales[a->index].value : variables[a->index].value;  },
-						 [&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+						 [&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 						 [&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables); },
 						 [&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return std::monostate(); },
 					  }, a->_v2);
@@ -399,7 +403,7 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 				return a.OperacionRelacional(v2, node->operador);
 			},
 		[&](Parser_Identificador * a)->Value { return (a->var_global ? this->variables_globales[a->index].value : variables[a->index].value).OperacionRelacional(v2, node->operador);  },
-		[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)).OperacionRelacional(v2, node->operador); },
+		[&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)).OperacionRelacional(v2, node->operador); },
 		[&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables).OperacionRelacional(v2, node->operador); },
 		[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return std::monostate(); },
 			}, node->_v1);
@@ -413,7 +417,7 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 		[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a,variables); },
 		[](Value & a)->Value {return a; },
 		[&](Parser_Identificador * a)->Value { return a->var_global ? this->variables_globales[a->index].value : variables[a->index].value;  },
-		[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+		[&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 		[&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables); },
 		[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return std::monostate(); },
 			}, node->_v1).operacion_Binaria(
@@ -421,7 +425,7 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 				[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a, variables); },
 				[](Value & a)->Value {return a; },
 				[&](Parser_Identificador * a)->Value { return a->var_global ? this->variables_globales[a->index].value : variables[a->index].value;  },
-				[&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+				[&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 				[&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables); },
 				[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return std::monostate(); },
 					}, node->_v2)
@@ -451,7 +455,7 @@ ValueCopyOrRef Interprete::tipoValorToValueOrRef(tipoValor& a, Variable_Runtime*
 			return a->var_global ? &this->variables_globales[a->index].value : &variables[a->index].value;
 			
 		},
-		[&](Valor_Funcion * a)->ValueCopyOrRef { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+		[&](Valor_Funcion * a)->ValueCopyOrRef { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 		[&](multi_value * a)->ValueCopyOrRef {  if (a->is_vector) return TratarMultiplesValores(a, variables); return a; },
 		[&](auto&)->ValueCopyOrRef { return std::monostate(); },
 		}, a);
@@ -543,7 +547,7 @@ bool Interprete::Relacional_rec_arbol(arbol_operacional * node, Variable_Runtime
 						 [&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a,variables); },
 						 [](Value & a)->Value {return a; },
 						 [&](Parser_Identificador * a)->Value { return a->var_global ? this->variables_globales[a->index].value : variables[a->index].value;  },
-						 [&](Valor_Funcion * a)->Value { return ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); },
+						 [&](Valor_Funcion * a)->Value { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
 						  [&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables); },
 						 [&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return std::monostate(); },
 					  }, a->_v2);
@@ -559,7 +563,7 @@ bool Interprete::Relacional_rec_arbol(arbol_operacional * node, Variable_Runtime
 			},
 		[&](Value & a) {return a.OperacionRelacional(v2, node->operador); },
 		[&](Parser_Identificador * a) { Value ValID = a->var_global ? this->variables_globales[a->index].value : variables[a->index].value; return ValID.OperacionRelacional(v2, node->operador); },
-		[&](Valor_Funcion * a) {  Value ValID = ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a, variables)); return ValID.OperacionRelacional(v2, node->operador); },
+		[&](Valor_Funcion * a) {  Value ValID = ExecFuncion(a, transformarEntradasFuncion(a, variables)); return ValID.OperacionRelacional(v2, node->operador); },
 		[&](multi_value * a) {  Value ValID = TratarMultiplesValores(a, variables); return ValID.OperacionRelacional(v2, node->operador); },
 		[&](auto&) { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return false; },
 		}, node->_v1);
@@ -738,35 +742,31 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 		}
 	}
 	}
+	return false;
 }
 
 //TODO: En un futuro hay que cambiar el estilo de busqueda de funciones por un método directo de cacheado.
-bool Interprete::FuncionCore(std::string name, std::vector<Value> entradas)
+bool Interprete::FuncionCore(Valor_Funcion* vf, std::vector<Value> entradas)
 {
-	for (std::vector<Core_Function*>::iterator funcion = Core::core_functions.begin(); funcion != Core::core_functions.end(); ++funcion)
+	//Core::core_functions
+	for (std::vector<int>::iterator dItr = vf->funcionesCoreItrData.begin(); dItr != vf->funcionesCoreItrData.end(); ++dItr)
 	{
-		if ((*funcion)->nombre == name)
+		Core_Function_Interprete* funcionInterprete = static_cast<Core_Function_Interprete*>(Core::core_functions[*dItr]);
+
+		//std::vector<Value>&, Interprete*, OutData_Parametros*);
+		if (funcionInterprete->funcion_exec(entradas, this))
 		{
-			if ((*funcion)->entradas.size() != entradas.size())
-				continue;
-
-			//for (unsigned ent_itr = 0; ent_itr < xFunc->entradas.size(); ent_itr++)
-			Core_Function_Interprete * funcionInterprete = static_cast<Core_Function_Interprete*>(*funcion);
-
-			//std::vector<Value>&, Interprete*, OutData_Parametros*);
-			if (funcionInterprete->funcion_exec(entradas, this))
-			{
-				return true;
-			}
+			return true;
 		}
 	}
+
 	return false;
 }
 
 
 // Ejecuta la función dentro del ENTORNO. Es decir, se trata de una función que NO está fuera del entorno de llamada. (Es decir, no forma parte de una clase diferente)
 // Las variables a las cuales tiene acceso esta función, serán las variables del entorno propio, es decir VARIABLES GLOBALES, variables declaradas a nivel de main.
-Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
+Value Interprete::ExecFuncion(Valor_Funcion* vf, std::vector<Value> entradas)
 {
 	//xFunc->entradas
 
@@ -780,7 +780,7 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 	// ------------ Tipos de Funciones  ------------
 	// **** Comenzamos probando si se trata de una función del core del lenguaje.
 	Errores::saltarErrores = true;
-	if (this->FuncionCore(name, entradas))
+	if (this->FuncionCore(vf, entradas))
 	{
 		if (this->returnCalled())
 		{
@@ -797,14 +797,8 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 
 	//De entre todas las funciones declaradas, buscamos la que realmente se está llamando.
 
-	for (std::vector<Parser_Funcion*>::iterator funcion = funciones.begin(); funcion != funciones.end(); ++funcion)
+	for (std::vector<int>::iterator dItr = vf->funcionesItrData.begin(); dItr != vf->funcionesItrData.end(); ++dItr)
 	{
-		//Debe coincidir el nombre de la misma.
-		if ((*funcion)->pID->nombre == name)
-		{
-			//si no tiene el mismo numero de entradas, saltamos, no es esta función.
-			if ((*funcion)->entradas.size() != entradas.size())
-				continue;
 
 			bool correcto = true; // Si es FALSE se limpiará el heap de las variables creadas, pero no ejecutará la función.
 			bool forzar_salida = false; //Se devolverá NULL
@@ -814,13 +808,13 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 
 			Variable_Runtime * variables = NULL;
 
-			if ((*funcion)->preload_var > 0)
-				variables = new Variable_Runtime[(*funcion)->preload_var];
+			if (funciones[*dItr]->preload_var > 0)
+				variables = new Variable_Runtime[funciones[*dItr]->preload_var];
 
 			bool entradas_incorrectas = false;
 
 			int ent_itr = 0;
-			for (std::vector<arbol_operacional*>::iterator it = (*funcion)->entradas.begin(); it != (*funcion)->entradas.end(); ++it)
+			for (std::vector<arbol_operacional*>::iterator it = funciones[*dItr]->entradas.begin(); it != funciones[*dItr]->entradas.end(); ++it)
 			{
 				if ((*it)->operador == OP_NONE)
 				{
@@ -842,7 +836,7 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 								else
 									return identificador->value.igualdad_Condicional(entradas[ent_itr]);
 							},
-							[&](Valor_Funcion * a) { return entradas[ent_itr].igualdad_Condicional(ExecFuncion(a->ID->nombre, transformarEntradasFuncion(a,variables))); },
+							[&](Valor_Funcion * a) { return entradas[ent_itr].igualdad_Condicional(ExecFuncion(a, transformarEntradasFuncion(a,variables))); },
 							[&](multi_value * a) 
 							{  
 								if (a->contenedor)
@@ -937,13 +931,13 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 
 			Errores::saltarErrores = false;
 
-			if (Interprete_Sentencia((*funcion)->body, variables))
+			if (Interprete_Sentencia(funciones[*dItr]->body, variables))
 			{
 				Errores::saltarErrores = false;
 				delete[] variables;
 
 				//Si la salida es NULA es que no se ha especificado una, la salida será igual al valor de retorno.
-				if ((*funcion)->salida == NULL)
+				if (funciones[*dItr]->salida == NULL)
 				{
 					if (this->returnCalled())
 					{
@@ -960,13 +954,13 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 					if (this->returnCalled())
 					{
 						Value retorno = this->getRetorno();
-						return retorno.Cast((*funcion)->salida);
+						return retorno.Cast(funciones[*dItr]->salida);
 					}
 					else
 					{
 
-						if ((*funcion)->salida->value != PARAM_VOID)
-							Errores::generarWarning(Errores::WARNING_FUNCION_VALOR_DEVUELTO_VOID, &(*funcion)->parametros, (*funcion)->pID->nombre);
+						if (funciones[*dItr]->salida->value != PARAM_VOID)
+							Errores::generarWarning(Errores::WARNING_FUNCION_VALOR_DEVUELTO_VOID, &funciones[*dItr]->parametros, funciones[*dItr]->pID->nombre);
 
 						return  std::monostate();
 					}
@@ -980,11 +974,11 @@ Value Interprete::ExecFuncion(std::string name, std::vector<Value> entradas)
 				delete[] variables;
 				return  std::monostate();
 			}
-		}
+		
 	}
 
 	Errores::saltarErrores = false;
-	Errores::generarError(Errores::ERROR_FUNCION_NO_RECONOCIDA, NULL, name);
+	Errores::generarError(Errores::ERROR_FUNCION_NO_RECONOCIDA, NULL, vf->ID->nombre);
 	return std::monostate();
 }
 /*

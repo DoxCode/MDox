@@ -31,6 +31,8 @@ public:
 	int numero_variables_globales = 0;
 	int numero_variables_funcion = 0;
 
+	std::vector<Valor_Funcion*> valores_funciones;
+
 	Parser() {  }
 
 	//Funciones detectoras de parametros
@@ -46,6 +48,8 @@ public:
 	OPERADORES getOperador(int& local_index);
 	Parser_Sentencia* getSentencia(int& local_index, std::vector<Variable>& variables);
 	Parser_Funcion* getFuncion(int& local_index);
+
+	void preloadFunciones(std::vector<Parser_Funcion*>);
 
 	//Cacheado de variables
 	Variable* BusquedaVariable(Parser_Identificador * ID, std::vector<Variable>& variables);

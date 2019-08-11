@@ -27,18 +27,20 @@ int main(int argument_count, char * argument_list[])
 			return 0;
 		}
 
+		Core::Start();
+
+		Parser_Identificador* vId = new Parser_Identificador("main");
+		std::vector<Value> entradas;
+		Valor_Funcion vf = Valor_Funcion(vId);
+		parser.valores_funciones.emplace_back(&vf);
+
 		Interprete * interprete = new Interprete();
 		if (!interprete->CargarDatos(&parser))
 		{
 			return 0;
 		}
 
-		Parser_Identificador * vId = new Parser_Identificador("main");
-		std::vector<Value> entradas;
-		Valor_Funcion vf = Valor_Funcion(vId);
-
-		Core::Start();
-		interprete->ExecFuncion(vf.ID->nombre, entradas);
+		interprete->ExecFuncion(&vf, entradas);
 
 		return 0;
 	}

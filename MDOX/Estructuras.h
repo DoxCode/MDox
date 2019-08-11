@@ -490,6 +490,9 @@ public:
 	Parser_Identificador* ID;
 	std::vector<arbol_operacional*> entradas;
 
+	std::vector<int> funcionesCoreItrData;  //Dirección de la función Core
+	std::vector<int> funcionesItrData;		//Dirección de la función
+
 	Valor_Funcion(Parser_Identificador* a) : ID(a), Parser_Valor(VAL_FUNC) {}
 	Valor_Funcion(Parser_Identificador* a, std::vector<arbol_operacional*> b) : ID(a), entradas(b), Parser_Valor(VAL_FUNC) {}
 

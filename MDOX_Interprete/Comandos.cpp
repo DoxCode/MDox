@@ -73,7 +73,7 @@ bool Comandos(std::string comando, Interprete * interprete)
 			}
 
 			std::string ruta = "";
-			int puntos = 1;
+			long long puntos = 1;
 
 			// Si el primer valor en una comilla doble, implica que puede haber una ruta con espacios.
 			if (comando_rec.at(1).at(0) == '"')

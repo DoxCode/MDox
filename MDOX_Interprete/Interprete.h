@@ -90,8 +90,8 @@ public:
 	std::vector<Value> transformarEntradasFuncion(Valor_Funcion* vF, Variable_Runtime* variables);
 	bool Relacional_rec_arbol(arbol_operacional* node, Variable_Runtime* variables, Value& val_r);
 
-	Value ExecFuncion(std::string name, std::vector<Value> entradas);
-	bool FuncionCore(std::string name, std::vector<Value> entradas);
+	Value ExecFuncion(Valor_Funcion * vf, std::vector<Value> entradas);
+	bool FuncionCore(Valor_Funcion* vf, std::vector<Value> entradas);
 
 
 	Interprete()
