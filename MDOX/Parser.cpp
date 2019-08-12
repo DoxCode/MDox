@@ -1678,10 +1678,21 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 						}
 						else
 						{
-							variables.push_back(Variable(a->nombre, this->getLastIndex()));
-							IncrementarVariables();
-							a->index = variables.back().index;
-							a->inicializando = true;
+							if (this->isGlobal)
+							{
+								this->variables_globales.push_back(Variable(a->nombre, this->getLastIndex()));
+								IncrementarVariables();
+								a->index = this->variables_globales.back().index;
+								a->var_global = true;
+								a->inicializando = true;
+							}
+							else
+							{
+								variables.push_back(Variable(a->nombre, this->getLastIndex()));
+								IncrementarVariables();
+								a->index = variables.back().index;
+								a->inicializando = true;
+							}
 						}
 					}
 					else a->index = var->index;
@@ -1822,8 +1833,8 @@ void Parser::preloadFunciones(std::vector<Parser_Funcion*> funciones)
 			}
 		}
 	}
-	this->valores_funciones.clear();
-	this->valores_funciones.shrink_to_fit();
+	//this->valores_funciones.clear();
+	//this->valores_funciones.shrink_to_fit();
 }
 
 
