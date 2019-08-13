@@ -261,6 +261,186 @@ multi_value* Parser::getValorList(bool& all_value, int& local_index, std::vector
 
 }
 
+/*
+Tratamiento de la lista de vectores multi_value, para permitir que siempre se muestren en orden los valores.
+De esta forma, [[1,2,3,4,5]:a,b,c,c,b,a] -> El primer a,b,c tomará los valores, dando 3,4,5 respectivamente.
+											Mientras que los siguientes c,b,a al ya existir dejará los datos en el rango inverso
+											teniendo al final: [1,2,5,4,3]
+*/
+void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
+{
+	if (!contenedor_operacion_vector->contenedor)
+		return;
+
+	std::visit(overloaded
+		{
+			[&](multi_value * a)
+			{
+				if (a->is_vector)
+					return;
+				if (a->contenedor)
+				{
+					TratarContenedorVectores(a);
+					return;
+				}
+
+				bool reverse = false;
+				long long first_reverse = 0;
+				for (int itr = 0; itr < a->arr.size(); itr++)
+				{
+					//Si devuelve true, implica que requiere reverse
+					if (std::visit(overloaded
+						{
+							[&](Parser_Identificador * tr)
+							{
+								if (tr->inicializando)
+									return false;
+								else return true;
+							},
+							[](auto&) {return true; }
+
+						}, a->arr[itr]))
+					{
+						if (!reverse)
+						{
+							first_reverse = itr;
+							reverse = true;
+						}
+					}
+					else
+					{
+						if (reverse && first_reverse - 1 != itr)
+						{
+							std::reverse(a->arr.begin() + first_reverse, a->arr.begin() + itr);
+							reverse = false;
+						}
+					}
+				}
+
+				if (reverse && first_reverse-1 != a->arr.size()-1)
+				{
+					std::reverse(a->arr.begin() + first_reverse, a->arr.end());
+				}
+			},
+			[&](auto&) {}
+
+		}, contenedor_operacion_vector->operacionesVector->v1);
+
+	std::visit(overloaded
+		{
+			[&](multi_value * a)
+			{
+				if (a->is_vector)
+					return;
+
+				if (a->contenedor)
+				{
+					TratarContenedorVectores(a);
+					return;
+				}
+
+				bool reverse = false;
+				long long first_reverse = 0;
+				for (int itr = 0; itr < a->arr.size(); itr++)
+				{
+					//Si devuelve true, implica que requiere reverse
+					if (std::visit(overloaded
+						{
+							[&](Parser_Identificador * tr)
+							{
+								if (tr->inicializando)
+									return true;
+								else return false;
+							},
+							[](auto&) {return false; }
+
+						}, a->arr[itr]))
+					{
+						if (!reverse)
+						{
+							first_reverse = itr;
+							reverse = true;
+						}
+					}
+					else
+					{
+						if (reverse && first_reverse - 1 != itr)
+						{
+							std::reverse(a->arr.begin() + first_reverse, a->arr.begin() + itr);
+							reverse = false;
+						}
+					}
+				}
+
+				if (reverse && first_reverse - 1 != a->arr.size() - 1)
+				{
+					std::reverse(a->arr.begin() + first_reverse, a->arr.end());
+				}
+			},
+			[&](auto&) {}
+
+		}, contenedor_operacion_vector->operacionesVector->v2);
+
+	if (contenedor_operacion_vector->operacionesVector->dobleOperador)
+	{
+
+		std::visit(overloaded
+			{
+				[&](multi_value * a)
+				{
+					if (a->is_vector)
+						return;
+
+					if (a->contenedor)
+					{
+						TratarContenedorVectores(a);
+						return;
+					}
+
+					bool reverse = false;
+					long long first_reverse = 0;
+					for (int itr = 0; itr < a->arr.size(); itr++)
+					{
+						//Si devuelve true, implica que requiere reverse
+						if (std::visit(overloaded
+							{
+								[&](Parser_Identificador * tr)
+								{
+									if (tr->inicializando)
+										return true;
+									else return false;
+								},
+								[](auto&) {return false; }
+
+							}, a->arr[itr]))
+						{
+							first_reverse = itr;
+							reverse = true;
+						}
+						else
+						{
+							if (reverse && first_reverse - 1 != itr)
+							{
+								std::reverse(a->arr.begin() + first_reverse, a->arr.begin() + itr);
+								reverse = false;
+							}
+						}
+					}
+
+					if (reverse && first_reverse - 1 != a->arr.size() - 1)
+					{
+						std::reverse(a->arr.begin() + first_reverse, a->arr.end());
+					}
+				},
+				[&](auto&) {}
+
+			}, contenedor_operacion_vector->operacionesVector->v3);
+	}
+
+
+
+}
+
 conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& variables)
 {
 	int index = local_index;
@@ -413,6 +593,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 					}
 
 					local_index = indexRet;
+					TratarContenedorVectores(contenedor_operacion_vector);
 					return contenedor_operacion_vector;
 				}
 				else if (ss_v == ":" || ss_v == "::")
@@ -492,6 +673,7 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 						}
 
 						local_index = indexRet;
+						TratarContenedorVectores(contenedor_operacion_vector);
 						return contenedor_operacion_vector;
 					}
 					else
