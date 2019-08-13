@@ -284,6 +284,9 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 					return;
 				}
 
+				if (contenedor_operacion_vector->operacionesVector->operador1 == OPERADORES::OP_CHECK_GET)
+					return;
+
 				bool reverse = false;
 				long long first_reverse = 0;
 				for (int itr = 0; itr < a->arr.size(); itr++)
@@ -344,7 +347,7 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 				for (int itr = 0; itr < a->arr.size(); itr++)
 				{
 					//Si devuelve true, implica que requiere reverse
-					if (std::visit(overloaded
+					if (contenedor_operacion_vector->operacionesVector->operador1 == OPERADORES::OP_CHECK_GET || std::visit(overloaded
 						{
 							[&](Parser_Identificador * tr)
 							{
@@ -402,7 +405,7 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 					for (int itr = 0; itr < a->arr.size(); itr++)
 					{
 						//Si devuelve true, implica que requiere reverse
-						if (std::visit(overloaded
+						if (contenedor_operacion_vector->operacionesVector->operador1 == OPERADORES::OP_CHECK_GET || std::visit(overloaded
 							{
 								[&](Parser_Identificador * tr)
 								{
@@ -414,8 +417,11 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 
 							}, a->arr[itr]))
 						{
-							first_reverse = itr;
-							reverse = true;
+							if (!reverse)
+							{
+								first_reverse = itr;
+								reverse = true;
+							}
 						}
 						else
 						{
