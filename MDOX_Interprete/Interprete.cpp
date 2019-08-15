@@ -116,6 +116,7 @@ void Interprete::Interpretar(Parser* parser)
 	Parser_Sentencia* inst = new Sentencia_Recursiva(valor);
 
 	Variable_Runtime* variables = new Variable_Runtime[parser->numero_variables_funcion];
+	parser->preloadFunciones(this->funciones);
 
 	if (!Interprete_Sentencia(inst, variables))
 	{
@@ -131,7 +132,7 @@ Value Interprete::TratarMultiplesValores(multi_value* arr, Variable_Runtime* var
 {
 	if (arr->is_vector)
 	{
-		std::shared_ptr<mdox_vector> res = std::make_shared<mdox_vector>();
+		std::shared_ptr <mdox_vector> res = std::make_shared<mdox_vector>();
 		res->vector.reserve(arr->arr.size());
 
 		//int itr = 0;
@@ -161,7 +162,7 @@ Value Interprete::TratarMultiplesValores(multi_value* arr, Variable_Runtime* var
 		ValueCopyOrRef v2 = tipoValorToValueOrRef(arr->operacionesVector->v2, variables, &f2);
 
 		bool left = false;
-		bool isPop, isPop2;
+		bool isPop = false, isPop2=false;
 		if (v1.ref)
 		{
 			if (v2.ref)
@@ -447,16 +448,25 @@ ValueCopyOrRef Interprete::tipoValorToValueOrRef(tipoValor& a, Variable_Runtime*
 			{
 				Variable_Runtime* vr = a->var_global ? &this->variables_globales[a->index] : &variables[a->index];
 				vr->fuerte = true;
+				vr->value = std::monostate();
 				*ret = a;
 
 				return &vr->value;
 			}
 			*ret = a;
+
+			if (a->inicializando)
+			{
+				Variable_Runtime* vr = a->var_global ? &this->variables_globales[a->index] : &variables[a->index];
+				vr->value = std::monostate();
+				return &vr->value;
+			}
+
 			return a->var_global ? &this->variables_globales[a->index].value : &variables[a->index].value;
 			
 		},
 		[&](Valor_Funcion * a)->ValueCopyOrRef { return ExecFuncion(a, transformarEntradasFuncion(a, variables)); },
-		[&](multi_value * a)->ValueCopyOrRef {  if (a->is_vector) return TratarMultiplesValores(a, variables); return a; },
+		[&](multi_value * a)->ValueCopyOrRef { if (a->contenedor || a->is_vector) return TratarMultiplesValores(a, variables); return a; },
 		[&](auto&)->ValueCopyOrRef { return std::monostate(); },
 		}, a);
 }
@@ -600,7 +610,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 				return false;
 			}
 
-			if (return_activo)
+			if (return_activo || break_activo || continue_activo || ignore_activo)
 				break;
 
 		}
@@ -635,6 +645,31 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 		}
 		else retornoSinValor();
 
+		return true;
+	}
+	// Acciones
+	case SENT_ACCION:
+	{
+		Sentencia_Accion* x = static_cast<Sentencia_Accion*>(sentencia);
+		switch (x->accion)
+		{
+			case TipoAccion::BREAK:
+			{
+				this->break_activo = true;
+				break;
+			}
+			case TipoAccion::CONTINUE:
+			{
+				this->continue_activo = true;
+				break;
+			}
+			case TipoAccion::IGNORE:
+			{
+				this->ignore_activo = true;
+				break;
+			}
+
+		}
 		return true;
 	}
 	// FUNCION IF:
@@ -682,6 +717,12 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 
 		while (true)
 		{
+			if (return_activo ||  breakCalled() || ignore_activo)
+				break;
+
+			if (continueCalled())
+				continue;
+
 			Value b = lectura_arbol_operacional(x->pCond, variables);
 
 			if (b.ValueToBool())
@@ -700,6 +741,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 				return true;
 			}
 		}
+		return true;
 	}
 	// FUNCION FOR:
 	// Repite la sentencia hasta que la condición del bucle while se cumpla.
@@ -715,6 +757,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 
 		while (true)
 		{
+
 			bool res = true;
 
 			if (x->pCond)
@@ -730,6 +773,12 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 					return false;
 				}
 
+				if (return_activo || breakCalled()  || ignore_activo)
+					break;
+
+				if (continueCalled())
+					continue;
+
 				if (x->pOp)
 				{
 					lectura_arbol_operacional(x->pOp, variables);
@@ -740,12 +789,12 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 				return true;
 			}
 		}
+		return true;
 	}
 	}
 	return false;
 }
 
-//TODO: En un futuro hay que cambiar el estilo de busqueda de funciones por un método directo de cacheado.
 bool Interprete::FuncionCore(Valor_Funcion* vf, std::vector<Value> entradas)
 {
 	//Core::core_functions
@@ -848,6 +897,9 @@ Value Interprete::ExecFuncion(Valor_Funcion* vf, std::vector<Value> entradas)
 										if (!identificador->value.asignacion(entradas[ent_itr], false))
 											return false;
 
+										//hackfix para evitar que en funciones [xs:x], xs se convierta en monostate
+										a->operacionesVector->id_v->inicializando = false;
+
 										Parser_Identificador* f1 = NULL;
 										Parser_Identificador* f2 = NULL;
 
@@ -933,6 +985,9 @@ Value Interprete::ExecFuncion(Valor_Funcion* vf, std::vector<Value> entradas)
 
 			if (Interprete_Sentencia(funciones[*dItr]->body, variables))
 			{
+				if (this->ignoreCalled())
+					continue;
+
 				Errores::saltarErrores = false;
 				delete[] variables;
 

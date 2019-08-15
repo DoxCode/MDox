@@ -390,8 +390,8 @@ public:
 	Value(std::string& a) : value(a) {  };
 	Value(bool& a) : value(a) {  };
 	Value(std::monostate&) : value(std::monostate()) {  };
-	Value(std::shared_ptr<mdox_vector>& a) : value(a) {  };
-
+	Value(std::shared_ptr<mdox_vector>& a) : value(std::make_shared<mdox_vector>(*a)) {  };
+	//Value(std::shared_ptr<mdox_vector>& a) : value(a) {  };
 	Value(int&& a) : value(std::move(a)) {  };
 	Value(double&& a) : value(std::move(a)) {  };
 	Value(long long&& a) : value(std::move(a)) {  };
@@ -399,6 +399,11 @@ public:
 	Value(bool&& a) : value(std::move(a)) {  };
 	Value(std::shared_ptr<mdox_vector>&& a) : value(std::move(a)) {  };
 
+	Value(val_variant& a) : value(std::visit(overloaded
+		{ 
+			[&](std::shared_ptr<mdox_vector>& c)->val_variant {  return std::make_shared<mdox_vector>(*c); },
+			[&](auto & c)->val_variant {  return a; },
+		}, a)) {  };
 
 	/*
 	Value operator=(Value& lhs)
@@ -415,20 +420,10 @@ public:
 		value = std::move(lhs.value);
 		return *this;
 	};
+	*/
 
 
-	Value(const Value& v)
-	{
-		std::cout << "Copia Const\n";
-		value = v.value;
-	}
-
-	Value(Value&& v)
-	{
-		std::cout << "Mover Const\n";
-		value = std::move(v.value);
-	}
-		*/
+		
 
 };
 
@@ -597,6 +592,7 @@ class multi_value
 {
 public:
 	std::vector<tipoValor> arr;
+
 	bool is_vector = false; // Si no es un vector, es multivalor/operacion, es decir (a,b,c)-> EJ: a = 1, b = 2, c = 3;
 	bool contenedor = false; // Si es true, implica operaciones de editado de vectores ':' o '::' 
 
@@ -668,6 +664,7 @@ enum SentenciaType {
 	SENT_WHILE,
 	SENT_FOR,
 	SENT_RETURN,
+	SENT_ACCION,
 	SENT_PRINT,
 	SENT_OP,
 
@@ -777,6 +774,20 @@ public:
 	}
 };
 
+enum TipoAccion
+{
+	BREAK,		//ROMPE bucles
+	CONTINUE,	//CONTINUA bucles
+	IGNORE,		//IGNORA la función actual y pasa a buscar la siguiente.
+};
+
+class Sentencia_Accion : public Parser_Sentencia {
+public:
+	TipoAccion accion;
+	Sentencia_Accion(TipoAccion& a) : accion(a), Parser_Sentencia(SENT_ACCION) {}
+	Sentencia_Accion(TipoAccion&& a) : accion(std::move(a)), Parser_Sentencia(SENT_ACCION) {}
+};
+
 class Sentencia_Operacional : public Parser_Sentencia {
 public:
 	arbol_operacional* pOp;
@@ -825,5 +836,6 @@ public:
 
 	};
 };
+
 
 #endif

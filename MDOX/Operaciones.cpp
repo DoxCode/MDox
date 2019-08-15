@@ -1805,7 +1805,7 @@ bool Value::asignacion(Value & v, bool fuerte)
 {
 	if (!fuerte)
 	{
-		*this = v;
+		*this = Value(v.value);
 		return true;
 	}
 	else

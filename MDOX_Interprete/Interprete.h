@@ -52,6 +52,11 @@ public:
 class Interprete {
 private:
 	bool return_activo = false;
+	bool break_activo = false;
+	bool continue_activo = false;
+	bool ignore_activo = false;
+
+
 	Value _retorno;
 public:
 	static Interprete* instance;
@@ -62,7 +67,12 @@ public:
 	std::vector<Fichero*> nombre_ficheros; //Nombre de ficheros cargados en la instancia actual del interprete.
 	std::vector<Parser_Funcion*> funciones;
 
-
+	//Retorno continue
+	bool ignoreCalled() { if (ignore_activo) { ignore_activo = false; return true; } return false; }
+	//Retorno continue
+	bool continueCalled() { if (continue_activo) { continue_activo = false; return true; } return false; }
+	//Retorno break
+	bool breakCalled() { if (break_activo) { break_activo = false; return true; } return false; }
 	//Variable de retorno actual
 	void setRetorno(Value& v) { _retorno = v; return_activo = true; }
 	bool returnCalled() { if (return_activo) { return_activo = false; return true; } return false; }

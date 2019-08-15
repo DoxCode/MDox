@@ -1617,10 +1617,53 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 		{
 			if (tokenizer.getTokenValue(index) == ";")
 			{
+				local_index = index;
 				Sentencia_Return* sif = new Sentencia_Return(NULL);
 				sif->generarPosicion(&tokenizer);
 				return sif;
 			}
+		}
+	}
+
+	//##########   -- SENTENCIA BREAK --   ##########
+	index = local_index;
+
+	if (tokenizer.getTokenValue(index) == "break")
+	{
+		if (tokenizer.getTokenValue(index) == ";")
+		{
+			local_index = index;
+			Sentencia_Accion* sif = new Sentencia_Accion(TipoAccion::BREAK);
+			sif->generarPosicion(&tokenizer);
+			return sif;
+		}
+	}
+
+	//##########   -- SENTENCIA CONTINUE --   ##########
+	index = local_index;
+
+	if (tokenizer.getTokenValue(index) == "continue")
+	{
+		if (tokenizer.getTokenValue(index) == ";")
+		{
+			local_index = index;
+			Sentencia_Accion* sif = new Sentencia_Accion(TipoAccion::CONTINUE);
+			sif->generarPosicion(&tokenizer);
+			return sif;
+		}
+	}
+
+	//##########   -- SENTENCIA IGNORE --   ##########
+	index = local_index;
+
+	if (tokenizer.getTokenValue(index) == "ignore")
+	{
+		if (tokenizer.getTokenValue(index) == ";")
+		{
+			local_index = index;
+			Sentencia_Accion* sif = new Sentencia_Accion(TipoAccion::IGNORE);
+			sif->generarPosicion(&tokenizer);
+			return sif;
 		}
 	}
 
@@ -1996,6 +2039,7 @@ void Parser::preloadFunciones(std::vector<Parser_Funcion*> funciones)
 {
 	for (std::vector<Valor_Funcion*>::iterator it = this->valores_funciones.begin(); it != this->valores_funciones.end(); ++it)
 	{
+		(*it)->funcionesCoreItrData.clear();
 		//Core::core_functions
 		for (int itr = 0; itr < Core::core_functions.size(); itr++)
 		{
@@ -2008,6 +2052,7 @@ void Parser::preloadFunciones(std::vector<Parser_Funcion*> funciones)
 			}
 		}
 
+		(*it)->funcionesItrData.clear();
 		for(int itr= 0; itr < funciones.size(); itr++)
 		{
 			//Debe coincidir el nombre de la misma.
