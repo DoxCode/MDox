@@ -1088,9 +1088,20 @@ arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable>
 	int is_op = 0;
 	int left_scope = 0;
 
-	//std::cout << "#1. \n";
+	//Usado para comprobar si el último operador fue ++ ó --
+	// Y en caso de serlo, comprobar que el siguiente valor no sea fin de linea.
+	bool isEndLineOperator = false;
+
 	while (true)
 	{
+		//Comprobamos si es itr++\n
+		if (isEndLineOperator)
+		{
+			if (tokenizer.checkCloseToken(index))
+				break;
+			isEndLineOperator = false;
+		}
+
 		if (is_op == 0)
 		{
 			OPERADORES aux = this->getOperador(index);
@@ -1276,6 +1287,9 @@ arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable>
 			}
 			else
 			{
+				if (aux == OPERADORES::OP_ITR_MIN || aux == OPERADORES::OP_ITR_PLUS)
+					isEndLineOperator = true;
+
 				normal_operator_do(left_scope, is_op, aux, stack, op_stack);
 				continue;
 			}
@@ -1604,7 +1618,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 
 		if (pOp)
 		{
-			if (tokenizer.getTokenValue(index) == ";")
+			if (tokenizer.isCloseToken(index))
 			{
 				local_index = index;
 				Sentencia_Return* sif = new Sentencia_Return(pOp);
@@ -1615,7 +1629,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 		}
 		else
 		{
-			if (tokenizer.getTokenValue(index) == ";")
+			if (tokenizer.isCloseToken(index))
 			{
 				local_index = index;
 				Sentencia_Return* sif = new Sentencia_Return(NULL);
@@ -1630,7 +1644,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 
 	if (tokenizer.getTokenValue(index) == "break")
 	{
-		if (tokenizer.getTokenValue(index) == ";")
+		if (tokenizer.isCloseToken(index))
 		{
 			local_index = index;
 			Sentencia_Accion* sif = new Sentencia_Accion(TipoAccion::BREAK);
@@ -1644,7 +1658,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 
 	if (tokenizer.getTokenValue(index) == "continue")
 	{
-		if (tokenizer.getTokenValue(index) == ";")
+		if (tokenizer.isCloseToken(index))
 		{
 			local_index = index;
 			Sentencia_Accion* sif = new Sentencia_Accion(TipoAccion::CONTINUE);
@@ -1658,7 +1672,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 
 	if (tokenizer.getTokenValue(index) == "ignore")
 	{
-		if (tokenizer.getTokenValue(index) == ";")
+		if (tokenizer.isCloseToken(index))
 		{
 			local_index = index;
 			Sentencia_Accion* sif = new Sentencia_Accion(TipoAccion::IGNORE);
@@ -1674,7 +1688,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 		arbol_operacional* pOp = getOperacion(index, variables, true);
 		if (pOp)
 		{
-			if (tokenizer.getTokenValue(index) == ";")
+			if (tokenizer.isCloseToken(index))
 			{
 				local_index = index;
 				Sentencia_Print* sif = new Sentencia_Print(pOp);
@@ -1693,7 +1707,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 
 	if (pOp)
 	{
-		if (tokenizer.getTokenValue(index) == ";")
+		if (tokenizer.isCloseToken(index))
 		{
 			local_index = index;
 			Sentencia_Operacional* sif = new Sentencia_Operacional(pOp);

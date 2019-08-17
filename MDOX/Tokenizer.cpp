@@ -12,9 +12,11 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 	std::string val = "";
 
 	bool _cadena = false;
+	bool anteriorLinea = false;
 
 	for (std::vector<Linea*>::iterator it = str.begin(); it != str.end(); ++it)
 	{
+		anteriorLinea = true;
 		for (unsigned itr = 0; itr < (*it)->val.size(); itr++)
 		{
 			const char c = (*it)->val.at(itr);
@@ -25,12 +27,12 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 				{
 					if (val.size() > 0)
 					{
-						tokens.push_back(new Token((*it)->linea,itr,val));
+						tokens.push_back(new Token((*it)->linea,itr,val, anteriorLinea));
 						val = "";
 					}
 
 					std::string chr(1, c);
-					tokens.push_back(new Token((*it)->linea, itr, chr));
+					tokens.push_back(new Token((*it)->linea, itr, chr, anteriorLinea));
 					_cadena = false;
 				}
 				else
@@ -47,7 +49,7 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 			{
 				if (val.size() > 0)
 				{
-					tokens.push_back(new Token((*it)->linea, itr, val));
+					tokens.push_back(new Token((*it)->linea, itr, val, anteriorLinea));
 					val = "";
 				}
 				continue;
@@ -67,14 +69,14 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 		
 					if (val.size() > 0)
 					{
-						tokens.push_back(new Token((*it)->linea, itr, val));
+						tokens.push_back(new Token((*it)->linea, itr, val, anteriorLinea));
 						val = "";
 					}
 
 					std::string chr(1, c);
 					chr += c2;
 					chr += c3;
-					tokens.push_back(new Token((*it)->linea, itr, chr));
+					tokens.push_back(new Token((*it)->linea, itr, chr, anteriorLinea));
 					itr += 2;
 					continue;
 
@@ -102,13 +104,13 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 				{
 					if (val.size() > 0)
 					{
-						tokens.push_back(new Token((*it)->linea, itr, val));
+						tokens.push_back(new Token((*it)->linea, itr, val, anteriorLinea));
 						val = "";
 					}
 
 					std::string chr(1, c);
 					chr += c2;
-					tokens.push_back(new Token((*it)->linea, itr, chr));
+					tokens.push_back(new Token((*it)->linea, itr, chr, anteriorLinea));
 					itr++;
 					continue;
 
@@ -121,12 +123,12 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 			{
 				if (val.size() > 0)
 				{
-					tokens.push_back(new Token((*it)->linea, itr, val));
+					tokens.push_back(new Token((*it)->linea, itr, val, anteriorLinea));
 					val = "";
 				}
 
 				std::string chr(1, c);
-				tokens.push_back(new Token((*it)->linea, itr, chr));
+				tokens.push_back(new Token((*it)->linea, itr, chr, anteriorLinea));
 
 				if (c == '"')
 					_cadena = true;
@@ -139,7 +141,7 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 
 		if (val.size() > 0)
 		{
-			tokens.push_back(new Token((*it)->linea, (*it)->val.size(), val));
+			tokens.push_back(new Token((*it)->linea, (*it)->val.size(), val, anteriorLinea));
 			val = "";
 		}
 

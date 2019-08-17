@@ -19,7 +19,8 @@ public:
 	std::string token;
 	int linea;
 	int char_horizontal;
-	Token(int a, int b, std::string c) : linea(a), char_horizontal(b), token(c) {}
+	bool firstNewLine;
+	Token(int a, int b, std::string c, bool& nw) : linea(a), char_horizontal(b), token(c), firstNewLine(nw) { nw = false; }
 };
 
 
@@ -56,10 +57,51 @@ public:
 			return NULL; 
 		int temp = inx; 
 		inx++; 
-		token_actual = tokens.at(temp);
+		token_actual = tokens[temp];
 		return token_actual;
 	}
 
+	bool isCloseToken(int& inx)
+	{
+		Token* t = getToken(inx);
+		if (t)
+			if (t->token == ";")
+				return true;
+			else if (t->firstNewLine)
+			{
+				inx--;
+				return true;
+			}
+			else if (tokens.size() == inx)
+				return true;
+		
+		return false;
+	}
+
+	//Solo checkea, devuelve el indice actual.
+	bool checkCloseToken(int& inx)
+	{
+		Token* t = getToken(inx);
+		if (t)
+			if (t->token == ";")
+			{
+				inx--;
+				return true;
+			}
+			else if (t->firstNewLine)
+			{
+				inx--;
+				return true;
+			}
+			else if (tokens.size() == inx)
+			{
+				inx--;
+				return true;
+			}
+		return false;
+	}
+
+	//Devuelve únicamente tokens con valor, ignora \n
 	std::string getTokenValue(int& inx)
 	{
 		Token * t = getToken(inx);
