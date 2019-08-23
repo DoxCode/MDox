@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include "Tokenizer.h"
+
 //#include "Funciones.h"
 
 
@@ -220,7 +221,7 @@ enum OPERADORES {
 	OP_POP_ADD, // :  -> xs:x
 	OP_CHECK_GET, // ::  -> xs::x
 
-	//Operadores igualdad
+	//Operadores asignacion
 	//Prior 1
 	OP_IG_EQUAL,
 	OP_IG_EQUAL_SUM,
@@ -331,8 +332,9 @@ public:
 	mdox_vector(std::vector<Value>&& b) : vector(std::move(b)) {};
 };
 
+class mdox_object;
 
-using val_variant = std::variant< std::monostate, int, bool, double, std::shared_ptr<mdox_vector>, long long, std::string>;
+using val_variant = std::variant< std::monostate, int, bool, double, std::shared_ptr<mdox_vector>, std::shared_ptr<mdox_object>, long long, std::string>;
 class Parser_Identificador;
 
 //template <class valueType>
@@ -391,13 +393,16 @@ public:
 	Value(bool& a) : value(a) {  };
 	Value(std::monostate&) : value(std::monostate()) {  };
 	Value(std::shared_ptr<mdox_vector>& a) : value(std::make_shared<mdox_vector>(*a)) {  };
-	//Value(std::shared_ptr<mdox_vector>& a) : value(a) {  };
+	Value(std::shared_ptr<mdox_object>& a) : value(a) {  };
+
+
 	Value(int&& a) : value(std::move(a)) {  };
 	Value(double&& a) : value(std::move(a)) {  };
 	Value(long long&& a) : value(std::move(a)) {  };
 	Value(std::string&& a) : value(std::move(a)) {  };
 	Value(bool&& a) : value(std::move(a)) {  };
 	Value(std::shared_ptr<mdox_vector>&& a) : value(std::move(a)) {  };
+	Value(std::shared_ptr<mdox_object>&& a) : value(a) {  };
 
 	Value(val_variant& a) : value(std::visit(overloaded
 		{ 
@@ -428,34 +433,14 @@ public:
 };
 
 
-
-
-// ########################################################
-// ####################### VALOR ##########################
-// ########################################################
-enum ValorType
-{
-	VAL_ID,
-	VAL_LIT,
-	VAL_FUNC,
-};
-
-class Parser_Valor {
-public:
-	ValorType tipo;
-	Parser_Valor(ValorType a) : tipo(a) {}
-
-	virtual ~Parser_Valor() {}
-};
-
-
 // ################################################################
 // ####################### IDENTIFICADOR ########################## 
 // ################################################################
 
-class Parser_Identificador : public Parser_Valor, public Parser_NODE {
+class Parser_Identificador : public Parser_NODE {
 public:
 	bool var_global = false;
+	bool var_class = false;
 
 	int index;
 	std::string nombre;
@@ -464,8 +449,8 @@ public:
 
 	Parser_Declarativo* tipo = NULL;
 
-	Parser_Identificador(std::string a) : nombre(a), Parser_Valor(VAL_ID) {}
-	Parser_Identificador() : Parser_Valor(VAL_ID) {}
+	Parser_Identificador(std::string a) : nombre(a) {}
+	Parser_Identificador() {}
 	virtual ~Parser_Identificador() {};
 };
 
@@ -478,22 +463,57 @@ class arbol_operacional;
 // ######################### VALOR PLY ###########################
 // ###############################################################
 
+class IndexCall_Function
+{
+public:
+	std::vector<int> funcionesCoreItrData;  //Dirección de la función Core
+	std::vector<int> funcionesItrData;		//Dirección de la función
+};
+
+class IndexCall_Class
+{
+public:
+	int class_index;
+	int constructor_index;
+};
+
 //Basicamente se trataría de funciones con un retorno de un valor dado.
-class Valor_Funcion : public Parser_Valor, public Parser_NODE
+// También nos servirá como llamada al constructor de una clase
+// DEFAULT: ClassName()
+// CONSTRUCTORES: ClassName(x,y,z)
+// Básicamente las llamadas son iguales a las de una función.
+class Call_Value : public Parser_NODE
 {
 public:
 	Parser_Identificador* ID;
 	std::vector<arbol_operacional*> entradas;
 
-	std::vector<int> funcionesCoreItrData;  //Dirección de la función Core
-	std::vector<int> funcionesItrData;		//Dirección de la función
+	//En el caso de que la llamada sea a una función
+	IndexCall_Function* inx_funcion = NULL;
 
-	Valor_Funcion(Parser_Identificador* a) : ID(a), Parser_Valor(VAL_FUNC) {}
-	Valor_Funcion(Parser_Identificador* a, std::vector<arbol_operacional*> b) : ID(a), entradas(b), Parser_Valor(VAL_FUNC) {}
+	//En el caso de que la llamda sea a una clase
+	IndexCall_Class* inx_class = NULL;
 
-	virtual ~Valor_Funcion()
+	bool is_class;
+
+	void AddFuncion_Core(int inx);
+	void AddFuncion(int inx);
+	void AddClass(int inx, int constructor);
+	void setFuncion();
+	void setClass();
+
+	Call_Value(Parser_Identificador* a) : ID(a) {}
+	Call_Value(Parser_Identificador* a, std::vector<arbol_operacional*> b) : ID(a), entradas(b) {}
+
+	virtual ~Call_Value()
 	{
 		delete ID;
+
+		if (inx_class)
+			delete inx_class;
+
+		if (inx_funcion)
+			delete inx_funcion;
 	};
 };
 
@@ -503,7 +523,7 @@ public:
 class arbol_operacional;
 class multi_value;
 
-using tipoValor = std::variant<Value, Parser_Identificador*, Valor_Funcion*, arbol_operacional*, multi_value* >;
+using tipoValor = std::variant<Value, Parser_Identificador*, Call_Value*, arbol_operacional*, multi_value* >;
 //using ValueCopyOrRef = std::variant<Value, Value*, std::monostate>;
 
 class ValueCopyOrRef
@@ -550,7 +570,7 @@ public:
 		[&](Value&) {return false; },
 		[&](Parser_Identificador * a) { if (a->fuerte) return false; else { id_v = a;  return true; } },
 		[&](multi_value * a) { return false; },
-		[&](Valor_Funcion * a) { return false; },
+		[&](Call_Value * a) { return false; },
 		[&](arbol_operacional * a) { return false; },
 			}, v2);
 
@@ -561,7 +581,7 @@ public:
 		[&](Value&) {return false; },
 		[&](Parser_Identificador * a) { return !a->fuerte; },
 		[&](multi_value * a) { return false; },
-		[&](Valor_Funcion * a) { return false; },
+		[&](Call_Value * a) { return false; },
 		[&](arbol_operacional * a) { return false; },
 		}, v3);
 	}
@@ -611,7 +631,7 @@ public:
 	}
 };
 
-using conmp = std::variant< std::monostate, Value, Parser_Identificador*, Valor_Funcion*, OPERADORES, multi_value*>;
+using conmp = std::variant< std::monostate, Value, Parser_Identificador*, Call_Value*, OPERADORES, multi_value*>;
 using stack_conmp = std::deque<conmp>;
 
 class arbol_operacional : public Parser_NODE
@@ -620,6 +640,9 @@ public:
 	OPERADORES operador;
 	tipoValor _v1; // Primer valor 
 	tipoValor _v2; // segundo valor  
+
+	bool is_Public = false;
+	bool is_Static = false;
 
 	arbol_operacional(tipoValor a, tipoValor b, OPERADORES op) : _v1(a), _v2(b), operador(op) {}
 	arbol_operacional(tipoValor a) : _v1(a), operador(OP_NONE) {}
@@ -811,6 +834,9 @@ public:
 	Parser_Declarativo* salida;
 	Parser_Sentencia* body;
 
+	bool is_Public = false;
+	bool is_Static = false;
+
 	//Variables precargadas en cada funcion
 	int preload_var = 0;
 
@@ -833,6 +859,155 @@ public:
 			delete (*it);
 		}
 		entradas.clear();
+
+	};
+};
+
+// ############################################################
+// ######################### CLASES ########################### 
+// ############################################################
+
+enum etiquetas_class
+{
+	LABEL_PUBLIC,
+	LABEL_PRIVATE,
+	LABEL_STATIC,
+	LABEL_NONE
+};
+
+class Parser_ClassConstructor
+{
+public:
+	std::vector<int> entradas;
+	Parser_ClassConstructor()  {};
+	Parser_ClassConstructor(std::vector<int>& a) : entradas(a) {};
+};
+
+class Operator_Class
+{
+public:
+	//Consideraremos
+	bool isBinaryOperator = true; //si es true se establece la variable en '0'
+	Parser_Sentencia* body = NULL;
+
+	int num_variables;
+
+	Operator_Class(Parser_Sentencia* b, bool c, int d) : body(b), isBinaryOperator(c), num_variables(d){};
+
+	~Operator_Class() {deletePtr(body); }
+};
+
+class Operators_List
+{
+public:
+	//Operadores disponibles
+	//No todos los operadores serán permitidos.
+	//Por ejemplo, los '()' no se considerarán operadores.
+	Operator_Class* OPERATOR_suma = NULL; // operator + (r) {}
+	Operator_Class* OPERATOR_resta = NULL; // operator - (r) {}
+	Operator_Class* OPERATOR_divEntera = NULL; // operator div (r) {}
+	Operator_Class* OPERATOR_div = NULL; // operator / (r) {}
+	Operator_Class* OPERATOR_multiplicacion = NULL; // operator * (r) {}
+	Operator_Class* OPERATOR_mod = NULL; // operator % (r) {}
+
+	Operator_Class* OPERATOR_asignacion = NULL; // operator = (r) {}
+	Operator_Class* OPERATOR_asignacion_sum = NULL; // operator += (r) {}
+	Operator_Class* OPERATOR_asignacion_res = NULL; // operator -= (r) {}
+	Operator_Class* OPERATOR_asignacion_div = NULL; // operator /= (r) {}
+	Operator_Class* OPERATOR_asignacion_mult = NULL; // operator *= (r) {}
+	Operator_Class* OPERATOR_asignacion_mod = NULL; // operator %= (r) {}
+
+	Operator_Class* OPERATOR_rel_igualdad = NULL; // operator == (r) {}
+	Operator_Class* OPERATOR_rel_no_igual = NULL; // operator != (r) {}
+	Operator_Class* OPERATOR_rel_menor = NULL; // operator < (r) {}
+	Operator_Class* OPERATOR_rel_mayor = NULL; // operator > (r) {}
+	Operator_Class* OPERATOR_rel_menor_igual = NULL; // operator <= (r) {}
+	Operator_Class* OPERATOR_rel_mayor_igual = NULL; // operator >= (r) {}
+
+	Operator_Class* OPERATOR_log_and = NULL; // operator && (r) {}
+	Operator_Class* OPERATOR_log_or = NULL; // operator || (r) {}
+
+	Operator_Class* OPERATOR_brack = NULL; // operator [] (r) {}
+	Operator_Class* OPERATOR_pop_add = NULL; // operator : (r) {}
+	Operator_Class* OPERATOR_check_get = NULL; // operator :: (r) {}
+
+	//Operadores unitarios
+	Operator_Class* OPERATOR_plus = NULL; // operator ++ () {}
+	Operator_Class* OPERATOR_min = NULL; // operator -- () {}
+	Operator_Class* OPERATOR_negado = NULL; // operator ! () {}
+	Operator_Class* OPERATOR_negado_first = NULL; // operator - () {}
+
+
+	~Operators_List()
+	{
+		deletePtr(OPERATOR_suma);
+		deletePtr(OPERATOR_resta); // operator - (r) {}
+		deletePtr(OPERATOR_divEntera); // operator div (r) {}
+		deletePtr(OPERATOR_div); // operator / (r) {}
+		deletePtr(OPERATOR_multiplicacion); // operator * (r) {}
+		deletePtr(OPERATOR_mod); // operator % (r) {}
+		deletePtr(OPERATOR_asignacion); // operator = (r) {}
+		deletePtr(OPERATOR_asignacion_sum); // operator += (r) {}
+		deletePtr(OPERATOR_asignacion_res); // operator -= (r) {}
+		deletePtr(OPERATOR_asignacion_div); // operator /= (r) {}
+		deletePtr(OPERATOR_asignacion_mult); // operator *= (r) {}
+		deletePtr(OPERATOR_asignacion_mod); // operator %= (r) {}
+		deletePtr(OPERATOR_rel_igualdad); // operator == (r) {}
+		deletePtr(OPERATOR_rel_no_igual); // operator != (r) {}
+		deletePtr(OPERATOR_rel_menor); // operator < (r) {}
+		deletePtr(OPERATOR_rel_mayor); // operator > (r) {}
+		deletePtr(OPERATOR_rel_menor_igual); // operator <= (r) {}
+		deletePtr(OPERATOR_rel_mayor_igual); // operator >= (r) {}
+		deletePtr(OPERATOR_log_and); // operator && (r) {}
+		deletePtr(OPERATOR_log_or); // operator || (r) {}
+		deletePtr(OPERATOR_brack); // operator [] (r) {}
+		deletePtr(OPERATOR_pop_add); // operator : (r) {}
+		deletePtr(OPERATOR_check_get); // operator :: (r) {}
+		deletePtr(OPERATOR_plus); // operator ++ () {}
+		deletePtr(OPERATOR_min); // operator -- () {}
+		deletePtr(OPERATOR_negado); // operator ! () {}
+		deletePtr(OPERATOR_negado_first); // operator - () {}
+	}
+};
+
+
+class Parser_Class : public Parser_NODE
+{
+public:
+	Parser_Identificador* pID;
+	std::vector<Parser_Funcion*> funciones;
+	std::vector<Parser_ClassConstructor*> constructores;
+	std::vector<arbol_operacional*> variables_operar;
+
+	Operators_List* normal_operators = NULL; //Operadores del estilo this+x;  El objeto se encuentra en la izquierda de la operación.
+	Operators_List* right_operators = NULL;  //Operadores del estilo x+this;  El objeto se encuentra en la derecha de la operación.
+
+	int preload_var = 0;
+
+	Parser_Class(Parser_Identificador* p) : pID(p) {};
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Parser_Class()
+	{
+		delete pID;
+		delete normal_operators;
+		delete right_operators;
+
+		for (std::vector<Parser_Funcion*>::iterator it = funciones.begin(); it != funciones.end(); ++it)
+		{
+			delete (*it);
+		}
+		funciones.clear();
+		for (std::vector<Parser_ClassConstructor*>::iterator it = constructores.begin(); it != constructores.end(); ++it)
+		{
+			delete (*it);
+		}
+		constructores.clear();
+		for (std::vector<arbol_operacional*>::iterator it = variables_operar.begin(); it != variables_operar.end(); ++it)
+		{
+			delete (*it);
+		}
+		variables_operar.clear();
 
 	};
 };

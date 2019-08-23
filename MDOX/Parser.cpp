@@ -187,12 +187,17 @@ Parser_Identificador* Parser::getIdentificador(int& local_index)
 		return NULL;
 	}
 
-	//TODO:
-	//Habría que comprobar también que no se trate de una función específica del tipo:
-	// return, break, if, else, while ... 
 
 	index = local_index;
 	std::string token = tokenizer.getTokenValue(index);
+
+	//Comprobamos que el identificador no es una palabra reservada del sistema.
+	std::vector<std::string> palabras_reservadas = { "return", "break", "if", "else", "vector", "int", "double", "void", "bool", "operator", "constructor", "class", "function", "while", "for", "continue", "lint", "string" };
+
+	if (std::find(palabras_reservadas.begin(), palabras_reservadas.end(), token) != palabras_reservadas.end())
+	{
+		return NULL;
+	}
 
 	if (is_Identificador(token))
 	{
@@ -211,7 +216,7 @@ Parser_Identificador* Parser::getIdentificador(int& local_index)
 // ############################################################
 
 
-multi_value* Parser::getValorList(bool& all_value, int& local_index, std::vector<Variable>& variables)
+multi_value* Parser::getValorList(bool& all_value, int& local_index, SendVariables& variables)
 {
 	int index = local_index;
 
@@ -447,7 +452,7 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 
 }
 
-conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& variables)
+conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 {
 	int index = local_index;
 	ret = true;
@@ -733,10 +738,10 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 					}
 					else if (token == ")")
 					{
-						Valor_Funcion* v = new Valor_Funcion(i, entradas);
+						Call_Value* v = new Call_Value(i, entradas);
 						local_index = i_index;
 						v->generarPosicion(&tokenizer);
-						this->valores_funciones.emplace_back(v);
+						this->valores_llamadas.emplace_back(v);
 						return v;
 					}
 					else
@@ -755,10 +760,10 @@ conmp Parser::getValor(bool& ret, int& local_index, std::vector<Variable>& varia
 
 					if (token == ")")
 					{
-						Valor_Funcion* v = new Valor_Funcion(i, entradas);
+						Call_Value* v = new Call_Value(i, entradas);
 						local_index = t_index;
 						v->generarPosicion(&tokenizer);
-						this->valores_funciones.emplace_back(v);
+						this->valores_llamadas.emplace_back(v);
 						return v;
 					}
 
@@ -1024,7 +1029,7 @@ arbol_operacional* GenerarArbolDesdeShuntingYard(stack_conmp & res)
 
 
 
-arbol_operacional* Parser::getOperacionInd(int& local_index, std::vector<Variable>& variables, bool inside)
+arbol_operacional* Parser::getOperacionInd(int& local_index, SendVariables& variables, bool inside)
 {
 	int index = local_index;
 	arbol_operacional * Op = getOperacion(index, variables, inside);
@@ -1067,7 +1072,7 @@ arbol_operacional* Parser::getOperacionInd(int& local_index, std::vector<Variabl
 }
 
 
-arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable> & variables, bool inside)
+arbol_operacional * Parser::getOperacion(int& local_index, SendVariables& variables, bool inside)
 {
 	int index = local_index;
 	//Posibilidades
@@ -1422,7 +1427,7 @@ arbol_operacional * Parser::getOperacion(int& local_index, std::vector<Variable>
 // ####################### SENTENCIA  #########################
 // ############################################################
 
-Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> & variables)
+Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variables)
 {
 	//##########   -- SENTENCIA RECURSIVA --   ##########
 	int index = local_index;
@@ -1431,7 +1436,9 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 	{
 		std::vector<Parser_Sentencia*> valor;
 		//Copiamos todas las variables actuales	
-		std::vector<Variable> variables_local(variables);
+		//std::vector<Variable> variables_local(variables);
+		SendVariables variables_local(variables);
+
 
 		while (true)
 		{
@@ -1726,7 +1733,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, std::vector<Variable> &
 // ######################## FUNCION  ##########################
 // ############################################################
 
-Parser_Funcion* Parser::getFuncion(int& local_index)
+Parser_Funcion* Parser::getFuncion(int& local_index, std::vector<Variable>* var_class)
 {
 	int index = local_index;
 
@@ -1741,9 +1748,8 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 			{
 
 				//Variables por función
-				this->numero_variables_funcion = 0;
 				this->isGlobal = false;
-				std::vector<Variable> variables_funcion;
+				SendVariables variables(var_class);
 
 				std::vector<arbol_operacional*> entradas;
 
@@ -1751,7 +1757,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 				while (true)
 				{
 					int t2_index = t_index;
-					arbol_operacional* pFve = getOperacion(t2_index, variables_funcion);
+					arbol_operacional* pFve = getOperacion(t2_index, variables);
 
 					if (pFve)
 					{
@@ -1808,13 +1814,13 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 
 					if (pDecl)
 					{
-						Parser_Sentencia* pSent = getSentencia(t3_index, variables_funcion);
+						Parser_Sentencia* pSent = getSentencia(t3_index, variables);
 
 						if (pSent)
 						{
 							local_index = t3_index;
 							Parser_Funcion* sif = new Parser_Funcion(pID, entradas, pSent, pDecl);
-							sif->preload_var = this->numero_variables_funcion;
+							sif->preload_var = *variables.num_local_var;
 							sif->generarPosicion(&tokenizer);
 							return sif;
 						}
@@ -1843,12 +1849,12 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 				}
 				else
 				{
-					Parser_Sentencia* pSent = getSentencia(index, variables_funcion);
+					Parser_Sentencia* pSent = getSentencia(index, variables);
 					if (pSent)
 					{
 						local_index = index;
 						Parser_Funcion* sif = new  Parser_Funcion(pID, entradas, pSent);
-						sif->preload_var = this->numero_variables_funcion;
+						sif->preload_var = *variables.num_local_var;
 						sif->generarPosicion(&tokenizer);
 						return sif;
 					}
@@ -1873,6 +1879,614 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 	return NULL;
 }
 
+// ############################################################
+// ######################## CLASS  ##########################
+// ############################################################
+
+etiquetas_class Parser::getLabelClass(int& local_index)
+{
+	int index = local_index;
+	std::string token = tokenizer.getTokenValue(index);
+
+	if (token == "public")
+	{
+		if (tokenizer.getTokenValue(index) == ":")
+		{
+			local_index = index;
+			return LABEL_PUBLIC;
+		}
+	}
+	else if (token == "private")
+	{
+		if (tokenizer.getTokenValue(index) == ":")
+		{
+			local_index = index;
+			return LABEL_PRIVATE;
+		}
+	}
+	else if(token == "static") //sigle row
+	{
+		local_index = index;
+		return LABEL_STATIC;
+	}
+
+	return LABEL_NONE;
+}
+
+//El constructor/es de una clase
+Parser_ClassConstructor* Parser::getClassConstructor(int& local_index, std::vector<Variable>& variables_clase)
+{
+	int index = local_index;
+	if (tokenizer.getTokenValue(index) == "constructor")
+	{
+		if (tokenizer.getTokenValue(index) == "(")
+		{
+			if (tokenizer.getTokenValue(index) == ")")
+			{
+				local_index = index;
+				return new Parser_ClassConstructor();
+			}
+			index--;
+
+			std::vector<int> entradas;
+	
+			do
+			{
+				Parser_Identificador* id = getIdentificador(index);
+				if (id)
+				{
+					Variable* var = this->BusquedaVariableLocal(id, variables_clase);
+
+					if (var == NULL)
+					{
+						Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_ID_NOT_FOUND, NULL, id->nombre);
+						return NULL;
+					}
+
+					entradas.emplace_back(var->index);
+
+					if (tokenizer.getTokenValue(index) == ")")
+					{
+						local_index = index;
+						return new Parser_ClassConstructor(entradas);
+					}
+
+					index--;
+				}
+				else
+				{
+					Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_NOT_ID, NULL);
+					return NULL;
+				}
+
+			} while (tokenizer.getTokenValue(index) == ",");		
+		}
+		Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_SINTAXIS, NULL);
+	}
+	return NULL;
+}
+
+
+void Call_Value::AddFuncion_Core(int inx)
+{
+	if (inx_funcion)
+	{
+		inx_funcion->funcionesCoreItrData.emplace_back(inx);
+		return;
+	}
+
+	// ELSE: ERROR? Por qué se intenta introducir un dato en una función cuendo no lo es?
+	Errores::generarError(Errores::ERROR_INESPERADO, &this->parametros, " Intento de seleccionar memoria para una función, cuando la llamada no es una función.");
+}
+
+void Call_Value::AddFuncion(int inx)
+{
+	if (inx_funcion)
+	{
+		inx_funcion->funcionesItrData.emplace_back(inx);
+		return;
+	}
+
+	// ELSE: ERROR? Por qué se intenta introducir un dato en una función cuendo no lo es?
+	Errores::generarError(Errores::ERROR_INESPERADO, &this->parametros, " Intento de seleccionar memoria para una función, cuando la llamada no es una función.");
+}
+
+void Call_Value::AddClass(int inx, int constructor)
+{
+	if (inx_class)
+	{
+		inx_class->class_index = inx;
+		inx_class->constructor_index = constructor;
+		return;
+	}
+
+	// ELSE: ERROR? Por qué se intenta introducir un dato en una función cuendo no lo es?
+	Errores::generarError(Errores::ERROR_INESPERADO, &this->parametros, " Intento de seleccionar memoria para una clase, cuando la llamada no es una clase.");
+}
+
+void Call_Value::setFuncion()
+{
+	if (inx_funcion == NULL || inx_class)
+	{
+		inx_funcion = new IndexCall_Function();
+		is_class = false;
+	}
+}
+
+void Call_Value::setClass()
+{
+	if (inx_class == NULL || inx_funcion)
+	{
+		inx_class = new IndexCall_Class();
+		is_class = true;
+	}
+}
+
+
+
+/*Comprueba que todos los datos del árbol, son inicialización de identificados o multi-iniciación.*/
+bool ComprobarIdentificadores(arbol_operacional* pOp)
+{
+	if (pOp->operador == OP_NONE)
+	{
+		return std::visit(overloaded{
+		[&](arbol_operacional * a)->bool { return false; },
+		[&](Value & a)->bool {return false; },
+		[&](Parser_Identificador * a)->bool {return true; },
+		[&](Call_Value * a)->bool { return false; },
+		[&](multi_value * a)->bool
+		{ 
+			if (!a->contenedor && !a->is_vector)
+			{
+				//Comprobamos que todos los valores del multivalue, son identificadores.
+				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+				{
+					if (std::visit(overloaded{
+					[&](arbol_operacional * a)->bool { return ComprobarIdentificadores(a); },
+					[&](Value & a)->bool {return false; },
+					[&](Parser_Identificador * a)->bool {return true; },
+					[&](Call_Value * a)->bool { return false; },
+					[&](auto&)->bool {  return false; },
+						}, *it))
+						continue;
+					else return false;
+				}
+				return true;
+			}
+			return false;		
+		},
+		[&](auto&)->bool {  return false; },
+		}, pOp->_v1);
+	}
+
+	else if (pOp->operador == OP_IG_EQUAL)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool Parser::getClassOperadores(int& local_index, Parser_Class* clase, std::vector<Variable>& variables_clases)
+{
+	int index = local_index;
+
+	//operator + (rlhs) { return rlhs + x } // Operador + normal, la posición del objeto será la izquierda en la operación: this+x
+	//operator right + (lhs) {}// Operador inverso, La posición del objeto será la derecha en la operación: x+this
+	if (tokenizer.getTokenValue(index) == "operator")
+	{
+		bool inverse_operator = false;
+		if (tokenizer.getTokenValue(index) == "right")
+		{
+			inverse_operator = true;
+		}
+		else index--; // Si el token no es cierto, volvemos atrás el indice para luego volver a leerlo.
+
+
+		OPERADORES op = getOperador(index);
+
+		if (op == OPERADORES::OP_NONE)
+		{
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_INVALIDO, &clase->parametros, tokenizer.getTokenValue(index));
+			return false;
+		}
+		//Operador usado para capturar []
+		if (op == OPERADORES::OP_BRACKET_LEFT)
+		{
+			OPERADORES op2 = getOperador(index);
+			if (op2 != OPERADORES::OP_BRACKET_RIGHT && op2 != OPERADORES::OP_NONE)
+			{
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_INVALIDO, &clase->parametros, tokenizer.getTokenValue(index));
+				return false;
+			}
+		}
+
+		if (tokenizer.getTokenValue(index) == "(")
+		{		
+			int index2 = index;
+			Parser_Identificador* entrada = getIdentificador(index2);
+			bool es_op_binario = true;
+
+			if (entrada == NULL)
+			{
+				es_op_binario = false;
+			}
+			else index = index2;
+
+			if (op == OPERADORES::OP_ARIT_RESTA && !es_op_binario)
+				op = OPERADORES::ELEM_NEG_FIRST;
+
+			if (!is_single_operator(op) && !es_op_binario)
+			{
+				deletePtr(entrada);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_ES_BINARIO, &clase->parametros);
+				return false;
+			}
+			else if (is_single_operator(op) && es_op_binario)
+			{
+				deletePtr(entrada);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_ES_BINARIO, &clase->parametros);
+				return false;
+			}
+
+			if (tokenizer.getTokenValue(index) != ")")
+			{
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_INVALIDO, &clase->parametros, tokenizer.getTokenValue(index));
+				return false;
+			}
+
+			SendVariables variables_locales_sentencia = SendVariables(variables_clases);
+
+			if(es_op_binario)
+				variables_locales_sentencia.push_VarLocal(Variable(entrada->nombre, 0));
+
+			Parser_Sentencia* body = getSentencia(index, variables_locales_sentencia);
+
+			if (body == NULL)
+			{
+				Errores::generarError(Errores::ERROR_CLASE_SENTENCIA_INVALIDA, &clase->parametros, tokenizer.getTokenValue(index));
+				return false;
+			}
+
+			if (inverse_operator)
+			{
+				if (clase->right_operators == NULL)
+					clase->right_operators = new Operators_List();
+			}
+			else
+			{
+				if (clase->normal_operators == NULL)
+					clase->normal_operators = new Operators_List();
+			}
+
+			Operator_Class * operator_class = new Operator_Class(body, es_op_binario, *variables_locales_sentencia.num_local_var);
+
+
+			switch (op)
+			{
+			     case OPERADORES::OP_ARIT_SUMA:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_suma = operator_class;
+						else
+							clase->right_operators->OPERATOR_suma = operator_class;
+						break;
+					}
+				case OPERADORES::OP_ARIT_RESTA:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_resta = operator_class;
+						else
+							clase->right_operators->OPERATOR_resta = operator_class;
+						break;
+					}
+				case OPERADORES::OP_ARIT_MULT:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_multiplicacion = operator_class;
+						else
+							clase->right_operators->OPERATOR_multiplicacion = operator_class;
+						break;
+					}
+				case OPERADORES::OP_ARIT_DIV:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_div = operator_class;
+						else
+							clase->right_operators->OPERATOR_div = operator_class;
+						break;
+					}
+				case OPERADORES::OP_ARIT_DIV_ENTERA:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_divEntera = operator_class;
+						else
+							clase->right_operators->OPERATOR_divEntera = operator_class;
+						break;
+					}
+				case OPERADORES::OP_ARIT_MOD:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_mod = operator_class;
+						else
+							clase->right_operators->OPERATOR_mod = operator_class;
+						break;
+					}
+				case OPERADORES::OP_IG_EQUAL:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_asignacion = operator_class;
+						else
+							clase->right_operators->OPERATOR_asignacion = operator_class;
+						break;
+					}
+				case OPERADORES::OP_IG_EQUAL_SUM:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_asignacion_sum = operator_class;
+						else
+							clase->right_operators->OPERATOR_asignacion_sum = operator_class;
+						break;
+					}
+				case OPERADORES::OP_IG_EQUAL_MIN:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_asignacion_res = operator_class;
+						else
+							clase->right_operators->OPERATOR_asignacion_res = operator_class;
+						break;
+					}
+				case OPERADORES::OP_IG_EQUAL_MULT:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_asignacion_mult = operator_class;
+						else
+							clase->right_operators->OPERATOR_asignacion_mult = operator_class;
+						break;
+					}
+				case OPERADORES::OP_IG_EQUAL_DIV:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_asignacion_div = operator_class;
+						else
+							clase->right_operators->OPERATOR_asignacion_div = operator_class;
+						break;
+					}
+				case OPERADORES::OP_IG_EQUAL_MOD:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_asignacion_mod = operator_class;
+						else
+							clase->right_operators->OPERATOR_asignacion_mod = operator_class;
+						break;
+					}
+				case OPERADORES::OP_REL_EQUAL:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_rel_igualdad = operator_class;
+						else
+							clase->right_operators->OPERATOR_rel_igualdad = operator_class;
+						break;
+					}
+				case OPERADORES::OP_REL_NOT_EQUAL:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_rel_no_igual = operator_class;
+						else
+							clase->right_operators->OPERATOR_rel_no_igual = operator_class;
+						break;
+					}
+				case OPERADORES::OP_REL_MINOR:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_rel_menor = operator_class;
+						else
+							clase->right_operators->OPERATOR_rel_menor = operator_class;
+						break;
+					}
+				case OPERADORES::OP_REL_MAJOR:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_rel_mayor = operator_class;
+						else
+							clase->right_operators->OPERATOR_rel_mayor = operator_class;
+						break;
+					}
+				case OPERADORES::OP_REL_MINOR_OR_EQUAL:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_rel_menor_igual = operator_class;
+						else
+							clase->right_operators->OPERATOR_rel_menor_igual = operator_class;
+						break;
+					}
+				case OPERADORES::OP_REL_MAJOR_OR_EQUAL:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_rel_mayor_igual = operator_class;
+						else
+							clase->right_operators->OPERATOR_rel_mayor_igual = operator_class;
+						break;
+					}
+					case OPERADORES::OP_LOG_ADD:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_log_and = operator_class;
+						else
+							clase->right_operators->OPERATOR_log_and = operator_class;
+						break;
+					}
+					case OPERADORES::OP_LOG_OR:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_log_or = operator_class;
+						else
+							clase->right_operators->OPERATOR_log_or = operator_class;
+						break;
+					}
+					case OPERADORES::OP_ITR_MIN:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_min = operator_class;
+						else
+							clase->right_operators->OPERATOR_min = operator_class;
+						break;
+					}
+					case OPERADORES::OP_ITR_PLUS:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_plus = operator_class;
+						else
+							clase->right_operators->OPERATOR_plus = operator_class;
+						break;
+					}
+					case OPERADORES::OP_NEGADO:
+					{
+						if(!inverse_operator)
+							clase->normal_operators->OPERATOR_negado = operator_class;
+						else
+							clase->right_operators->OPERATOR_negado = operator_class;
+						break;
+					}
+					case OPERADORES::OP_BRACKET_LEFT:
+					{
+						if (!inverse_operator)
+							clase->normal_operators->OPERATOR_brack = operator_class;
+						else
+							clase->right_operators->OPERATOR_brack = operator_class;
+						break;
+					}
+					case OPERADORES::ELEM_NEG_FIRST:
+					{
+						if (!inverse_operator)
+							clase->normal_operators->OPERATOR_negado_first = operator_class;
+						else
+							clase->right_operators->OPERATOR_negado_first = operator_class;
+						break;
+					}
+					default:
+					{
+						deletePtr(operator_class);
+						deletePtr(entrada);
+						deletePtr(body);
+						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_INVALIDO, &clase->parametros, tokenizer.getTokenValue(index));
+						return false;
+					}
+			}
+
+			deletePtr(entrada);
+			local_index = index;
+			return true;
+		}
+	}
+	return false;
+
+}
+
+
+Parser_Class* Parser::getClass(int& local_index)
+{
+	int index = local_index;
+
+	if (tokenizer.getTokenValue(index) == "class")
+	{
+		Parser_Identificador* pID = getIdentificador(index);
+
+		if (pID)
+		{
+			if (tokenizer.getTokenValue(index) == "{")
+			{
+				Parser_Class* clase = new Parser_Class(pID);
+
+				bool isPrivate = true;
+
+				//Por ahora usaremos .variables_locales
+				//En el caso de que en el futuro se decida implementar innerClass, se dejará .variables_clase para tomar valores del 'padre'
+				SendVariables variables;
+
+				//Aquí buscaremos todos los valores, funciones, operadores y constructores de los que disponga la clase.
+				while (tokenizer.getFirstNotCloseToken(index) != "}")
+				{
+					index--;
+					bool isStatic = false;
+
+					if (getLabelClass(index) == LABEL_PUBLIC)
+						isPrivate = false;
+					else if (getLabelClass(index) == LABEL_PRIVATE)
+						isPrivate = true;
+					else if (getLabelClass(index) == LABEL_STATIC)
+						isStatic = true;
+
+
+
+					Parser_ClassConstructor* pConst = getClassConstructor(index, variables.variables_locales);
+					if (pConst)
+					{
+						if (isStatic)
+						{
+							Errores::generarError(Errores::ERROR_CLASE_STATIC_IS_NOT_VAR_FUNCT, NULL);
+							delete clase;
+							delete pConst;
+							return NULL;
+						}
+						clase->constructores.emplace_back(pConst);
+						continue;
+					}
+
+					bool operador = getClassOperadores(index, clase, variables.variables_locales);
+					if (operador)
+					{
+						if (isStatic)
+						{
+							Errores::generarError(Errores::ERROR_CLASE_STATIC_IS_NOT_VAR_FUNCT, NULL);
+							delete clase;
+							return NULL;
+						}
+						continue;
+					}
+
+					Parser_Funcion* fnt = getFuncion(index, &variables.variables_locales);
+					if (fnt)
+					{
+						fnt->is_Public = !isPrivate;
+						fnt->is_Static = isStatic;
+						clase->funciones.emplace_back(fnt);
+						continue;	
+					}
+
+					arbol_operacional* pOp = getOperacionInd(index, variables);
+					if (pOp)
+					{
+						//Comprobamos que se trata de identificadores u operaciones de asignación.
+				
+						if (ComprobarIdentificadores(pOp) == NULL)
+						{
+							Errores::generarError(Errores::ERROR_CLASE_VARIABLE_NO_VALIDA, NULL, pID->nombre);
+							return NULL;
+						}
+
+						pOp->is_Public = !isPrivate;
+						pOp->is_Static = isStatic;
+						clase->variables_operar.emplace_back(pOp);
+						continue;
+					}
+
+					Errores::generarError(Errores::ERROR_CLASE_SINTAXIS, NULL, pID->nombre);
+					deletePtr(clase);
+					return NULL;
+				}
+
+				clase->preload_var = *variables.num_local_var;
+
+				local_index = index;
+				return clase;
+			}
+
+		}
+	}
+
+	return NULL;
+}
 /**
 *
 *	A la par que se realiza el Parseado, se guardará el orden de las variables para que en tiempo de ejecución
@@ -1882,12 +2496,38 @@ Parser_Funcion* Parser::getFuncion(int& local_index)
 *
 **/
 
-Variable* Parser::BusquedaVariable(Parser_Identificador * ID, std::vector<Variable> & variables)
+/*
+Buscamos la variable únicamente entre variables locales
+*/
+Variable* Parser::BusquedaVariableLocal(Parser_Identificador* ID, std::vector<Variable>& variables)
 {
 	for (std::vector<Variable>::iterator it = variables.begin(); it != variables.end(); ++it)
 	{
 		if (it->nombre == ID->nombre)
 			return &(*it);
+	}
+	return NULL;
+}
+
+/*
+Buscamos variables entre las globales y variables locales
+*/
+Variable* Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& variables)
+{
+	Variable* v = BusquedaVariableLocal(ID, variables.variables_locales);
+
+	if (v != NULL)
+		return v;
+
+	if (variables.variables_clase != NULL)
+	{
+		v = BusquedaVariableLocal(ID, *variables.variables_clase);
+		
+		if (v != NULL)
+		{
+			ID->var_class = true;
+			return v;
+		}
 	}
 
 	for (std::vector<Variable>::iterator it = this->variables_globales.begin(); it != this->variables_globales.end(); ++it)
@@ -1898,13 +2538,10 @@ Variable* Parser::BusquedaVariable(Parser_Identificador * ID, std::vector<Variab
 			return &(*it);
 		}
 	}
-
-
-
 	return NULL;
 }
 
-void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Variable> & variables, bool inside)
+void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& variables, bool inside)
 {
 	if (arbol->operador == OP_NONE)
 	{
@@ -1925,17 +2562,21 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 						{
 							if (this->isGlobal)
 							{
-								this->variables_globales.push_back(Variable(a->nombre, this->getLastIndex()));
-								IncrementarVariables();
+								this->variables_globales.push_back(Variable(a->nombre, this->variables_globales.size()));
 								a->index = this->variables_globales.back().index;
 								a->var_global = true;
 								a->inicializando = true;
 							}
+							else if (a->var_class)
+							{
+								variables.variables_clase->push_back(Variable(a->nombre, variables.variables_clase->size()));
+								a->index = variables.variables_clase->back().index;
+								a->inicializando = true;
+							}
 							else
 							{
-								variables.push_back(Variable(a->nombre, this->getLastIndex()));
-								IncrementarVariables();
-								a->index = variables.back().index;
+								variables.push_VarLocal(Variable(a->nombre, *variables.num_local_var));
+								a->index = variables.variables_locales.back().index;
 								a->inicializando = true;
 							}
 						}
@@ -1964,17 +2605,21 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 						//Si no existe, la creamos.
 						if (this->isGlobal)
 						{
-							this->variables_globales.push_back(Variable(a->nombre, this->getLastIndex()));
-							IncrementarVariables();
+							this->variables_globales.push_back(Variable(a->nombre, this->variables_globales.size()));
 							a->index = this->variables_globales.back().index;
 							a->var_global = true;
 							a->inicializando = true;
 						}
+						else if (a->var_class)
+						{
+							variables.variables_clase->push_back(Variable(a->nombre, variables.variables_clase->size()));
+							a->index = variables.variables_clase->back().index;
+							a->inicializando = true;
+						}
 						else
 						{
-							variables.push_back(Variable(a->nombre, this->getLastIndex()));
-							IncrementarVariables();
-							a->index = variables.back().index;
+							variables.push_VarLocal(Variable(a->nombre, *variables.num_local_var));
+							a->index = variables.variables_locales.back().index;
 							a->inicializando = true;
 						}
 					}
@@ -1994,17 +2639,21 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 								//Si no existe, la creamos.
 								if (this->isGlobal)
 								{
-									this->variables_globales.push_back(Variable(a2->nombre, this->getLastIndex()));
-									IncrementarVariables();
+									this->variables_globales.push_back(Variable(a2->nombre, this->variables_globales.size()));
 									a2->index = this->variables_globales.back().index;
 									a2->var_global = true;
 									a2->inicializando = true;
 								}
+								else if (a2->var_class)
+								{
+									variables.variables_clase->push_back(Variable(a2->nombre, variables.variables_clase->size()));
+									a2->index = variables.variables_clase->back().index;
+									a2->inicializando = true;
+								}
 								else
 								{
-									variables.push_back(Variable(a2->nombre, this->getLastIndex()));
-									IncrementarVariables();
-									a2->index = variables.back().index;
+									variables.push_VarLocal(Variable(a2->nombre, *variables.num_local_var));
+									a2->index = variables.variables_locales.back().index;
 									a2->inicializando = true;
 								}
 							}
@@ -2049,39 +2698,95 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, std::vector<Var
 	}
 }
 
-void Parser::preloadFunciones(std::vector<Parser_Funcion*> funciones)
+
+//Preload de funciones y clases
+bool Parser::preloadCalls(std::vector<Parser_Funcion*>& funciones, std::vector<Parser_Class*>* clases)
 {
-	for (std::vector<Valor_Funcion*>::iterator it = this->valores_funciones.begin(); it != this->valores_funciones.end(); ++it)
+	for (std::vector<Call_Value*>::iterator it = this->valores_llamadas.begin(); it != this->valores_llamadas.end(); ++it)
 	{
-		(*it)->funcionesCoreItrData.clear();
+		//(*it)->funcionesCoreItrData.clear();
 		//Core::core_functions
+		bool existe = false;
+
 		for (int itr = 0; itr < Core::core_functions.size(); itr++)
 		{
 			if (Core::core_functions[itr]->nombre == (*it)->ID->nombre)
 			{
+				//Establece que es una función
+				(*it)->setFuncion();
+
 				if (Core::core_functions[itr]->entradas.size() != (*it)->entradas.size())
 					continue;
 
-				(*it)->funcionesCoreItrData.emplace_back(itr);
+				(*it)->AddFuncion_Core(itr);
+				existe = true;
 			}
 		}
 
-		(*it)->funcionesItrData.clear();
 		for(int itr= 0; itr < funciones.size(); itr++)
 		{
 			//Debe coincidir el nombre de la misma.
 			if (funciones[itr]->pID->nombre == (*it)->ID->nombre)
 			{
+				(*it)->setFuncion();
+
 				//si no tiene el mismo numero de entradas, saltamos, no es esta función.
 				if (funciones[itr]->entradas.size() != (*it)->entradas.size())
 					continue;
 
-				(*it)->funcionesItrData.emplace_back(itr);
+				(*it)->AddFuncion(itr);
+				existe = true;
+			}
+		}
+
+		if (!existe && clases == NULL)
+		{
+			Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA, &(*it)->parametros, (*it)->ID->nombre);
+			continue;
+		}
+
+		if (existe)
+			continue;
+
+		if (clases == NULL)
+			continue;
+
+		for (int itr = 0; itr < clases->size(); itr++)
+		{
+			//Debe coincidir el nombre de la misma.
+			if ((*clases)[itr]->pID->nombre == (*it)->ID->nombre)
+			{
+				(*it)->setClass();
+
+				bool is_ok = false;
+				//Comprobamos si existe un constructor adecuado para la clase
+				for (int inx_const = 0; inx_const < (*clases)[itr]->constructores.size(); inx_const++)
+				{
+					if ((*clases)[itr]->constructores[inx_const]->entradas.size() != (*it)->entradas.size())
+						continue;
+
+					(*it)->AddClass(itr, inx_const);
+					is_ok = true;
+					break;
+				}
+
+				if (is_ok)
+					break;
+
+				//Constructor predefinido si no existen constructores definidos por el usuario.
+				if ((*it)->entradas.size() == 0 && (*clases)[itr]->constructores.size() == 0)
+				{
+					(*it)->AddClass(itr, -1);
+					break;
+				}
+
+				Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_NO_VALIDO, &(*it)->parametros, (*it)->ID->nombre);
 			}
 		}
 	}
 	//this->valores_funciones.clear();
 	//this->valores_funciones.shrink_to_fit();
+	return true;
 }
 
 

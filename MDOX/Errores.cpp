@@ -3,7 +3,7 @@
 bool Errores::saltarErrores;
 OutData_Parametros* Errores::outData;
 
-void Errores::generarCabeceraError(OutData_Parametros * node, int numero_error, Errores::ERROR_TYPE tipo)
+void Errores::generarCabeceraError(OutData_Parametros * node, int numero_error, Errores::ERROR_TYPE tipo, bool runtime)
 {
 
 
@@ -17,9 +17,15 @@ void Errores::generarCabeceraError(OutData_Parametros * node, int numero_error, 
 		error = "ERROR";
 	else error = "DESCONOCIDO";
 
-	if (node == NULL)
+	if (node == NULL && runtime)
 	{
 		std::cout << error << " " << numero_error << ": " << " Runtime Error: ";
+		return;
+	}
+
+	if (node == NULL && !runtime)
+	{
+		std::cout << error << " " << numero_error << ": ";
 		return;
 	}
 
@@ -58,6 +64,12 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		Errores::generarCabeceraError(node, 11, tipo);
 		std::cout << "Se ha producido un error CRÍTICO, la ejecución del interprete se ha detenido.\n";
 		break;
+
+	case Errores::ERROR_INESPERADO:
+		Errores::generarCabeceraError(node, 12, tipo);
+		std::cout << "Se ha producido un error inesperado. "<<value<<"\n";
+		break;
+		
 
 	case Errores::ERROR_FUNCION_PARAMETRO_OPERACION_INVALIDA:
 		Errores::generarCabeceraError(node, 4001, tipo);
@@ -199,6 +211,11 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "Error desconocido. No se ha podido obtener la fecha actual. \n ";
 		break;
 
+	case Errores::ERROR_FUNCION_NO_DECLARADA:
+		Errores::generarCabeceraError(node, 4006, tipo);
+		std::cout << "La función con nombre '" << value << "' no ha sido declarada. \n ";
+		break;
+
 	case Errores::ERROR_CONVERSION_DESCONOCIDA:
 		Errores::generarCabeceraError(node, 2014, tipo);
 		std::cout << "Se ha producido un error al intentar convertir un valor en otro desconocido. \n ";
@@ -226,11 +243,78 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		break;
 
 	case Errores::ERROR_OFFSET_INVALIDO:
-		Errores::generarCabeceraError(node, 2019, tipo);
+		Errores::generarCabeceraError(node, 2019, tipo, false);
 		std::cout << "El valor introducido como offset ('" << value << "') está fuera del rango aceptado. \n ";
 		break;
 
+	case Errores::ERROR_CLASE_CONSTRUCTOR_SINTAXIS:
+		Errores::generarCabeceraError(node, 4500, tipo, false);
+		std::cout << "Se ha producido un error en la sintaxis al intentar crear un constructor. ";
+		break;
+
+	case Errores::ERROR_CLASE_CONSTRUCTOR_ID_NOT_FOUND:
+		Errores::generarCabeceraError(node, 4501, tipo, false);
+		std::cout << "El identificador '" << value << "' del constructor no existe en la clase referenciada.";
+		break;
+
+	case Errores::ERROR_CLASE_CONSTRUCTOR_NOT_ID:
+		Errores::generarCabeceraError(node, 4502, tipo, false);
+		std::cout << "El constructor debe tener parámetros que sean ID's existentes en la clase.";
+		break;
+
+	case Errores::ERROR_CLASE_STATIC_IS_NOT_VAR_FUNCT:
+		Errores::generarCabeceraError(node, 4503, tipo,false);
+		std::cout << "El parámetro 'static' sólamente se puede aplicar a variables o funciones de una clase.";
+		break;
+
+	case Errores::ERROR_CLASE_SINTAXIS:
+		Errores::generarCabeceraError(node, 4504, tipo, false);
+		std::cout << "Se ha producido un error en la sintaxis a la hora de la creación de la clase '"<<value<<"'.";
+		break;
+
+	case Errores::ERROR_CLASE_VARIABLE_NO_VALIDA:
+		Errores::generarCabeceraError(node, 4505, tipo, false);
+		std::cout << "No se ha podido validar la operación en la clase '"<< value <<"'. Una clase solamente permite operaciones que identifiquen variables.";
+		break;
+
+	case Errores::ERROR_CLASE_CONSTRUCTOR_NO_VALIDO:
+		Errores::generarCabeceraError(node, 4506, tipo, false);
+		std::cout << "El constructor usado para la clase '" << value << "' no ha sido definido.";
+		break;
+
+	case Errores::ERROR_CLASE_OPERADOR_INVALIDO:
+		Errores::generarCabeceraError(node, 4507, tipo, false);
+		std::cout << "El operador '" << value << "' no se reconoce. ";
+		break;
+
+	case Errores::ERROR_CLASE_SENTENCIA_INVALIDA:
+		Errores::generarCabeceraError(node, 4508, tipo, false);
+		std::cout << "El operador '" << value << "' no tiene una sentencia adecuada establecida. ";
+		break;
+
+	case Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO:
+		Errores::generarCabeceraError(node, 4509, tipo, false);
+		std::cout << "El operador '" << value << "' no ha sido declarado en la clase '"<<value2<<"' a la cual pertenece el objeto que está intentando acceder a dicho operador. ";
+		break;
+
+	case Errores::ERROR_CLASE_OPERADOR_SENTENCIA_INVALIDA:
+		Errores::generarCabeceraError(node, 4510, tipo);
+		std::cout << "Se ha producido un error al intentar ejecutar el operador. Compruebe que las sentencias del operador sean correctas. ";
+		break;
+
+	case Errores::ERROR_CLASE_OPERADOR_ES_BINARIO:
+		Errores::generarCabeceraError(node, 4511, tipo, false);
+		std::cout << "Se ha especificado un operador binario sin ninguna entrada, cuando este debe terner una. ";
+		break;
+
+	case Errores::ERROR_CLASE_OPERADOR_NO_ES_BINARIO:
+		Errores::generarCabeceraError(node, 4512, tipo, false);
+		std::cout << "Se ha especificado un operador unitario con entradas, cuando no debe tener ninguna. ";
+		break;
+		
+		
 	}
+	std::cout << "\n";
 }
 
 void Errores::generarWarning(Errores::NUM_WARNING error, OutData_Parametros * node, std::string value, std::string value2)

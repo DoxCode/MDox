@@ -23,6 +23,7 @@ class Errores
 
 			ERROR_MAIN_NO_ENCONTRADO, //Error 0010
 			ERROR_CRITICO, // Error 0011
+			ERROR_INESPERADO, // Error 0012
 
 			ERROR_DE_SINTAXIS, // Error 1001
 
@@ -66,7 +67,21 @@ class Errores
 			ERROR_FUNCION_ENTRADA_DECLARADA, //Error 4003
 			ERROR_FUNCION_ERROR_OPERACIONES_ENTRADA, //Error 4004
 			ERROR_FUNCION_IMPOSIBLE_RECUPERAR_FECHA, // Error 4005
-		
+			ERROR_FUNCION_NO_DECLARADA, // Error 4006
+
+			ERROR_CLASE_CONSTRUCTOR_SINTAXIS, // Error 4500
+			ERROR_CLASE_CONSTRUCTOR_ID_NOT_FOUND, // Error 4501
+			ERROR_CLASE_CONSTRUCTOR_NOT_ID, // Error 4502
+			ERROR_CLASE_STATIC_IS_NOT_VAR_FUNCT, // Error 4503
+			ERROR_CLASE_SINTAXIS, // Error 4504
+			ERROR_CLASE_VARIABLE_NO_VALIDA, // Error 4505
+			ERROR_CLASE_CONSTRUCTOR_NO_VALIDO, // Error 4506
+			ERROR_CLASE_OPERADOR_INVALIDO, // Error 4507
+			ERROR_CLASE_SENTENCIA_INVALIDA, // Error 4508
+			ERROR_CLASE_OPERADOR_NO_DECLARADO, //4509
+			ERROR_CLASE_OPERADOR_SENTENCIA_INVALIDA, //4510
+			ERROR_CLASE_OPERADOR_ES_BINARIO, // Error 4511
+			ERROR_CLASE_OPERADOR_NO_ES_BINARIO, // Error 4512
 		};
 
 		enum NUM_WARNING {
@@ -80,7 +95,7 @@ class Errores
 	 static void generarWarning(Errores::NUM_WARNING error, OutData_Parametros * node, std::string value = "", std::string value2 = "");
 
 	private:
-	 static void generarCabeceraError(OutData_Parametros * node, int numero_error, Errores::ERROR_TYPE tipo);
+	 static void generarCabeceraError(OutData_Parametros * node, int numero_error, Errores::ERROR_TYPE tipo, bool runtime = true);
 
 };
 

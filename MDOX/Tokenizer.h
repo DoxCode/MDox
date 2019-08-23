@@ -78,6 +78,7 @@ public:
 		return false;
 	}
 
+
 	//Solo checkea, devuelve el indice actual.
 	bool checkCloseToken(int& inx)
 	{
@@ -108,6 +109,22 @@ public:
 		if (t)
 			return t->token;
 		else return "<Cierre inválido>";
+	}
+
+
+	//Obtiene el primer token que no sea un token de salida
+	std::string getFirstNotCloseToken(int& inx)
+	{
+		while (true)
+		{
+			if (getTokenValue(inx) == ";")
+			{
+				continue;
+			}
+
+			inx--;
+			return getToken(inx)->token;
+		}
 	}
 
 	void agregarToken(Token * a) { tokens.push_back(a); };

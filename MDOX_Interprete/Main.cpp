@@ -31,8 +31,9 @@ int main(int argument_count, char * argument_list[])
 
 		Parser_Identificador* vId = new Parser_Identificador("main");
 		std::vector<Value> entradas;
-		Valor_Funcion vf = Valor_Funcion(vId);
-		parser.valores_funciones.emplace_back(&vf);
+
+		Call_Value vf = Call_Value(vId);
+		parser.valores_llamadas.emplace_back(&vf);
 
 		Interprete * interprete = new Interprete();
 		if (!interprete->CargarDatos(&parser))
@@ -40,7 +41,7 @@ int main(int argument_count, char * argument_list[])
 			return 0;
 		}
 
-		interprete->ExecFuncion(&vf, entradas);
+		interprete->ExecFuncion(&vf, entradas, NULL);
 
 		return 0;
 	}
