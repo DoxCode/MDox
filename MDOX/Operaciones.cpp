@@ -1642,13 +1642,48 @@ Value Value::Offset(Value& v1, Value& v2)
 		}, v1.value, v2.value);
 }
 
-Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
+Value Value::ClassAccess(Parser_Identificador* v2, Call_Value* call, Variable_Runtime* variables, Variable_Runtime * var_class)
 {
+	
+	return std::visit(overloaded{
+
+		[&](std::shared_ptr<mdox_object> & a)->Value 
+		{ 
+			if (call)
+				return Interprete::instance->ExecFuncion(call, Interprete::instance->transformarEntradasCall(call, variables, var_class), a->variables_clase, a->clase);
+			else
+				return wrapper_object_call(a,v2);
+		},
+		[&](wrapper_object_call & a)->Value
+		{
+			 if (call)
+				return Interprete::instance->ExecFuncion(call, Interprete::instance->transformarEntradasCall(call, variables, var_class), a.objeto->variables_clase, a.objeto->clase);
+			else
+			 {
+				 Value* r = a.getValue(true);
+				 if(r)
+					return r->ClassAccess(v2);
+				 else return std::monostate();
+			}
+				
+		},
+		[](auto)->Value {  Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "."); return std::monostate(); },
+
+		}, value);
+}
+
+Value Value::operacion_Binaria(Value & v, const OPERADORES op)
+{
+
+	Interprete::instance->getRealValueFromValueWrapper(*this);
+	Interprete::instance->getRealValueFromValueWrapper(v);
+
 	switch (op)
 	{
-		// --------------------------------------------------------------------
-		// ---------------------- OPERACIÓN SUMA ------------------------------
-		// --------------------------------------------------------------------
+
+	// --------------------------------------------------------------------
+	// ---------------------- OPERACIÓN SUMA ------------------------------
+	// --------------------------------------------------------------------
 	case OP_ARIT_SUMA:
 	{
 		return Suma(*this, v);
@@ -1988,6 +2023,10 @@ Value  Value::operacion_Binaria(Value & v, const OPERADORES op)
 /*f1 indica si el valor de la izquierda es fuerte, f2 indica si lo es el de la derecha*/
 bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador* f1, Parser_Identificador* f2)
 {
+	Interprete::instance->getRealValueFromValueWrapper(*this);
+	Interprete::instance->getRealValueFromValueWrapper(v);
+
+
 	if (index < 0)
 	{
 		return std::visit(overloaded{
@@ -1998,6 +2037,7 @@ bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador
 					if (f2 && f2->fuerte)
 					{
 						v.inicializacion(f2->tipo);
+
 						v.asignacion(a->vector.back(), f2->fuerte);
 					}
 					else
@@ -2109,6 +2149,9 @@ bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador
 
 bool Value::OperadoresEspeciales_Pop(Value& v, bool& left, Parser_Identificador* f1, Parser_Identificador* f2)
 {
+	Interprete::instance->getRealValueFromValueWrapper(*this);
+	Interprete::instance->getRealValueFromValueWrapper(v);
+
 	return std::visit(overloaded{
 		[&](std::shared_ptr<mdox_vector> & a, std::monostate)->bool
 		{
@@ -2167,6 +2210,9 @@ bool Value::OperadoresEspeciales_Pop(Value& v, bool& left, Parser_Identificador*
 
 bool Value::OperacionRelacional(Value & v, const OPERADORES op)
 {
+	Interprete::instance->getRealValueFromValueWrapper(*this);
+	Interprete::instance->getRealValueFromValueWrapper(v);
+
 	switch (op)
 	{
 
@@ -2211,18 +2257,21 @@ void Value::inicializacion(Parser_Declarativo * tipo)
 {
 	switch (tipo->value)
 	{
-	case tipos_parametros::PARAM_INT: value = (int)0; break;
-	case tipos_parametros::PARAM_LINT: value = (long long)0; break;
-	case tipos_parametros::PARAM_DOUBLE: value = (double)0; break;
-	case tipos_parametros::PARAM_BOOL: value = (bool)false; break;
-	case tipos_parametros::PARAM_STRING: value = (std::string)""; break;
-	case tipos_parametros::PARAM_VECTOR: value = std::make_shared<mdox_vector>(); break;
-	default: value = std::monostate(); break;
+	case tipos_parametros::PARAM_INT: this->value = (int)0; break;
+	case tipos_parametros::PARAM_LINT: this->value = (long long)0; break;
+	case tipos_parametros::PARAM_DOUBLE: this->value = (double)0; break;
+	case tipos_parametros::PARAM_BOOL: this->value = (bool)false; break;
+	case tipos_parametros::PARAM_STRING: this->value = (std::string)""; break;
+	case tipos_parametros::PARAM_VECTOR: this->value = std::make_shared<mdox_vector>(); break;
+	default: this->value = std::monostate(); break;
 	}
 }
 
 bool Value::asignacion(Value & v, bool fuerte)
 {
+	Interprete::instance->getRealValueFromValueWrapper(*this);
+	Interprete::instance->getRealValueFromValueWrapper(v);
+
 	if (!fuerte)
 	{
 		*this = Value(v.value);
@@ -2527,11 +2576,11 @@ bool Value::igualdad_Condicional(Value & v)
 	return std::visit(overloaded{
 
 		//INTEGER .. XX
-		[](const int& a,const int& b) { return a == b; },
-		[](const int& a,const bool& b) { return a == b; },
-		[](const int& a,const long long& b) { return a == b; },
-		[](const int& a,const double& b) { return a == b; },
-		[](const int& a, std::string & b)
+		[]( int& a, int& b) { return a == b; },
+		[]( int& a, bool& b) { return a == b; },
+		[]( int& a, long long& b) { return a == b; },
+		[]( int& a, double& b) { return a == b; },
+		[]( int& a, std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2543,11 +2592,11 @@ bool Value::igualdad_Condicional(Value & v)
 				 return false;
 		},
 
-		[](const long long& a, const long long& b) { return a == b; },
-		[](const long long& a, const  bool& b) { return a == b; },
-		[](const long long& a, const int& b) { return a == b; },
-		[](const long long& a, const double& b) { return a == b; },
-		[](const long long& a,  std::string & b)
+		[]( long long& a,  long long& b) { return a == b; },
+		[]( long long& a,   bool& b) { return a == b; },
+		[]( long long& a,  int& b) { return a == b; },
+		[]( long long& a,  double& b) { return a == b; },
+		[]( long long& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2559,11 +2608,11 @@ bool Value::igualdad_Condicional(Value & v)
 				 return false;
 		},
 
-		[](const double& a, const double& b) { return a == b; },
-		[](const double& a, const int& b) { return a == b; },
-		[](const double& a, const long long& b) { return a == b; },
-		[](const double& a, const bool& b) { return a == b; },
-		[](const double& a,  std::string & b)
+		[]( double& a,  double& b) { return a == b; },
+		[]( double& a,  int& b) { return a == b; },
+		[]( double& a,  long long& b) { return a == b; },
+		[]( double& a,  bool& b) { return a == b; },
+		[]( double& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2575,11 +2624,11 @@ bool Value::igualdad_Condicional(Value & v)
 				 return false;
 		},
 
-		[](const bool& a, const double& b) { return a == b;  },
-		[](const bool& a, const int& b) { return a == b; },
-		[](const bool& a, const long long& b) { return a == b; },
-		[](const bool& a, const bool& b) { return a == b;  },
-		[](const bool& a,  std::string & b)
+		[]( bool& a,  double& b) { return a == b;  },
+		[]( bool& a,  int& b) { return a == b; },
+		[]( bool& a,  long long& b) { return a == b; },
+		[]( bool& a,  bool& b) { return a == b;  },
+		[]( bool& a,  std::string & b)
 		{
 		   if (b == "" || b == "0" || b == "false")
 				return (false == a);
@@ -2587,7 +2636,7 @@ bool Value::igualdad_Condicional(Value & v)
 				return (true == a);
 		},
 
-		[](std::string & a, const double& b)
+		[](std::string & a,  double& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2598,7 +2647,7 @@ bool Value::igualdad_Condicional(Value & v)
 			 else
 				 return false;
 		},
-		[](std::string & a, const int& b)
+		[](std::string & a,  int& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2609,7 +2658,7 @@ bool Value::igualdad_Condicional(Value & v)
 			 else
 				 return false;
 		},
-		[](std::string & a, const long long& b)
+		[](std::string & a,  long long& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2620,7 +2669,7 @@ bool Value::igualdad_Condicional(Value & v)
 			 else
 				 return false;
 		},
-		[](std::string & a, const bool& b)
+		[](std::string & a,  bool& b)
 		{
 		   if (a == "" || a == "0" || a == "false")
 				return (false == b);
@@ -2669,7 +2718,7 @@ bool Value::igualdad_Condicional(Value & v)
 			return false;
 		},
 
-		[](auto,auto) { return false; },
+		[](auto&,auto&) { return false; },
 
 		}, value, v.value);
 }
@@ -3569,7 +3618,7 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 				return false;
 			},
 		[]( auto&)->Value {return std::monostate(); },
-			}, value);
+			},value);
 	}
 	case OPERADORES::OP_ITR_MIN:
 	{
@@ -3630,12 +3679,10 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 // a deberá ser entero, y sólamente entero.
 // b podrá ser otro valor transformado, por ejemplo: un booleano true, devolverá b = 1 o un double 5.32 devolverá b = 5.
 // inclusive un string con un valor numérico como "743j", dará como resultado b=743
-
-
 void Value::print()
 {
 	std::visit(overloaded{
-		[&](std::monostate a) { std::cout << "<void>"; },
+		[&](std::monostate) { std::cout << "<void>"; },
 		[&](std::shared_ptr<mdox_vector> & a) {
 			if (a->vector.empty())
 			{
@@ -3644,21 +3691,9 @@ void Value::print()
 			}
 			std::cout << "[";
 			std::for_each(a->vector.begin(), a->vector.end(), [](Value & x) { x.print(); std::cout << ", "; });
-			/*std::string delim = "";
-			for (auto item : a)
-			{
-				std::cout << delim;
-				item.print();
-				delim = ",";
-			}*/
 			std::cout << "\b\b]";
 			},
-
+		[&](wrapper_object_call& a) { std::cout << "ERROR: <wrapper_object> llamado desde print().\n"; },
 		[&](auto & a) { std::cout << a; },
-				//	[&](int& val) { std::cout },
-				//	[&](double& val) {return Value(-val); },
-				//	[&](long long& val) {return Value(-val); },
-				//	[&](bool& val) {return Value(-val); },
-				//	[&](std::string & val) {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "-"); return Value(); },
 		}, value);
 }

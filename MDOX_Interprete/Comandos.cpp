@@ -126,10 +126,17 @@ bool Comandos(std::string comando, Interprete * interprete)
 				return false;
 			}
 
-			if (!interprete->CargarDatos(&parser))
+			try
 			{
-				std::cout << "Se ha producido un error en la lectura del fichero. \n";
-				return false;
+				if (!interprete->CargarDatos(&parser))
+				{
+					std::cout << "Se ha producido un error en la lectura del fichero. \n";
+					return false;
+				}
+			}
+			catch (int d)
+			{
+				std::cout << d <<" :: Error crítico del Parser. \n";
 			}
 			
 			std::cout << "Fichero incluido correctamente. \n";

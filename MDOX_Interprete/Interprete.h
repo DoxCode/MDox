@@ -40,21 +40,76 @@ class Variable_Runtime
 public:
 	Value value;
 	bool fuerte;
+	bool publica = true;
 
 	Variable_Runtime() : fuerte(false) {}
 	Variable_Runtime(Value a) : value(a), fuerte(false) {}
 	Variable_Runtime(Value a, bool b) : value(a), fuerte(b) {}
 };
 
+
 //Objeto producido por alguna clase
 class mdox_object
 {
 public:
+
 	//Clase de la cual proviene el objeto
 	Parser_Class* clase;
-	Variable_Runtime* variables_clase; //Variable prefijadas
 
-	mdox_object(Parser_Class* c) : clase(c) {};
+	//Variable prefijadas, nos sirve para ganar en rendimiento, no obstante debido a que las clases son
+	// prototipadas o dinámicas, únicamente se beneficiará de este cacheado las llamadas desde funciones internas de la clase.
+	Variable_Runtime* variables_clase; 
+	std::unordered_map<std::string, Variable_Runtime> _proto_variables; //Almacenamiento de las variables prototipo del objeto en particular.
+
+
+	//Como buscamos las variables.
+	//Únicamente usaremos este método, si NO disponemos de la ID directa de la variable.
+	Variable_Runtime* findVariable(std::string& id)
+	{
+		//Primero buscamos la variable, entre las declaradas en la clase
+		std::unordered_map<std::string, int>::const_iterator got = clase->_variables_map.find(id);
+
+		if (got != clase->_variables_map.end())
+			return &variables_clase[got->second];
+
+		//Si no existe en la primera búsqueda lo busca en las variables dinámicamente agregadas
+		std::unordered_map<std::string, Variable_Runtime>::iterator got2 = _proto_variables.find(id);
+
+		if (got2 != _proto_variables.end())
+			return &got2->second;
+
+		return nullptr;
+	}
+
+	Variable_Runtime* AsignarVariable(std::string& id, Value& v, bool fuerte = false)
+	{
+		Variable_Runtime* vr = findVariable(id);
+		if (vr)
+		{
+			if (vr->publica)
+			{
+				vr->value.asignacion(v, vr->fuerte);
+				return vr;
+			}
+			else
+			{
+				Errores::generarError(Errores::ERROR_CLASE_VAR_PRIVATE, NULL, id);
+				return nullptr;
+			}
+		}
+		else
+		{
+			auto a = _proto_variables.emplace(id, Variable_Runtime(v, fuerte));
+			if (a.second)
+				return &a.first->second;
+			return nullptr;
+		}
+	}
+
+	mdox_object(Parser_Class* c) : clase(c) 
+	{
+		this->variables_clase = new Variable_Runtime[c->preload_var];
+	};
 
 	~mdox_object()
 	{
@@ -94,7 +149,7 @@ public:
 	void retornoSinValor() { _retorno = std::monostate(); return_activo = true; }
 	Value getRetorno() { return _retorno; }
 
-
+	void IniciateStaticClassValues(Parser_Class* pClase);
 	ValueCopyOrRef tipoValorToValueOrRef(tipoValor& a, Variable_Runtime* variables, Variable_Runtime* var_clase, Parser_Identificador** ret = NULL);
 	//bool OperacionOperadoresVectores(multi_value*, multi_value*, OPERADORES& op, Variable_Runtime* variables);
 	bool OperacionOperadoresVectores(Value*, multi_value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left, Parser_Identificador* f1 = NULL, Parser_Identificador* f2 = NULL);
@@ -114,13 +169,14 @@ public:
 
 	//VariablePreloaded * Interprete_NuevaVariable(Parser_Parametro * par, VariablePreloaded * variables);
 
+	void getRealValueFromValueWrapper(Value& v);
 	std::vector<Value> transformarEntradasCall(Call_Value* vF, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	bool Relacional_rec_arbol(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_clase, Value& val_r);
 
 	Value ExecOperador(Operator_Class* oc, Value& v, Variable_Runtime* var_class);
 	Value ExecOperador(Operator_Class* oc, Variable_Runtime* var_class);
 	Value ExecClass(Call_Value* vf, std::vector<Value>& entradas);
-	Value ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Variable_Runtime* var_class);
+	Value ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Variable_Runtime* var_class, Parser_Class* pClass=NULL);
 	bool FuncionCore(Call_Value* vf, std::vector<Value>& entradas);
 
 

@@ -50,6 +50,18 @@ public:
 	Tokenizer tokenizer;
 	
 	bool existenErrores = false;
+	
+	bool readingFunction = false;
+	//bool readingStaticFunction = false;
+	//bool readingStaticVariable = false;
+	bool readingStaticValue = false;
+
+	//readingClass devolverá donde se está ejecutando el parser, será nulo si es a nivel de raiz o de función de raiz
+	//y devolverá una clase en caso de estar leyendo una clase.
+	//Este valor se usará para las llamadas a funciones.
+	Parser_Class* readingClass = nullptr;
+
+
 	//Cacheado de variables
 	//Variales globales aún no implementadas.
 	std::vector<Variable> variables_globales;
@@ -57,6 +69,8 @@ public:
 
 	std::vector<Call_Value*> valores_llamadas;
 
+
+	
 	Parser() {  }
 
 	//Funciones detectoras de parametros
@@ -68,7 +82,7 @@ public:
 	conmp getValor(bool& v, int& local_index, SendVariables& variables);
 	multi_value* getValorList(bool& all_value, int& local_index, SendVariables& variables);
 	arbol_operacional* getOperacion(int& local_index, SendVariables& variables, bool inside = false);
-	arbol_operacional* getOperacionInd(int& local_index, SendVariables& variables, bool inside = false);
+	arbol_operacional* getOperacionInd(int& local_index, SendVariables& variables, bool inside = false, bool isPublic = true);
 	OPERADORES getOperador(int& local_index);
 	Parser_Sentencia* getSentencia(int& local_index, SendVariables& variables);
 	Parser_Funcion* getFuncion(int& local_index, std::vector<Variable>* class_var = NULL);
@@ -76,12 +90,13 @@ public:
 	etiquetas_class getLabelClass(int& local_index);
 	Parser_ClassConstructor* getClassConstructor(int& local_index, std::vector<Variable>& variable);
 	bool getClassOperadores(int& local_index, Parser_Class* clase, std::vector<Variable>& variables_clases);
+	void PreloadStaticCalls(std::vector<Parser_Class*>* clases);
 
 	bool preloadCalls(std::vector<Parser_Funcion*>&, std::vector<Parser_Class*>* a = NULL);
 
 	//Cacheado de variables
 	Variable* BusquedaVariableLocal(Parser_Identificador* ID, std::vector<Variable>& variables);
-	Variable* BusquedaVariable(Parser_Identificador * ID, SendVariables& variables);
+	int BusquedaVariable(Parser_Identificador * ID, SendVariables& variables);
 	void clearVariables() { variables_globales.clear(); }
 	void CargarEnCacheOperaciones(arbol_operacional* node, SendVariables& variables, bool inside);
 //	void IncrementarVariables() { isGlobal ? numero_variables_globales++ : numero_variables_funcion++; }
