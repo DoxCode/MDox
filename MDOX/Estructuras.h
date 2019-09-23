@@ -689,8 +689,8 @@ enum SentenciaType {
 	SENT_RETURN,
 	SENT_ACCION,
 	SENT_PRINT,
+	SENT_INPUT,
 	SENT_OP,
-
 };
 
 class Parser_Sentencia : public Parser_NODE {
@@ -793,6 +793,18 @@ public:
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Sentencia_Print() {
+		delete pOp;
+	}
+};
+
+class Sentencia_Input : public Parser_Sentencia {
+public:
+	arbol_operacional* pOp;
+
+	Sentencia_Input(arbol_operacional* a) : pOp(a), Parser_Sentencia(SENT_INPUT) {}
+
+	//Aseguramos el borrado de la memoria
+	virtual ~Sentencia_Input() {
 		delete pOp;
 	}
 };

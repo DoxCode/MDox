@@ -311,6 +311,11 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		Errores::generarCabeceraError(node, 4512, tipo, false);
 		std::cout << "Se ha especificado un operador unitario con entradas, cuando no debe tener ninguna. ";
 		break;
+
+	case Errores::ERROR_FORMAT_NO_ACEPTADA:
+		Errores::generarCabeceraError(node, 4513, tipo, false);
+		std::cout << "No se ha podido formatear la cadena obtenida al valor proporcionado.";
+		break;
 		
 		
 	}

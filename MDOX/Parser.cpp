@@ -1692,7 +1692,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 	index = local_index;
 	if (tokenizer.getTokenValue(index) == "<::")
 	{
-		arbol_operacional* pOp = getOperacion(index, variables, true);
+		arbol_operacional* pOp = getOperacionInd(index, variables, false);
 		if (pOp)
 		{
 			if (tokenizer.isCloseToken(index))
@@ -1706,6 +1706,23 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 		}
 	}
 
+	//##########   -- SENTENCIA INPUT --   ##########
+	index = local_index;
+	if (tokenizer.getTokenValue(index) == "::>")
+	{
+		arbol_operacional* pOp = getOperacion(index, variables, true);
+		if (pOp)
+		{
+			if (tokenizer.isCloseToken(index))
+			{
+				local_index = index;
+				Sentencia_Input* sif = new Sentencia_Input(pOp);
+				sif->generarPosicion(&tokenizer);
+				return sif;
+			}
+			deletePtr(pOp);
+		}
+	}
 
 	//##########   -- SENTENCIA OPERACIONAL --   ##########
 	index = local_index;

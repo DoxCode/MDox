@@ -124,6 +124,10 @@ public:
 	bool FuncionCore(Call_Value* vf, std::vector<Value>& entradas);
 
 
+	// =========================== Interprete interno ==============================
+	void MDOX_StringFormat(std::string, arbol_operacional*, Variable_Runtime*, Variable_Runtime*);
+	void InputSystem(Sentencia_Input*, Variable_Runtime*, Variable_Runtime*);
+
 	Interprete()
 	{
 		Interprete::instance = this;
