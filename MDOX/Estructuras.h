@@ -7,6 +7,7 @@
 #include <list>
 #include <tuple>
 #include <iostream>
+#include <unordered_map>
 
 #include "Tokenizer.h"
 
@@ -183,10 +184,12 @@ enum OPERADORES {
 	//Prior 8
 	OP_BRACKET_LEFT, //El operador offset es [op]
 	OP_BRACKET_RIGHT,
+	
 
 	//Prior 7
 	OP_SCOPE_LEFT,
 	OP_SCOPE_RIGHT,
+	OP_CLASS_ACCESS, //Operación de acceso a clase '.'
 	OP_NEGADO,
 	ELEM_NEG_FIRST, // No se usa como tal, son negativos
 	OP_ITR_PLUS,
@@ -332,26 +335,45 @@ public:
 	mdox_vector(std::vector<Value>&& b) : vector(std::move(b)) {};
 };
 
-class mdox_object;
 
-using val_variant = std::variant< std::monostate, int, bool, double, std::shared_ptr<mdox_vector>, std::shared_ptr<mdox_object>, long long, std::string>;
+
+
+
+class mdox_object;
+class Variable_Runtime;
 class Parser_Identificador;
+class Value;
+
+// Una llamada del estilo -> "a.x" lo transforma en un solo objeto.
+//Por lo que para: a.b.x -> [ab].x -> [abx]
+class wrapper_object_call
+{
+public:
+	std::shared_ptr<mdox_object> objeto;
+	Parser_Identificador* var;
+	Value* getValue(bool, bool b = false);
+	wrapper_object_call(std::shared_ptr<mdox_object>& a, Parser_Identificador* x) : objeto(a), var(x) {}
+};
+
+using val_variant = std::variant< std::monostate, int, bool, double, std::shared_ptr<mdox_vector>, std::shared_ptr<mdox_object>, long long, std::string, wrapper_object_call, Variable_Runtime*>;
+
+class Call_Value;
 
 //template <class valueType>
 class Value {
 public:
 	val_variant value;
-	//	tipos_parametros tipo;
 
 	~Value() { };
-	static Value Value::Suma(Value& v1, Value& v2);
-	static Value Value::Resta(Value& v1, Value& v2);
-	static Value Value::Multiplicacion(Value& v1, Value& v2);
-	static Value Value::Div(Value& v1, Value& v2);
-	static Value Value::DivEntera(Value& v1, Value& v2);
-	static Value Value::Mod(Value& v1, Value& v2);
-	static Value Value::Offset(Value& v1, Value& v2); //[x]
-
+	static Value Suma(Value& v1, Value& v2);
+	static Value Resta(Value& v1, Value& v2);
+	static Value Multiplicacion(Value& v1, Value& v2);
+	static Value Div(Value& v1, Value& v2);
+	static Value DivEntera(Value& v1, Value& v2);
+	static Value Mod(Value& v1, Value& v2);
+	static Value Offset(Value& v1, Value& v2); //[x]
+	
+	Value ClassAccess(Parser_Identificador* v2, Call_Value * call = nullptr, Variable_Runtime* variables = nullptr, Variable_Runtime* var_class = nullptr);
 	bool OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador * f1 = NULL, Parser_Identificador * f2 = NULL);
 	bool OperadoresEspeciales_Pop(Value& v, bool& left, Parser_Identificador * f1 = NULL, Parser_Identificador * f2 = NULL);
 	Value operacion_Binaria(Value& v, const OPERADORES op);
@@ -393,7 +415,9 @@ public:
 	Value(bool& a) : value(a) {  };
 	Value(std::monostate&) : value(std::monostate()) {  };
 	Value(std::shared_ptr<mdox_vector>& a) : value(std::make_shared<mdox_vector>(*a)) {  };
-	Value(std::shared_ptr<mdox_object>& a) : value(a) {  };
+	Value(std::shared_ptr<mdox_object>& a) : value(a) { };
+	Value(wrapper_object_call& a) : value(a) { };
+	Value(Variable_Runtime* a) : value(a) { };
 
 
 	Value(int&& a) : value(std::move(a)) {  };
@@ -402,7 +426,6 @@ public:
 	Value(std::string&& a) : value(std::move(a)) {  };
 	Value(bool&& a) : value(std::move(a)) {  };
 	Value(std::shared_ptr<mdox_vector>&& a) : value(std::move(a)) {  };
-	Value(std::shared_ptr<mdox_object>&& a) : value(a) {  };
 
 	Value(val_variant& a) : value(std::visit(overloaded
 		{ 
@@ -436,16 +459,22 @@ public:
 // ################################################################
 // ####################### IDENTIFICADOR ########################## 
 // ################################################################
+class Parser_Class;
 
 class Parser_Identificador : public Parser_NODE {
 public:
 	bool var_global = false;
 	bool var_class = false;
+	
+	//STATIC VAR?
+	bool is_Static = false;
+	Parser_Class* static_link = nullptr; //Enlace a la clase si es estatica la operación
 
-	int index;
+	int index = -1;
 	std::string nombre;
 	bool fuerte = false;
 	bool inicializando = false;
+
 
 	Parser_Declarativo* tipo = NULL;
 
@@ -473,8 +502,9 @@ public:
 class IndexCall_Class
 {
 public:
-	int class_index;
+	int class_index = -2; // -1: Constructor por defecto, -2: ERROR será enviado - llamada no valida
 	int constructor_index;
+	int _especial_var; //usado para especificar la variable estática a la cual accederá.
 };
 
 //Basicamente se trataría de funciones con un retorno de un valor dado.
@@ -488,11 +518,29 @@ public:
 	Parser_Identificador* ID;
 	std::vector<arbol_operacional*> entradas;
 
+
+	//Si valor enlace = NULL implica que en ningún momento podrá tratarse de un valor estático.
+	//En caso contrario la posibilidad existe y tiene que ser tratada en el preloadCalls.
+	//Este valos se modifica en el preload de operaciones.
+	bool is_Static = false;
+	arbol_operacional* valor_enlace = NULL;
+	Parser_Class* class_link_static = nullptr; // SOLO si es estatico
+	bool function_parent_is_static = false; // Indica si la función en la que se ejecuta la llamada es estática o no.
+
+	bool skip = false; //Indica si este call debe ser saltado o no en el preload.
+
+	
 	//En el caso de que la llamada sea a una función
 	IndexCall_Function* inx_funcion = NULL;
 
 	//En el caso de que la llamda sea a una clase
 	IndexCall_Class* inx_class = NULL;
+
+	//Indica si la clase o función pertenece a otra clase, y en caso de hacerlo, a cual.
+
+	Parser_Class* inside_class;
+	bool isInsideClass = false;
+
 
 	bool is_class;
 
@@ -507,6 +555,8 @@ public:
 
 	virtual ~Call_Value()
 	{
+
+
 		delete ID;
 
 		if (inx_class)
@@ -641,7 +691,7 @@ public:
 	tipoValor _v1; // Primer valor 
 	tipoValor _v2; // segundo valor  
 
-	bool is_Public = false;
+	bool is_Public = true;
 	bool is_Static = false;
 
 	arbol_operacional(tipoValor a, tipoValor b, OPERADORES op) : _v1(a), _v2(b), operador(op) {}
@@ -987,14 +1037,70 @@ class Parser_Class : public Parser_NODE
 {
 public:
 	Parser_Identificador* pID;
-	std::vector<Parser_Funcion*> funciones;
+	std::vector<Parser_Funcion*> funciones; //Vector donde guardaremos la funcione de la clase
+
+	//Variables estáticas de la clase
+	bool valores_estaticos_iniciados = false;
+	std::vector<arbol_operacional*> variables_static;
+	std::unordered_map<std::string, int> static_var_map;
+	Variable_Runtime* static_var_runtime=NULL;
+
+
+	//Mapeado de las funciones.
+	// Nos servirá para crear un pair entre el nombre de la función y el índice (funciones[indice]) con coste O(1) de
+	// todas las funciones ya agregadas en la clase, este valor se creará al finalizar la clase durante el parseado, llamando a la función preloadFunctions
+	std::unordered_map<std::string, std::vector<int>> function_map; 
+	
 	std::vector<Parser_ClassConstructor*> constructores;
 	std::vector<arbol_operacional*> variables_operar;
+
+	//Usado para guardar el nombre de los identificadores y asignarlo a la runtime variable en su momento.
+	std::unordered_map<std::string, int> _variables_map;
 
 	Operators_List* normal_operators = NULL; //Operadores del estilo this+x;  El objeto se encuentra en la izquierda de la operación.
 	Operators_List* right_operators = NULL;  //Operadores del estilo x+this;  El objeto se encuentra en la derecha de la operación.
 
 	int preload_var = 0;
+
+	//Función que deberá ser llamada al finalizar de construir la clase de forma obligatoria para crear el pair entre indices y funciones, que nos servirá como tabla
+	// hash para mayor rapidez de ejecución en runtime
+	void preloadFunctions()
+	{
+		if (this->funciones.size() == 0)
+			return;
+
+		int itr_inx = 0;
+		for (std::vector<Parser_Funcion*>::iterator it = this->funciones.begin(); it != this->funciones.end(); ++it)
+		{
+			auto got = function_map.find((*it)->pID->nombre);
+
+			if (got != function_map.end())
+			{
+				got->second.emplace_back(itr_inx);
+			}
+			else
+			{
+				auto a = function_map.emplace((*it)->pID->nombre, 0);
+				if (a.second)
+				{
+					a.first->second.emplace_back(itr_inx);
+				}
+			}
+
+			itr_inx++;
+		}
+	}
+
+	std::vector<int>* findFuncion(std::string& id)
+	{
+		//Buscamos los nombres de los índices de la función con el nombre dado entre el mapeado creado durante el parseado.
+		std::unordered_map<std::string, std::vector<int>>::iterator got = function_map.find(id);
+		if (got != function_map.end())
+			return &got->second;
+
+		return NULL;
+	}
+
 
 	Parser_Class(Parser_Identificador* p) : pID(p) {};
 
@@ -1004,12 +1110,14 @@ public:
 		delete pID;
 		delete normal_operators;
 		delete right_operators;
+		//deletePtr(static_var_runtime);
 
 		for (std::vector<Parser_Funcion*>::iterator it = funciones.begin(); it != funciones.end(); ++it)
 		{
 			delete (*it);
 		}
 		funciones.clear();
+
 		for (std::vector<Parser_ClassConstructor*>::iterator it = constructores.begin(); it != constructores.end(); ++it)
 		{
 			delete (*it);
@@ -1017,9 +1125,15 @@ public:
 		constructores.clear();
 		for (std::vector<arbol_operacional*>::iterator it = variables_operar.begin(); it != variables_operar.end(); ++it)
 		{
-			delete (*it);
+			delete (*it); 
 		}
 		variables_operar.clear();
+
+		for (std::vector<arbol_operacional*>::iterator it = variables_static.begin(); it != variables_static.end(); ++it)
+		{
+			delete (*it);
+		}
+		variables_static.clear();
 
 	};
 };

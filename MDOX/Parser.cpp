@@ -741,6 +741,9 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 						Call_Value* v = new Call_Value(i, entradas);
 						local_index = i_index;
 						v->generarPosicion(&tokenizer);
+						v->inside_class = this->readingClass;
+						v->function_parent_is_static = this->readingStaticValue;
+
 						this->valores_llamadas.emplace_back(v);
 						return v;
 					}
@@ -763,6 +766,9 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 						Call_Value* v = new Call_Value(i, entradas);
 						local_index = t_index;
 						v->generarPosicion(&tokenizer);
+						v->inside_class = this->readingClass;
+						v->function_parent_is_static = this->readingStaticValue;
+
 						this->valores_llamadas.emplace_back(v);
 						return v;
 					}
@@ -805,6 +811,8 @@ OPERADORES Parser::getOperador(int& local_index)
 
 	else if (v == "[") return OPERADORES::OP_BRACKET_LEFT;
 	else if (v == "]") return OPERADORES::OP_BRACKET_RIGHT;
+
+	else if (v == ".") return OPERADORES::OP_CLASS_ACCESS;
 
 	else if (v == "!") return OPERADORES::OP_NEGADO;
 	else if (v == "++") return OPERADORES::OP_ITR_PLUS;
@@ -1029,13 +1037,14 @@ arbol_operacional* GenerarArbolDesdeShuntingYard(stack_conmp & res)
 
 
 
-arbol_operacional* Parser::getOperacionInd(int& local_index, SendVariables& variables, bool inside)
+arbol_operacional* Parser::getOperacionInd(int& local_index, SendVariables& variables, bool inside, bool isPublic)
 {
 	int index = local_index;
 	arbol_operacional * Op = getOperacion(index, variables, inside);
 
 	if (Op)
 	{
+		Op->is_Public = isPublic;
 		std::string next_token = tokenizer.getTokenValue(index);
 		if (next_token == ",")
 		{
@@ -1046,6 +1055,7 @@ arbol_operacional* Parser::getOperacionInd(int& local_index, SendVariables& vari
 				arbol_operacional * t1 = getOperacion(index, variables, inside);
 				if (t1)
 				{
+					t1->is_Public = isPublic;
 					mv->arr.emplace_back(t1);
 				}
 				else
@@ -1238,6 +1248,34 @@ arbol_operacional * Parser::getOperacion(int& local_index, SendVariables& variab
 			if (aux == OPERADORES::OP_NONE)
 			{
 				break;
+			}
+			else if (aux == OPERADORES::OP_CLASS_ACCESS)
+			{
+				is_op = 2;
+				bool ok;
+				conmp pN = this->getValor(ok, index, variables);
+
+				if (ok)
+				{
+					if (!std::visit(overloaded{
+						[&](Parser_Identificador * a)->bool {return true; },
+						[&](Call_Value * a)->bool { return true; },
+						[&](auto&)->bool {  return false; },
+						}, pN))
+					{
+						Errores::generarError(Errores::ERROR_OPERADOR_ACCESO_CLASE_INVALIDO, NULL);
+						return NULL;
+					}
+				}
+				else
+				{
+					Errores::generarError(Errores::ERROR_OPERADOR_ACCESO_CLASE_INVALIDO, NULL);
+					return NULL;
+				}
+
+				stack.push_back(pN);
+				stack.push_back(aux);
+				continue;
 			}
 			else if (aux == OPERADORES::OP_SCOPE_LEFT)
 			{
@@ -1763,6 +1801,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index, std::vector<Variable>* var_
 		{
 			if (tokenizer.getTokenValue(index) == "(")
 			{
+				this->readingFunction = true;
 
 				//Variables por función
 				this->isGlobal = false;
@@ -1794,6 +1833,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index, std::vector<Variable>* var_
 						}
 						else
 						{
+							this->readingFunction = false;
 							deletePtr(pID);
 
 							for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
@@ -1808,6 +1848,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index, std::vector<Variable>* var_
 					{
 						if (tokenizer.getTokenValue(t2_index) != ")")
 						{
+							this->readingFunction = false;
 							deletePtr(pID);
 
 							for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
@@ -1839,10 +1880,12 @@ Parser_Funcion* Parser::getFuncion(int& local_index, std::vector<Variable>* var_
 							Parser_Funcion* sif = new Parser_Funcion(pID, entradas, pSent, pDecl);
 							sif->preload_var = *variables.num_local_var;
 							sif->generarPosicion(&tokenizer);
+							this->readingFunction = false;
 							return sif;
 						}
 						else
 						{
+							this->readingFunction = false;
 							deletePtr(pDecl);
 							deletePtr(pID);
 
@@ -1855,6 +1898,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index, std::vector<Variable>* var_
 					}
 					else
 					{
+						this->readingFunction = false;
 						deletePtr(pID);
 
 						for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
@@ -1873,10 +1917,12 @@ Parser_Funcion* Parser::getFuncion(int& local_index, std::vector<Variable>* var_
 						Parser_Funcion* sif = new  Parser_Funcion(pID, entradas, pSent);
 						sif->preload_var = *variables.num_local_var;
 						sif->generarPosicion(&tokenizer);
+						this->readingFunction = false;
 						return sif;
 					}
 					else
 					{
+						this->readingFunction = false;
 						deletePtr(pID);
 
 						for (std::vector<arbol_operacional*>::iterator it = entradas.begin(); it != entradas.end(); ++it)
@@ -1893,6 +1939,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index, std::vector<Variable>* var_
 		}
 	}
 
+	this->readingFunction = false;
 	return NULL;
 }
 
@@ -2415,7 +2462,10 @@ Parser_Class* Parser::getClass(int& local_index)
 			{
 				Parser_Class* clase = new Parser_Class(pID);
 
-				bool isPrivate = true;
+				//True si al menos hay un miembro estático.
+				//Esto servirá para precargar la clase 
+				bool haveStaticMember = false; 
+				bool isPrivate = false;
 
 				//Por ahora usaremos .variables_locales
 				//En el caso de que en el futuro se decida implementar innerClass, se dejará .variables_clase para tomar valores del 'padre'
@@ -2424,17 +2474,33 @@ Parser_Class* Parser::getClass(int& local_index)
 				//Aquí buscaremos todos los valores, funciones, operadores y constructores de los que disponga la clase.
 				while (tokenizer.getFirstNotCloseToken(index) != "}")
 				{
+					this->readingClass = clase; //Lo haremos cada vez que recorremos el while, pues en un futuro habra inner-class
 					index--;
 					bool isStatic = false;
 
-					if (getLabelClass(index) == LABEL_PUBLIC)
+					auto label = getLabelClass(index);
+
+					if (label == LABEL_PUBLIC)
+					{
 						isPrivate = false;
-					else if (getLabelClass(index) == LABEL_PRIVATE)
+
+						label = getLabelClass(index);
+						if (label == LABEL_STATIC)
+							isStatic = true;
+					}
+					else if (label == LABEL_PRIVATE)
+					{
 						isPrivate = true;
-					else if (getLabelClass(index) == LABEL_STATIC)
+
+						label = getLabelClass(index);
+						if (label == LABEL_STATIC)
+							isStatic = true;
+					}
+					else if (label == LABEL_STATIC)
 						isStatic = true;
 
 
+					this->readingStaticValue = isStatic;
 
 					Parser_ClassConstructor* pConst = getClassConstructor(index, variables.variables_locales);
 					if (pConst)
@@ -2444,6 +2510,8 @@ Parser_Class* Parser::getClass(int& local_index)
 							Errores::generarError(Errores::ERROR_CLASE_STATIC_IS_NOT_VAR_FUNCT, NULL);
 							delete clase;
 							delete pConst;
+							this->readingClass = nullptr;
+							this->readingStaticValue = false;
 							return NULL;
 						}
 						clase->constructores.emplace_back(pConst);
@@ -2457,21 +2525,29 @@ Parser_Class* Parser::getClass(int& local_index)
 						{
 							Errores::generarError(Errores::ERROR_CLASE_STATIC_IS_NOT_VAR_FUNCT, NULL);
 							delete clase;
+							this->readingClass = nullptr;
+							this->readingStaticValue = false;
 							return NULL;
 						}
 						continue;
 					}
 
+
+				
 					Parser_Funcion* fnt = getFuncion(index, &variables.variables_locales);
 					if (fnt)
 					{
 						fnt->is_Public = !isPrivate;
 						fnt->is_Static = isStatic;
+
+						if (isStatic)
+							haveStaticMember = true;
 						clase->funciones.emplace_back(fnt);
 						continue;	
 					}
 
-					arbol_operacional* pOp = getOperacionInd(index, variables);
+
+					arbol_operacional* pOp = getOperacionInd(index, variables, false, !isPrivate);
 					if (pOp)
 					{
 						//Comprobamos que se trata de identificadores u operaciones de asignación.
@@ -2479,29 +2555,44 @@ Parser_Class* Parser::getClass(int& local_index)
 						if (ComprobarIdentificadores(pOp) == NULL)
 						{
 							Errores::generarError(Errores::ERROR_CLASE_VARIABLE_NO_VALIDA, NULL, pID->nombre);
+							this->readingClass = nullptr;
+							this->readingStaticValue = false;
 							return NULL;
 						}
 
 						pOp->is_Public = !isPrivate;
-						pOp->is_Static = isStatic;
-						clase->variables_operar.emplace_back(pOp);
+							
+						if (isStatic)
+						{
+							clase->variables_static.emplace_back(pOp);
+							haveStaticMember = true;
+						}
+						else
+							clase->variables_operar.emplace_back(pOp);
+
 						continue;
 					}
 
 					Errores::generarError(Errores::ERROR_CLASE_SINTAXIS, NULL, pID->nombre);
 					deletePtr(clase);
+					this->readingClass = nullptr;
+					this->readingStaticValue = false;
+
 					return NULL;
 				}
 
+				this->readingClass = nullptr;
 				clase->preload_var = *variables.num_local_var;
+				clase->preloadFunctions();
 
+				this->readingStaticValue = false;
 				local_index = index;
 				return clase;
 			}
-
 		}
 	}
 
+	this->readingStaticValue = false;
 	return NULL;
 }
 /**
@@ -2529,12 +2620,33 @@ Variable* Parser::BusquedaVariableLocal(Parser_Identificador* ID, std::vector<Va
 /*
 Buscamos variables entre las globales y variables locales
 */
-Variable* Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& variables)
+int Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& variables)
 {
 	Variable* v = BusquedaVariableLocal(ID, variables.variables_locales);
 
 	if (v != NULL)
-		return v;
+		return v->index;
+
+	for (std::vector<Variable>::iterator it = this->variables_globales.begin(); it != this->variables_globales.end(); ++it)
+	{
+		if (it->nombre == ID->nombre)
+		{
+			ID->var_global = true;
+			return (*it).index;
+		}
+	}
+
+	if (/*this->readingFunction && */this->readingStaticValue && this->readingClass)
+	{
+		std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(ID->nombre);
+		if (got != this->readingClass->static_var_map.end())
+		{
+			ID->index = got->second;
+			ID->is_Static = true;
+			ID->static_link = this->readingClass;
+			return ID->index;
+		}
+	}
 
 	if (variables.variables_clase != NULL)
 	{
@@ -2543,19 +2655,11 @@ Variable* Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& var
 		if (v != NULL)
 		{
 			ID->var_class = true;
-			return v;
+			return v->index;
 		}
 	}
 
-	for (std::vector<Variable>::iterator it = this->variables_globales.begin(); it != this->variables_globales.end(); ++it)
-	{
-		if (it->nombre == ID->nombre)
-		{
-			ID->var_global = true;
-			return &(*it);
-		}
-	}
-	return NULL;
+	return -1;
 }
 
 void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& variables, bool inside)
@@ -2566,9 +2670,22 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 			{
 				[&](Parser_Identificador * a)
 				{
-					Variable* var = this->BusquedaVariable(a, variables);
-					if (var == NULL)
+					int IndexVar = this->BusquedaVariable(a, variables);
+					if (IndexVar == -1)
 					{
+						//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
+						/*if (this->readingFunction && this->readingStaticValue && this->readingClass)
+						{
+							std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(a->nombre);
+							if (got != this->readingClass->static_var_map.end())
+							{
+								a->index = got->second;
+								a->is_Static = true;
+								a->static_link = this->readingClass;
+								return;
+							}
+						}*/
+
 						//Si no existe y la variable no esta en una localizacion inside, la creamos.
 						if (inside)
 						{
@@ -2583,22 +2700,31 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 								a->index = this->variables_globales.back().index;
 								a->var_global = true;
 								a->inicializando = true;
+
 							}
-							else if (a->var_class)
+							else if (!this->readingFunction && this->readingStaticValue && this->readingClass) //Si no es una funcion, es que esta leyendo una variable
 							{
-								variables.variables_clase->push_back(Variable(a->nombre, variables.variables_clase->size()));
-								a->index = variables.variables_clase->back().index;
+								int inx = this->readingClass->static_var_map.size();
+								this->readingClass->static_var_map.emplace(a->nombre, inx);
+								a->index = inx;
 								a->inicializando = true;
+								a->is_Static = true;
+								a->static_link = this->readingClass;
 							}
 							else
 							{
-								variables.push_VarLocal(Variable(a->nombre, *variables.num_local_var));
+								int d = *variables.num_local_var;
+								variables.push_VarLocal(Variable(a->nombre, d));
+								if (this->readingClass)
+									this->readingClass->_variables_map.emplace(std::move(a->nombre), d);
 								a->index = variables.variables_locales.back().index;
 								a->inicializando = true;
 							}
 						}
 					}
-					else a->index = var->index;
+					else
+						a->index = IndexVar;
+
 				},
 				[&](auto&) { return; },
 			}, arbol->_v1);
@@ -2616,9 +2742,22 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 				[&](arbol_operacional * a) { CargarEnCacheOperaciones(a, variables,inside); },
 				[&](Parser_Identificador * a)
 				{
-					Variable* var = this->BusquedaVariable(a, variables);
-					if (var == NULL)
+					int IndexVar = this->BusquedaVariable(a, variables);
+					if (IndexVar == -1)
 					{
+						//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
+					/*	if (this->readingFunction && this->readingStaticValue && this->readingClass)
+						{
+							std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(a->nombre);
+							if (got != this->readingClass->static_var_map.end())
+							{
+								a->index = got->second;
+								a->is_Static = true;
+								a->static_link = this->readingClass;
+								return;
+							}
+						}*/
+
 						//Si no existe, la creamos.
 						if (this->isGlobal)
 						{
@@ -2627,20 +2766,28 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 							a->var_global = true;
 							a->inicializando = true;
 						}
-						else if (a->var_class)
+						else if (!this->readingFunction && this->readingStaticValue && this->readingClass)
 						{
-							variables.variables_clase->push_back(Variable(a->nombre, variables.variables_clase->size()));
-							a->index = variables.variables_clase->back().index;
+							int inx = this->readingClass->static_var_map.size();
+							this->readingClass->static_var_map.emplace(a->nombre, inx);
+							a->index = inx;
 							a->inicializando = true;
+							a->is_Static = true;
+							a->static_link = this->readingClass;
 						}
 						else
 						{
-							variables.push_VarLocal(Variable(a->nombre, *variables.num_local_var));
+							int d = *variables.num_local_var;
+							variables.push_VarLocal(Variable(a->nombre, d));
+							if (this->readingClass)
+								this->readingClass->_variables_map.emplace(std::move(a->nombre), d);
 							a->index = variables.variables_locales.back().index;
 							a->inicializando = true;
 						}
 					}
-					else a->index = var->index;
+					else 
+					a->index = IndexVar;
+					
 				},
 				[](auto&) {return; },
 			}, arbol->_v1);
@@ -2650,9 +2797,22 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 					[&](arbol_operacional * a2) { CargarEnCacheOperaciones(a2, variables,inside); },
 					[&](Parser_Identificador * a2)
 					{
-							Variable* var2 = this->BusquedaVariable(a2, variables);
-							if (var2 == NULL)
+							int IndexVar = this->BusquedaVariable(a2, variables);
+							if (IndexVar == -1)
 							{
+								//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
+							/*	if (this->readingFunction && this->readingStaticValue && this->readingClass)
+								{
+									std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(a2->nombre);
+									if (got != this->readingClass->static_var_map.end())
+									{
+										a2->index = got->second;
+										a2->is_Static = true;
+										a2->static_link = this->readingClass;
+										return;
+									}
+								}*/
+
 								//Si no existe, la creamos.
 								if (this->isGlobal)
 								{
@@ -2661,23 +2821,69 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 									a2->var_global = true;
 									a2->inicializando = true;
 								}
-								else if (a2->var_class)
+								else if (!this->readingFunction && this->readingStaticValue && this->readingClass)
 								{
-									variables.variables_clase->push_back(Variable(a2->nombre, variables.variables_clase->size()));
-									a2->index = variables.variables_clase->back().index;
+									int inx = this->readingClass->static_var_map.size();
+									this->readingClass->static_var_map.emplace(a2->nombre, inx);
+									a2->index = inx;
 									a2->inicializando = true;
+									a2->is_Static = true;
+									a2->static_link = this->readingClass;
 								}
 								else
 								{
-									variables.push_VarLocal(Variable(a2->nombre, *variables.num_local_var));
+									int d = *variables.num_local_var;
+									variables.push_VarLocal(Variable(a2->nombre, d));
+									if (this->readingClass)
+										this->readingClass->_variables_map.emplace(std::move(a2->nombre), d);
 									a2->index = variables.variables_locales.back().index;
 									a2->inicializando = true;
 								}
 							}
-							else a2->index = var2->index;
+							else 
+								a2->index = IndexVar;
+							
 					},
 			}, arbol->_v2);
 
+	}
+	else if (arbol->operador == OPERADORES::OP_CLASS_ACCESS)
+	{
+		std::visit(overloaded{
+			[](auto&) {},
+			[&](arbol_operacional * a) { CargarEnCacheOperaciones(a, variables,inside); },
+			[&](Parser_Identificador * a)
+			{
+				int IndexVar= this->BusquedaVariable(a, variables);
+				if (IndexVar == -1)
+				{
+					Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a->parametros, a->nombre);
+					existenErrores = true;
+				}
+				else a->index = IndexVar;
+			},
+			//Con esto buscamos que se trate de clase().x , si no hay entradas es posible que se trate de un valor estático
+			// pero también puede tratarse de la creación de un objeto con el constructor por defecto.
+			// por ello, tendremos que guardar el valor del identificador al que se llama, en este caso "x", para que en runtime
+			// se pueda comprobar si se trata de una variable o funcion estática.
+			[&](Call_Value* a) 
+			{
+				if (a->entradas.size() == 0)
+				{
+					a->valor_enlace = arbol;
+				}
+			},
+			}, arbol->_v1);
+
+		std::visit(overloaded{
+			[](auto&) {},
+			[&](Call_Value * a)
+			{
+				 a->skip = true;
+			},
+			}, arbol->_v2);
+
+	
 	}
 	else
 	{
@@ -2686,13 +2892,26 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 			[&](arbol_operacional * a) { CargarEnCacheOperaciones(a, variables,inside); },
 			[&](Parser_Identificador * a)
 			{
-				Variable* var = this->BusquedaVariable(a, variables);
-				if (var == NULL)
+				int IndexVar = this->BusquedaVariable(a, variables);
+				if (IndexVar == -1)
 				{
+					//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
+				/*	if (this->readingFunction && this->readingStaticValue && this->readingClass)
+					{
+						std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(a->nombre);
+						if (got != this->readingClass->static_var_map.end())
+						{
+							a->index = got->second;
+							a->is_Static = true;
+							a->static_link = this->readingClass;
+							return;
+						}
+					}*/
+
 					Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a->parametros, a->nombre);
 					existenErrores = true;
 				}
-				else a->index = var->index;
+				else a->index = IndexVar;
 			},
 			}, arbol->_v1);
 
@@ -2702,28 +2921,167 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 		[&](arbol_operacional * a2) { CargarEnCacheOperaciones(a2, variables,inside); },
 		[&](Parser_Identificador * a2)
 		{
-			Variable* var2 = this->BusquedaVariable(a2, variables);
-			if (var2 == NULL)
+			int IndexVar2 = this->BusquedaVariable(a2, variables);
+			if (IndexVar2 == -1)
 			{
+				//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
+				/*if (this->readingFunction && this->readingStaticValue && this->readingClass)
+				{
+					std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(a2->nombre);
+					if (got != this->readingClass->static_var_map.end())
+					{
+						a2->index = got->second;
+						a2->is_Static = true;
+						a2->static_link = this->readingClass;
+						return;
+					}
+				}*/
+
 				Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a2->parametros, a2->nombre);
 				existenErrores = true;
 			}
-			else a2->index = var2->index;
+			else a2->index = IndexVar2;
 		},
 			}, arbol->_v2);
 
 	}
 }
 
+void Parser::PreloadStaticCalls(std::vector<Parser_Class*>* clases)
+{
+	for (std::vector<Call_Value*>::iterator it = this->valores_llamadas.begin(); it != this->valores_llamadas.end(); ++it)
+	{
+		if ((*it)->inx_class == NULL)
+			continue;
+
+		if ((*it)->entradas.size() > 0)
+			continue;
+
+		//Comprobamos si es una llamada estática a una función o clase.
+		if ((*it)->valor_enlace)
+		{
+			bool existe = false;
+			for (int itr = 0; itr < clases->size(); itr++)
+			{
+				//Debe coincidir el nombre de la misma.
+				if ((*clases)[itr]->pID->nombre == (*it)->ID->nombre)
+				{
+					std::visit(overloaded{
+						[&](auto&) 
+						{								
+							Errores::generarError(Errores::ERROR_CLASE_STATIC_ACCESS, &(*it)->parametros, (*it)->ID->nombre);
+							this->existenErrores = true;
+
+						},
+						[&](Call_Value * a)
+						{
+							std::vector<int>* pIds = (*clases)[itr]->findFuncion(a->ID->nombre);
+							//std::vector<int>* 
+							std::vector<int> staticIds;
+							for (std::vector<int>::iterator interno = pIds->begin(); interno != pIds->end(); ++interno)
+							{
+								if ((*clases)[itr]->funciones[*interno]->is_Static)
+								{
+									staticIds.emplace_back(*interno);
+									existe = true;
+								}
+							}
+
+							if (staticIds.size() == 0)
+							{
+								Errores::generarError(Errores::ERROR_CLASE_STATIC_FUNCTION_NOT_FOUND, &(*it)->parametros, a->ID->nombre, (*it)->ID->nombre);
+								this->existenErrores = true;
+						
+							}
+							else
+							{
+								deletePtr((*it)->inx_class);
+								
+								(*it)->setFuncion();
+								(*it)->inx_funcion->funcionesItrData = staticIds;
+								(*it)->valor_enlace->is_Static = true; // Avisamos que esta operación en concreto es estática, para el interprete.
+								a->is_Static = true; // En caso de funciones, avisaremos también al objeto de llamada, para evitar colisiones con la llamada de función.
+								(*it)->class_link_static = (*clases)[itr];
+								existe = true;
+							}
+						},
+						[&](Parser_Identificador * a)
+						{
+							std::unordered_map<std::string, int>::iterator got = (*clases)[itr]->static_var_map.find(a->nombre);
+							if (got != (*clases)[itr]->static_var_map.end())
+							{
+								(*it)->inx_class->_especial_var = got->second;
+								(*it)->valor_enlace->is_Static = true; // Avisamos que esta operación en concreto es estática, para el interprete.
+								(*it)->class_link_static = (*clases)[itr];
+								existe = true;
+							}
+							else
+							{
+								Errores::generarError(Errores::ERROR_CLASE_STATIC_VAR_NOT_FOUND, &(*it)->parametros, a->nombre, (*it)->ID->nombre);
+								this->existenErrores = true;
+							}
+
+						},
+						}, (*it)->valor_enlace->_v2);
+					continue;
+				}
+			}
+
+			if (!existe && !this->existenErrores)
+			{
+				Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA, &(*it)->parametros, (*it)->ID->nombre);
+				this->existenErrores = true;
+			}
+
+		}
+		else
+		{
+			if ((*it)->inx_class->class_index == -2)
+			{
+				Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_NO_VALIDO, &(*it)->parametros, (*it)->ID->nombre);
+				this->existenErrores = true;
+			}
+			//En caso contrario es una llamada a un constructor adeacuado.
+		}
+	}
+}
 
 //Preload de funciones y clases
 bool Parser::preloadCalls(std::vector<Parser_Funcion*>& funciones, std::vector<Parser_Class*>* clases)
 {
 	for (std::vector<Call_Value*>::iterator it = this->valores_llamadas.begin(); it != this->valores_llamadas.end(); ++it)
 	{
+		if ((*it)->skip)
+			continue;
+
 		//(*it)->funcionesCoreItrData.clear();
 		//Core::core_functions
 		bool existe = false;
+
+		if ((*it)->inside_class)
+		{
+			for (int itr = 0; itr < (*it)->inside_class->funciones.size(); itr++)
+			{
+				if ((*it)->inside_class->funciones[itr]->pID->nombre == (*it)->ID->nombre)
+				{
+						//Establece que es una función
+						(*it)->setFuncion();
+
+						if ((*it)->inside_class->funciones[itr]->entradas.size() != (*it)->entradas.size())
+							continue;
+
+						if ((*it)->function_parent_is_static && !(*it)->inside_class->funciones[itr]->is_Static)
+							continue;
+
+						(*it)->AddFuncion(itr);
+						(*it)->isInsideClass = true;
+						existe = true;
+				}
+			}
+		}
+
+		if (existe)
+			continue;
 
 		for (int itr = 0; itr < Core::core_functions.size(); itr++)
 		{
@@ -2756,9 +3114,12 @@ bool Parser::preloadCalls(std::vector<Parser_Funcion*>& funciones, std::vector<P
 			}
 		}
 
+
+
 		if (!existe && clases == NULL)
 		{
 			Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA, &(*it)->parametros, (*it)->ID->nombre);
+			this->existenErrores = true;
 			continue;
 		}
 
@@ -2767,6 +3128,7 @@ bool Parser::preloadCalls(std::vector<Parser_Funcion*>& funciones, std::vector<P
 
 		if (clases == NULL)
 			continue;
+
 
 		for (int itr = 0; itr < clases->size(); itr++)
 		{
@@ -2784,6 +3146,7 @@ bool Parser::preloadCalls(std::vector<Parser_Funcion*>& funciones, std::vector<P
 
 					(*it)->AddClass(itr, inx_const);
 					is_ok = true;
+					existe = true;
 					break;
 				}
 
@@ -2794,17 +3157,35 @@ bool Parser::preloadCalls(std::vector<Parser_Funcion*>& funciones, std::vector<P
 				if ((*it)->entradas.size() == 0 && (*clases)[itr]->constructores.size() == 0)
 				{
 					(*it)->AddClass(itr, -1);
+					existe = true;
 					break;
 				}
-
-				Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_NO_VALIDO, &(*it)->parametros, (*it)->ID->nombre);
 			}
 		}
+
+		if (!existe)
+		{
+			if ((*it)->valor_enlace) //Puede tratarse de un valor estatico, pasamos el propio valor, y el valor al cual esta enlazado.
+			{
+
+				std::visit(overloaded{
+				[](auto&) {},
+				[&](Call_Value* a2) { a2->skip = true; },
+				}, (*it)->valor_enlace->_v2);	
+				continue;
+			}
+			Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA, &(*it)->parametros, (*it)->ID->nombre);
+			this->existenErrores = true;
+			continue;
+		}
 	}
+	PreloadStaticCalls(clases);
 	//this->valores_funciones.clear();
 	//this->valores_funciones.shrink_to_fit();
 	return true;
 }
+
+
 
 
 
