@@ -108,6 +108,8 @@ public:
 
 enum tipos_parametros
 {
+	PARAM_NULL, //Se suele usar como null/indeterminado, solo usado internamente.
+
 	PARAM_VOID, // Void es un valor vacio, pero que puede llegar a tomar cualquier valor.
 				//Un valor vacio como tal no se puede operar, pero se puede transformar en cualquier
 				// otro valor.
@@ -116,7 +118,7 @@ enum tipos_parametros
 	PARAM_INT,	 // -2.147.483.647 a 2.147.483.647   (4 bytes)
 	PARAM_LINT,	 // -9.223.372.036.854.775.807 a 9.223.372.036.854.775.807 (8 bytes)
 
-	PARAM_CHAR,
+	//PARAM_CHAR,
 
 	PARAM_FLOAT,   // 7 digitos						 (4 bytes)
 	PARAM_DOUBLE,  // 15 digitos						 (8 bytes)
@@ -346,16 +348,16 @@ class Value;
 
 // Una llamada del estilo -> "a.x" lo transforma en un solo objeto.
 //Por lo que para: a.b.x -> [ab].x -> [abx]
-class wrapper_object_call
+/*class wrapper_object_call
 {
 public:
 	std::shared_ptr<mdox_object> objeto;
 	Parser_Identificador* var;
-	Value* getValue(bool, bool b = false);
+	Value* getValue(bool, tipos_parametros* = nullptr);
 	wrapper_object_call(std::shared_ptr<mdox_object>& a, Parser_Identificador* x) : objeto(a), var(x) {}
-};
+};*/
 
-using val_variant = std::variant< std::monostate, int, bool, double, std::shared_ptr<mdox_vector>, std::shared_ptr<mdox_object>, long long, std::string, wrapper_object_call, Variable_Runtime*>;
+using val_variant = std::variant< std::monostate, int, bool, double, std::shared_ptr<mdox_vector>, std::shared_ptr<mdox_object>, long long, std::string, Variable_Runtime*>;
 
 class Call_Value;
 
@@ -374,14 +376,16 @@ public:
 	static Value Offset(Value& v1, Value& v2); //[x]
 	
 	Value ClassAccess(Parser_Identificador* v2, Call_Value * call = nullptr, Variable_Runtime* variables = nullptr, Variable_Runtime* var_class = nullptr);
-	bool OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador * f1 = NULL, Parser_Identificador * f2 = NULL);
-	bool OperadoresEspeciales_Pop(Value& v, bool& left, Parser_Identificador * f1 = NULL, Parser_Identificador * f2 = NULL);
+	bool OperadoresEspeciales_Check(Value* v, int index);
+	bool OperadoresEspeciales_Pop(Value* v, bool& left);
 	Value operacion_Binaria(Value& v, const OPERADORES op);
 	bool OperacionRelacional(Value& v, const OPERADORES op);
 	Value operacion_Unitaria(OPERADORES& op);
 	bool operacion_Asignacion(Value& v, OPERADORES& op, bool fuerte);
+	bool asignacion(Value& v) { return asignacion(v, false); }; //Usado normalmente si sabemos que será Wrapper.
 	bool asignacion(Value& v, bool fuerte);
 	void inicializacion(Parser_Declarativo* tipo);
+	void inicializacion(tipos_parametros tipo);
 
 	void print();
 
@@ -404,9 +408,8 @@ public:
 	static std::string to_string_p(const T& a_value, const int n = 10);
 
 	Value() : value(std::monostate()) {};
-	//	Value(valueType v) : value(v);
-
-		//Value(val_variant v) : value(v) {};
+	//Value(valueType v) : value(v);
+	//Value(val_variant v) : value(v) {};
 
 	Value(int& a) : value(a) {  };
 	Value(double& a) : value(a) {  };
@@ -416,9 +419,7 @@ public:
 	Value(std::monostate&) : value(std::monostate()) {  };
 	Value(std::shared_ptr<mdox_vector>& a) : value(std::make_shared<mdox_vector>(*a)) {  };
 	Value(std::shared_ptr<mdox_object>& a) : value(a) { };
-	Value(wrapper_object_call& a) : value(a) { };
 	Value(Variable_Runtime* a) : value(a) { };
-
 
 	Value(int&& a) : value(std::move(a)) {  };
 	Value(double&& a) : value(std::move(a)) {  };
@@ -449,10 +450,6 @@ public:
 		return *this;
 	};
 	*/
-
-
-		
-
 };
 
 
@@ -576,6 +573,9 @@ class multi_value;
 using tipoValor = std::variant<Value, Parser_Identificador*, Call_Value*, arbol_operacional*, multi_value* >;
 //using ValueCopyOrRef = std::variant<Value, Value*, std::monostate>;
 
+using ValueOrMulti = std::variant<Value, multi_value*>;
+
+/*
 class ValueCopyOrRef
 {
 	Value _v;
@@ -588,7 +588,7 @@ public:
 	ValueCopyOrRef(Value * a) : ref(a) {};
 	ValueCopyOrRef(multi_value* a) : mv(a) {};
 	ValueCopyOrRef(std::monostate&) : ref(NULL) {};
-};
+};*/
 
 class OperacionesEnVector
 {
@@ -658,29 +658,6 @@ public:
 	OperacionesEnVector(tipoValor& l, tipoValor& v, OPERADORES& op, tipoValor&& v2, OPERADORES& op2) : v1(l), v2(v), operador1(op), operador2(op2), v3(std::move(v2)) { isOnlyValue(); };
 };
 
-class multi_value
-{
-public:
-	std::vector<tipoValor> arr;
-
-	bool is_vector = false; // Si no es un vector, es multivalor/operacion, es decir (a,b,c)-> EJ: a = 1, b = 2, c = 3;
-	bool contenedor = false; // Si es true, implica operaciones de editado de vectores ':' o '::' 
-
-	OperacionesEnVector* operacionesVector = NULL;
-
-	~multi_value()
-	{
-		deletePtr(operacionesVector);
-		for (std::vector<tipoValor>::iterator it = arr.begin(); it != arr.end(); ++it)
-		{
-			std::visit(overloaded{
-			[](auto & a) { if(a) deletePtr(a); },
-			[](Value&) {},
-				}, *it);
-		}
-	}
-};
-
 using conmp = std::variant< std::monostate, Value, Parser_Identificador*, Call_Value*, OPERADORES, multi_value*>;
 using stack_conmp = std::deque<conmp>;
 
@@ -712,6 +689,27 @@ public:
 
 	}
 };
+
+class multi_value
+{
+public:
+	std::vector<arbol_operacional*> arr;
+
+	bool is_vector = false; // Si no es un vector, es multivalor/operacion, es decir (a,b,c)-> EJ: a = 1, b = 2, c = 3;
+	bool contenedor = false; // Si es true, implica operaciones de editado de vectores ':' o '::' 
+
+	OperacionesEnVector* operacionesVector = NULL;
+
+	~multi_value()
+	{
+		deletePtr(operacionesVector);
+		for (std::vector<arbol_operacional*>::iterator it = arr.begin(); it != arr.end(); ++it)
+		{
+			deletePtr(*it);
+		}
+	}
+};
+
 /*
 class Parser_Operacion : public Parser_NODE {
 public:

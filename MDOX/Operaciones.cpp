@@ -1542,27 +1542,27 @@ Value Value::Offset(Value& v1, Value& v2)
 {
 	return std::visit(overloaded{
 		
-		[&](std::shared_ptr<mdox_vector> & a, int& b)->Value
+		[&](std::shared_ptr<mdox_vector> & a, int& b)
 		{
 			if (b > a->vector.size() || b < 0)
 			{
 				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(b));
-				return std::monostate();
+				return Value();
 			}
 			return a->vector[b];
 		},
 
-		[&](std::shared_ptr<mdox_vector> & a, long long& b)->Value
+		[&](std::shared_ptr<mdox_vector> & a, long long& b)
 		{
 			if (b > a->vector.size() || b < 0)
 			{
 				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(b));
-				return std::monostate();
+				return Value();
 			}
 			return a->vector[b];
 		},
 
-		[&](std::shared_ptr<mdox_vector> & a, auto&)->Value
+		[&](std::shared_ptr<mdox_vector> & a, auto&)
 		{
 			if (v2.Cast(PARAM_LINT))
 			{
@@ -1570,19 +1570,19 @@ Value Value::Offset(Value& v1, Value& v2)
 				if (tr > a->vector.size() || tr < 0)
 				{
 					Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(tr));
-					return std::monostate();
+					return Value();
 				}
 				return a->vector[tr];
 			}
 			else
 			{
 				 Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "[]"); 
-				 return std::monostate();
+				 return Value();
 			}
 		},
 
 
-		[&v1](auto & a, std::shared_ptr<mdox_object> & b)->Value
+		[&v1](auto & a, std::shared_ptr<mdox_object> & b)
 		{
 			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_brack)
 			{
@@ -1590,10 +1590,10 @@ Value Value::Offset(Value& v1, Value& v2)
 			}
 
 			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->pID->nombre);
-			return std::monostate();
+			return Value();
 		},
 
-		[&v1](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_object> & b)->Value
+		[&v1](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_object> & b)
 		{
 			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_brack)
 			{
@@ -1601,10 +1601,10 @@ Value Value::Offset(Value& v1, Value& v2)
 			}
 
 			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->pID->nombre);
-			return std::monostate();
+			return Value();
 		},
 
-		[&v2](std::shared_ptr<mdox_object> & a, auto & b)->Value
+		[&v2](std::shared_ptr<mdox_object> & a, auto & b)
 		{
 			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_brack)
 			{
@@ -1612,10 +1612,10 @@ Value Value::Offset(Value& v1, Value& v2)
 			}
 
 			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", a->clase->pID->nombre);
-			return std::monostate();
+			return Value();
 		},
 
-		[&v2](std::shared_ptr<mdox_object> & a, std::shared_ptr<mdox_object> & b)->Value
+		[&v2](std::shared_ptr<mdox_object> & a, std::shared_ptr<mdox_object> & b)
 		{
 			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_brack)
 			{
@@ -1623,10 +1623,10 @@ Value Value::Offset(Value& v1, Value& v2)
 			}
 
 			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->pID->nombre);
-			return std::monostate();
+			return Value();
 		},
 
-		[&v2](std::shared_ptr<mdox_object> & a, std::shared_ptr<mdox_vector> & b)->Value
+		[&v2](std::shared_ptr<mdox_object> & a, std::shared_ptr<mdox_vector> & b)
 		{
 			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_brack)
 			{
@@ -1634,17 +1634,18 @@ Value Value::Offset(Value& v1, Value& v2)
 			}
 
 			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", a->clase->pID->nombre);
-			return std::monostate();
+			return Value();
 		},
 
-		[](auto,auto)->Value {  Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "[]"); return std::monostate(); },
+		[](auto&,auto&) {  Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "[]"); return Value(); },
 
 		}, v1.value, v2.value);
 }
 
 Value Value::ClassAccess(Parser_Identificador* v2, Call_Value* call, Variable_Runtime* variables, Variable_Runtime * var_class)
 {
-	
+	Interprete::instance->getRealValueFromValueWrapper(*this);
+
 	return std::visit(overloaded{
 
 		[&](std::shared_ptr<mdox_object> & a)->Value 
@@ -1652,20 +1653,15 @@ Value Value::ClassAccess(Parser_Identificador* v2, Call_Value* call, Variable_Ru
 			if (call)
 				return Interprete::instance->ExecFuncion(call, Interprete::instance->transformarEntradasCall(call, variables, var_class), a->variables_clase, a->clase);
 			else
-				return wrapper_object_call(a,v2);
-		},
-		[&](wrapper_object_call & a)->Value
-		{
-			 if (call)
-				return Interprete::instance->ExecFuncion(call, Interprete::instance->transformarEntradasCall(call, variables, var_class), a.objeto->variables_clase, a.objeto->clase);
-			else
-			 {
-				 Value* r = a.getValue(true);
-				 if(r)
-					return r->ClassAccess(v2);
-				 else return std::monostate();
+			{
+				auto ret = a->findVariable(v2->nombre);//wrapper_object_call(a,v2);
+				if (ret == nullptr)
+				{
+					Errores::generarError(Errores::ERROR_CLASE_VAR_NOT_EXIST, Errores::outData, v2->nombre);
+					return std::monostate();
+				}
+				return ret;
 			}
-				
 		},
 		[](auto)->Value {  Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "."); return std::monostate(); },
 
@@ -2021,10 +2017,13 @@ Value Value::operacion_Binaria(Value & v, const OPERADORES op)
 }
 
 /*f1 indica si el valor de la izquierda es fuerte, f2 indica si lo es el de la derecha*/
-bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador* f1, Parser_Identificador* f2)
+bool Value::OperadoresEspeciales_Check(Value* v, int index/*, Parser_Identificador* f1, Parser_Identificador* f2*/)
 {
-	Interprete::instance->getRealValueFromValueWrapper(*this);
-	Interprete::instance->getRealValueFromValueWrapper(v);
+	tipos_parametros tipo_1 = PARAM_VOID, tipo_2 = PARAM_VOID;
+
+	Value* _this = &(*this);
+	Interprete::instance->getRealValueFromValueWrapperRef(&_this, &tipo_1);
+	Interprete::instance->getRealValueFromValueWrapperRef(&v, &tipo_2);
 
 
 	if (index < 0)
@@ -2034,15 +2033,15 @@ bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador
 			{
 				if (a->vector.size() > 0)
 				{
-					if (f2 && f2->fuerte)
+					if (tipo_2 != PARAM_VOID)
 					{
-						v.inicializacion(f2->tipo);
+						v->inicializacion(tipo_2);
 
-						v.asignacion(a->vector.back(), f2->fuerte);
+						v->asignacion(a->vector.back(), true);
 					}
 					else
 					{
-						v.asignacion(a->vector.back(), false);
+						v->asignacion(a->vector.back(), false);
 					}
 					return true;
 				}
@@ -2052,14 +2051,14 @@ bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador
 			{
 				if (a->vector.size() > 0)
 				{
-					if (f1 && f1->fuerte)
+					if (tipo_1 != PARAM_VOID)
 					{
-						this->inicializacion(f1->tipo);
-						this->asignacion(a->vector.front(), f1->fuerte);
+						_this->inicializacion(tipo_1);
+						_this->asignacion(a->vector.front(), true);
 					}
 					else
 					{
-						this->asignacion(a->vector.front(), false);
+						_this->asignacion(a->vector.front(), false);
 					}
 					return true;
 				}
@@ -2068,22 +2067,22 @@ bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador
 		//	[&](std::shared_ptr<mdox_vector> & a, auto&)->Value { return a->vector.back().igualdad_Condicional(v); },
 		//	[&](auto&, std::shared_ptr<mdox_vector>& a)->Value {  return a->vector.front().igualdad_Condicional(*this); },
 
-			[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool { if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, int&)->bool { if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, double&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, long long&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool { if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(*v); },
+			[&](std::shared_ptr<mdox_vector> & a, int&)->bool { if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(*v); },
+			[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(*v); },
+			[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(*v); },
+			[&](std::shared_ptr<mdox_vector> & a, double&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(*v); },
+			[&](std::shared_ptr<mdox_vector> & a, long long&)->bool {if (a->vector.size() <= 0) return false; return a->vector.back().igualdad_Condicional(*v); },
 
-			[&](int&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*this); },
-			[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <=  0) return false; return a->vector.front().igualdad_Condicional(*this); },
-			[&](bool&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*this); },
-			[&](double&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*this); },
-			[&](long long&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*this); },
+			[&](int&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*_this); },
+			[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <=  0) return false; return a->vector.front().igualdad_Condicional(*_this); },
+			[&](bool&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*_this); },
+			[&](double&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*_this); },
+			[&](long long&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= 0) return false; return a->vector.front().igualdad_Condicional(*_this); },
 			//[&](std::shared_ptr<mdox_vector>&, std::shared_ptr<mdox_vector>& a) {  return a->vector.front().igualdad_Condicional(*this); },
 
 			[](auto&,auto&)->bool { Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "::"); return false; },
-			}, value, v.value);
+			}, _this->value, v->value);
 	}
 	else
 	{
@@ -2094,14 +2093,14 @@ bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador
 				int f_index = (a->vector.size() - index) - 1;
 				if (a->vector.size() > f_index)
 				{  
-					if (f2 && f2->fuerte)
+					if (tipo_2 != PARAM_VOID)
 					{
-						v.inicializacion(f2->tipo);
-						v.asignacion(a->vector[f_index], f2->fuerte);
+						v->inicializacion(tipo_2);
+						v->asignacion(a->vector[f_index], true);
 					}
 					else
 					{
-						v.asignacion(a->vector[f_index], false);
+						v->asignacion(a->vector[f_index], false);
 					}
 					return true; 
 				} 
@@ -2111,14 +2110,14 @@ bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador
 			{ 
 				if (a->vector.size() > index) 
 				{ 
-					if (f1 && f1->fuerte)
+					if (tipo_1 != PARAM_VOID)
 					{
-						this->inicializacion(f1->tipo);
-						this->asignacion(a->vector[index], f1->fuerte);
+						_this->inicializacion(tipo_1);
+						_this->asignacion(a->vector[index], true);
 					}
 					else
 					{
-						this->asignacion(a->vector[index], false);
+						_this->asignacion(a->vector[index], false);
 					}
 					return true; 
 				}
@@ -2128,42 +2127,45 @@ bool Value::OperadoresEspeciales_Check(Value& v, int index, Parser_Identificador
 		//	[&](std::shared_ptr<mdox_vector> & a, auto&)->Value { return a->vector.back().igualdad_Condicional(v); },
 		//	[&](auto&, std::shared_ptr<mdox_vector>& a)->Value {  return a->vector.front().igualdad_Condicional(*this); },
 
-			[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool { int f_index = (a->vector.size() - index) - 1;  if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, int&)->bool {int f_index = (a->vector.size() - index) -1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {int f_index = (a->vector.size() - index) - 1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {int f_index = (a->vector.size() - index) - 1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, double&)->bool {int f_index = (a->vector.size() - index) - 1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(v); },
-			[&](std::shared_ptr<mdox_vector> & a, long long&)->bool {int f_index = (a->vector.size() - index) - 1; if (a->vector.size() <= f_index) return false; return a->vector[index].igualdad_Condicional(v); },
+			[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool { int f_index = (a->vector.size() - index) - 1;  if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(*v); },
+			[&](std::shared_ptr<mdox_vector> & a, int&)->bool {int f_index = (a->vector.size() - index) -1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(*v); },
+			[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {int f_index = (a->vector.size() - index) - 1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(*v); },
+			[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {int f_index = (a->vector.size() - index) - 1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(*v); },
+			[&](std::shared_ptr<mdox_vector> & a, double&)->bool {int f_index = (a->vector.size() - index) - 1; if (a->vector.size() <= f_index) return false; return a->vector[f_index].igualdad_Condicional(*v); },
+			[&](std::shared_ptr<mdox_vector> & a, long long&)->bool {int f_index = (a->vector.size() - index) - 1; if (a->vector.size() <= f_index) return false; return a->vector[index].igualdad_Condicional(*v); },
 
-			[&](int&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },
-			[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },
-			[&](bool&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },
-			[&](double&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },
-			[&](long long&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*this); },
+			[&](int&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*_this); },
+			[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*_this); },
+			[&](bool&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*_this); },
+			[&](double&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*_this); },
+			[&](long long&, std::shared_ptr<mdox_vector> & a)->bool { if (a->vector.size() <= index) return false; return a->vector[index].igualdad_Condicional(*_this); },
 			//[&](std::shared_ptr<mdox_vector>&, std::shared_ptr<mdox_vector>& a) {  return a->vector.front().igualdad_Condicional(*this); },
 
 			[](auto&,auto&)->bool { Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "::"); return false; },
-			}, value, v.value);
+			}, _this->value, v->value);
 	}
 }
 
-bool Value::OperadoresEspeciales_Pop(Value& v, bool& left, Parser_Identificador* f1, Parser_Identificador* f2)
+bool Value::OperadoresEspeciales_Pop(Value* v, bool& left)
 {
-	Interprete::instance->getRealValueFromValueWrapper(*this);
-	Interprete::instance->getRealValueFromValueWrapper(v);
+	tipos_parametros tipo_1 = PARAM_VOID, tipo_2 = PARAM_VOID;
+
+	Value* _this = &(*this);
+	Interprete::instance->getRealValueFromValueWrapperRef(&_this, &tipo_1);
+	Interprete::instance->getRealValueFromValueWrapperRef(&v, &tipo_2);
 
 	return std::visit(overloaded{
 		[&](std::shared_ptr<mdox_vector> & a, std::monostate)->bool
 		{
 			if (a->vector.size() == 0) return false;
-			if (f2 && f2->fuerte)
+			if (tipo_2 != PARAM_VOID)
 			{
-				v.inicializacion(f2->tipo);
-				v.asignacion(a->vector.back(),f2->fuerte);
+				v->inicializacion(tipo_2);
+				v->asignacion(a->vector.back(), true);
 				a->vector.pop_back();
 				return true;
 			}
-			v.asignacion(a->vector.back(), false);
+			v->asignacion(a->vector.back(), false);
 			a->vector.pop_back();
 			left = true;
 			return true;
@@ -2171,38 +2173,38 @@ bool Value::OperadoresEspeciales_Pop(Value& v, bool& left, Parser_Identificador*
 		[&](std::monostate, std::shared_ptr<mdox_vector> & a)->bool
 		{ 
 			if (a->vector.size() == 0) return false;
-			if (f1 && f1->fuerte)
+			if (tipo_1 != PARAM_VOID)
 			{
-				this->inicializacion(f1->tipo);
-				this->asignacion(a->vector.front(), f1->fuerte);
+				_this->inicializacion(tipo_1);
+				_this->asignacion(a->vector.front(),true);
 				a->vector.erase(a->vector.begin());
 				return true;
 			}
 
-			this->asignacion(a->vector.front(), false);
+			_this->asignacion(a->vector.front(), false);
 			a->vector.erase(a->vector.begin());
 			return true;
 		}, //NO recomendado su uso.
 
 		//[&](std::shared_ptr<mdox_vector>& a, auto&) {  a->vector.emplace_back(v); return v; },
-		[&](std::shared_ptr<mdox_vector> & a, int&)->bool { a->vector.emplace_back(v); left = true; return true; },
-		[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {  a->vector.emplace_back(v); left = true; return true; },
-		[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {  a->vector.emplace_back(v); left = true; return true; },
-		[&](std::shared_ptr<mdox_vector> & a, long long&)->bool { a->vector.emplace_back(v); left = true; return true; },
-		[&](std::shared_ptr<mdox_vector> & a, double&)->bool {  a->vector.emplace_back(v); left = true; return true; },
-		[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool {a->vector.emplace_back(v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, int&)->bool { a->vector.emplace_back(*v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {  a->vector.emplace_back(*v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {  a->vector.emplace_back(*v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, long long&)->bool { a->vector.emplace_back(*v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, double&)->bool {  a->vector.emplace_back(*v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool {a->vector.emplace_back(*v); left = true; return true; },
 
 		//[&](auto&, std::shared_ptr<mdox_vector>& a) {  a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return *this; },
-		[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool {a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](int&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](double&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](long long&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](bool&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool {a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](int&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](double&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](long long&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](bool&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
 		//[&](std::shared_ptr<mdox_vector>& a, std::shared_ptr<mdox_vector>& b) {  a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return *this; },
 
 
 		[](auto,auto)->bool { Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, ":"); return false; },
-		}, value, v.value);
+		}, _this->value, v->value);
 	
 }
 
@@ -2255,26 +2257,43 @@ bool Value::OperacionRelacional(Value & v, const OPERADORES op)
 
 void Value::inicializacion(Parser_Declarativo * tipo)
 {
-	switch (tipo->value)
+	inicializacion(tipo->value);
+}
+
+void Value::inicializacion(tipos_parametros tipo)
+{
+	Value* _this = &(*this);
+	Interprete::instance->getRealValueFromValueWrapperRef(&_this);
+
+	switch (tipo)
 	{
-	case tipos_parametros::PARAM_INT: this->value = (int)0; break;
-	case tipos_parametros::PARAM_LINT: this->value = (long long)0; break;
-	case tipos_parametros::PARAM_DOUBLE: this->value = (double)0; break;
-	case tipos_parametros::PARAM_BOOL: this->value = (bool)false; break;
-	case tipos_parametros::PARAM_STRING: this->value = (std::string)""; break;
-	case tipos_parametros::PARAM_VECTOR: this->value = std::make_shared<mdox_vector>(); break;
-	default: this->value = std::monostate(); break;
+	case tipos_parametros::PARAM_INT: _this->value = (int)0; break;
+	case tipos_parametros::PARAM_LINT: _this->value = (long long)0; break;
+	case tipos_parametros::PARAM_DOUBLE: _this->value = (double)0; break;
+	case tipos_parametros::PARAM_BOOL: _this->value = (bool)false; break;
+	case tipos_parametros::PARAM_STRING: _this->value = (std::string)""; break;
+	case tipos_parametros::PARAM_VECTOR: _this->value = std::make_shared<mdox_vector>(); break;
+	default: _this->value = std::monostate(); break;
 	}
 }
 
 bool Value::asignacion(Value & v, bool fuerte)
 {
-	Interprete::instance->getRealValueFromValueWrapper(*this);
+	tipos_parametros tipo = PARAM_NULL;
+	Value* _this = &(*this);
+	Interprete::instance->getRealValueFromValueWrapperRef(&_this, &tipo);
 	Interprete::instance->getRealValueFromValueWrapper(v);
+
+	if (tipo != PARAM_NULL)
+	{
+		if (tipo != PARAM_VOID)
+			fuerte = true;
+		else return false;
+	}
 
 	if (!fuerte)
 	{
-		*this = Value(v.value);
+		*_this = Value(v.value);
 		return true;
 	}
 	else
@@ -2282,10 +2301,10 @@ bool Value::asignacion(Value & v, bool fuerte)
 		return std::visit(overloaded{
 
 			//INTEGER .. XX
-			[&](int&, int&) { *this = v; return true; },
-			[&](int&, bool& b) { *this = Value((int)b); return true; },
-			[&](int&, long long& b) { *this = Value((int)b); return true;  },
-			[&](int&, double& b) { *this = Value((int)b); return true;  },
+			[&](int&, int&) { *_this = v; return true; },
+			[&](int&, bool& b) { *_this = Value((int)b); return true; },
+			[&](int&, long long& b) { *_this = Value((int)b); return true;  },
+			[&](int&, double& b) { *_this = Value((int)b); return true;  },
 			[&](int&, std::string & b)
 			{
 				char* endptr = NULL;
@@ -2295,16 +2314,16 @@ bool Value::asignacion(Value & v, bool fuerte)
 					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, Errores::outData);
 					return false;
 				}
-				*this = Value((int)number);
+				*_this = Value((int)number);
 				return true;
 			},
 			[&](int&, std::monostate&) { Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "int"); return false; },
 
 
-			[&](long long&, long long& b) { *this = v;  return true;  },
-			[&](long long&,  bool& b) { *this = Value((long long)b);  return true; },
-			[&](long long&,  int& b) { *this = Value((long long)b); return true; },
-			[&](long long&,  double& b) { *this = Value((int)b); return true; },
+			[&](long long&, long long& b) { *_this = v;  return true;  },
+			[&](long long&,  bool& b) { *_this = Value((long long)b);  return true; },
+			[&](long long&,  int& b) { *_this = Value((long long)b); return true; },
+			[&](long long&,  double& b) { *_this = Value((int)b); return true; },
 			[&](long long&,  std::string & b)
 			{
 				char* endptr = NULL;
@@ -2315,15 +2334,15 @@ bool Value::asignacion(Value & v, bool fuerte)
 					return false;
 				}
 
-				*this = Value(number);
+				*_this = Value(number);
 				return true;
 			},
 			[&](long long&, std::monostate&) { Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "lint"); return false; },
 
-			[&](double&,  double& b) { *this = v;   return true; },
-			[&](double&,  int& b) { *this = Value((double)b);  return true;  },
-			[&](double&,  long long& b) { *this = Value((double)b);  return true;  },
-			[&](double&,  bool& b) { *this = Value((double)b); return true;  },
+			[&](double&,  double& b) { *_this = v;   return true; },
+			[&](double&,  int& b) { *_this = Value((double)b);  return true;  },
+			[&](double&,  long long& b) { *_this = Value((double)b);  return true;  },
+			[&](double&,  bool& b) { *_this = Value((double)b); return true;  },
 			[&](double&,  std::string & b)
 			{
 				char* endptr = NULL;
@@ -2334,39 +2353,39 @@ bool Value::asignacion(Value & v, bool fuerte)
 					return false;
 				}
 
-				*this = Value(number);
+				*_this = Value(number);
 				return true;
 			},
 			[&](double&, std::monostate&) { Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "double"); return false; },
 
-			[&](bool&,  double& b) { *this = Value((bool)b);   return true; },
-			[&](bool&,  int& b) { *this = Value((bool)b);  return true; },
-			[&](bool&,  long long& b) { *this = Value((bool)b); return true;  },
-			[&](bool&,  bool& b) { *this = v; return true;   },
+			[&](bool&,  double& b) { *_this = Value((bool)b);   return true; },
+			[&](bool&,  int& b) { *_this = Value((bool)b);  return true; },
+			[&](bool&,  long long& b) { *_this = Value((bool)b); return true;  },
+			[&](bool&,  bool& b) { *_this = v; return true;   },
 			[&](bool&,  std::string & b)
 			{
 				if (b == "" || b == "0" || b == "false")
-					* this = Value(false);
+					* _this = Value(false);
 				else
-					*this = Value(true);
+					*_this = Value(true);
 
 				return true;
 			},
 			[&](bool&, std::monostate&) { Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "bool"); return false; },
 
-			[&](std::string&,  double& b) { *this = Value(to_string_p(b));  return true;  },
-			[&](std::string&,  int& b) { *this = Value(to_string_p(b));  return true; },
-			[&](std::string&,  long long& b) { *this = Value(to_string_p(b));   return true; },
-			[&](std::string&,  bool& b) { *this = Value(to_string_p(b));  return true;  },
-			[&](std::string&,  std::string & b) { *this = v;   return true; },
+			[&](std::string&,  double& b) { *_this = Value(to_string_p(b));  return true;  },
+			[&](std::string&,  int& b) { *_this = Value(to_string_p(b));  return true; },
+			[&](std::string&,  long long& b) { *_this = Value(to_string_p(b));   return true; },
+			[&](std::string&,  bool& b) { *_this = Value(to_string_p(b));  return true;  },
+			[&](std::string&,  std::string & b) { *_this = v;   return true; },
 			[&](std::string&, std::monostate&) { Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "string"); return false; },
 
-			[&](std::monostate&, auto&) { *this = v;  return true; },
+			[&](std::monostate&, auto&) { *_this = v;  return true; },
 
 
 			[&](std::shared_ptr<mdox_vector>&, std::shared_ptr<mdox_vector> & b)
 			{
-				*this = Value(b);
+				*_this = Value(b);
 				return true;
 			},
 
@@ -2374,7 +2393,7 @@ bool Value::asignacion(Value & v, bool fuerte)
 			{
 				if (b->clase->right_operators && b->clase->right_operators->OPERATOR_asignacion)
 				{
-					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_asignacion, *this, b->variables_clase).ValueToBool();
+					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_asignacion, *_this, b->variables_clase).ValueToBool();
 				}
 
 				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "=", b->clase->pID->nombre);
@@ -2385,7 +2404,7 @@ bool Value::asignacion(Value & v, bool fuerte)
 			{
 				if (b->clase->right_operators && b->clase->right_operators->OPERATOR_asignacion)
 				{
-					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_asignacion, *this, b->variables_clase).ValueToBool();
+					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_asignacion, *_this, b->variables_clase).ValueToBool();
 				}
 
 				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "=", b->clase->pID->nombre);
@@ -2418,7 +2437,7 @@ bool Value::asignacion(Value & v, bool fuerte)
 
 			[](auto&,auto&) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
 
-			}, value, v.value);
+			}, _this->value, v.value);
 	}
 
 
@@ -2431,8 +2450,15 @@ bool Value::Cast(Parser_Declarativo * pDec)
 
 bool Value::Cast(const tipos_parametros tipo)
 {
+	Value* _this = &(*this);
+	Interprete::instance->getRealValueFromValueWrapperRef(&_this);
+
 	switch (tipo)
 	{
+	case PARAM_VOID:
+	{
+		return true;
+	}
 	case PARAM_INT:
 	{
 		return std::visit(overloaded{
@@ -2445,15 +2471,15 @@ bool Value::Cast(const tipos_parametros tipo)
 					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_INT, Errores::outData);
 					return false;
 				}
-				*this = Value((int)number);
+				*_this = Value((int)number);
 				return true;
 			},
-			[&](const bool& a) { *this = Value((int)a); return true; },
-			[](const int& a) { return true; },
-			[](const long long& a) { return true; },
-			[&](const double& a) { *this = Value((int)a); return true; },
-			[](auto) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
-			}, value);
+			[&](bool& a) { *_this = Value((int)a); return true; },
+			[](int& a) { return true; },
+			[](long long& a) { return true; },
+			[&](double& a) { *_this = Value((int)a); return true; },
+			[](auto&) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
+			}, _this->value);
 	}
 	case PARAM_LINT:
 	{
@@ -2467,15 +2493,15 @@ bool Value::Cast(const tipos_parametros tipo)
 					Errores::generarError(Errores::ERROR_CONVERSION_VARIABLE_LONG, Errores::outData);
 					return false;
 				}
-				*this = Value((long long)number);
+				*_this = Value((long long)number);
 				return true;
 			},
-			[&](const bool& a) { *this = Value((long long)a); return true; },
-			[](const int& a) { return true; },
-			[](const long long& a) { return true; },
-			[&](const double& a) { *this = Value((long long)a); return true; },
-			[](auto) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
-			}, value);
+			[&]( bool& a) { *_this = Value((long long)a); return true; },
+			[]( int& a) { return true; },
+			[]( long long& a) { return true; },
+			[&]( double& a) { *_this = Value((long long)a); return true; },
+			[](auto&) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
+			}, _this->value);
 	}
 
 	case PARAM_BOOL:
@@ -2484,30 +2510,30 @@ bool Value::Cast(const tipos_parametros tipo)
 			[&](std::string & b)
 			{
 				if (b == "" || b == "0" || b == "false")
-					* this = Value(false);
+					* _this = Value(false);
 				else
-					*this = Value(true);
+					*_this = Value(true);
 
 				return true;
 			},
-			[](const bool& a) { return true; },
-			[&](const int& a) { *this = Value((bool)a);  return true; },
-			[&](const long long& a) { *this = Value((bool)a);  return true; },
-			[&](const double& a) { *this = Value((bool)a); return true; },
-			[](auto) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData); return false; },
-			}, value);
+			[]( bool& a) { return true; },
+			[&]( int& a) { *_this = Value((bool)a);  return true; },
+			[&]( long long& a) { *_this = Value((bool)a);  return true; },
+			[&]( double& a) { *_this = Value((bool)a); return true; },
+			[](auto&) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData); return false; },
+			}, _this->value);
 	}
 
 	case PARAM_STRING:
 	{
 		return std::visit(overloaded{
 			[](std::string & a) { return true; },
-			[&](const bool& a) {  *this = Value(to_string_p(a)); return true;  },
-			[&](const int& a) {  *this = Value(to_string_p(a));  return true; },
-			[&](const long long& a) {  *this = Value(to_string_p(a));  return true; },
-			[&](const double& a) { *this = Value(to_string_p(a)); return true; },
-			[](auto) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData); return false; },
-			}, value);
+			[&]( bool& a) {  *_this = Value(to_string_p(a)); return true;  },
+			[&]( int& a) {  *_this = Value(to_string_p(a));  return true; },
+			[&]( long long& a) {  *_this = Value(to_string_p(a));  return true; },
+			[&]( double& a) { *_this = Value(to_string_p(a)); return true; },
+			[](auto&) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData); return false; },
+			}, _this->value);
 	}
 
 	case PARAM_DOUBLE:
@@ -2523,27 +2549,27 @@ bool Value::Cast(const tipos_parametros tipo)
 					return false;
 				}
 
-				*this = Value(number);
+				*_this = Value(number);
 				return true;
 			},
-			[&](const bool& a) {  *this = Value(double(a)); return true; },
-			[&](const int& a) {  *this = Value(double(a)); return true; },
-			[&](const long long& a) {  *this = Value(double(a));  return true; },
-			[](const double& a) { return true; },
-			[](auto) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
-			}, value);
+			[&]( bool& a) {  *_this = Value(double(a)); return true; },
+			[&]( int& a) {  *_this = Value(double(a)); return true; },
+			[&]( long long& a) {  *_this = Value(double(a));  return true; },
+			[]( double& a) { return true; },
+			[](auto&) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
+			}, _this->value);
 	}
 	case PARAM_VECTOR:
 	{
 		return std::visit(overloaded{
-			[&](std::string & b) { *this = Value(std::make_shared<mdox_vector>(std::vector<Value>{b})); return true; },
-			[&](bool& a) {  *this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
-			[&](int& a) {  *this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a})); return true; },
-			[&](long long& a) {  *this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
-			[&](double& a) { *this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
+			[&](std::string & b) { *_this = Value(std::make_shared<mdox_vector>(std::vector<Value>{b})); return true; },
+			[&](bool& a) {  *_this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
+			[&](int& a) {  *_this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a})); return true; },
+			[&](long long& a) {  *_this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
+			[&](double& a) { *_this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
 			[](std::shared_ptr<mdox_vector>&) { return true; },
-			[](auto) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
-			}, value);
+			[](auto&) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
+			}, _this->value);
 	}
 
 	default: return false;
@@ -3693,7 +3719,6 @@ void Value::print()
 			std::for_each(a->vector.begin(), a->vector.end(), [](Value & x) { x.print(); std::cout << ", "; });
 			std::cout << "\b\b]";
 			},
-		[&](wrapper_object_call& a) { std::cout << "ERROR: <wrapper_object> llamado desde print().\n"; },
 		[&](auto & a) { std::cout << a; },
 		}, value);
 }

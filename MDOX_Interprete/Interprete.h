@@ -4,47 +4,32 @@
 //#include "../MDOX/Funciones.h"
 //#include "Estructuras.h"
 #include "Parser.h"
-//#include "../MDOX/Parser.h"
 #include <array>
 #include <iostream>
 #include <math.h>  
-
-
-
-//#include "../MDOX/Core.h"
 #include <chrono>
 #include <thread>
-/*
-class Interprete_Funcion_Entradas
+
+class MDOX_Regex_Transform
 {
 public:
-	std::vector<Value*>* entradas = NULL;
-
-	Interprete_Funcion_Entradas(std::vector<Value*>* a) : entradas(a) {}
-
-	virtual ~Interprete_Funcion_Entradas()
-	{
-		for (std::vector<Value*>::iterator it = entradas->begin(); it != entradas->end(); ++it)
-		{
-			if(*it != NULL)
-				deletePtr (*it);
-		}
-		entradas->clear();
-		delete entradas;
-	}
+	 static constexpr const char REGEX_TRANSFORM_STRING[] = "(.*)";
+	 static constexpr const char REGEX_TRANSFORM_DOUBLE[] = "\\+?(-?[0-9]+\\.?[0-9]+?)";
+	 static constexpr const char REGEX_TRANSFORM_INT[] = "\\+?(-?[0-9]+)";
+	 static constexpr const char REGEX_TRANSFORM_BOOL[] = "(true|false|0|1)";
 };
-*/
+
 
 class Variable_Runtime
 {
 public:
 	Value value;
-	bool fuerte;
+	tipos_parametros tipo; // Si no es void, es fuerte.
 	bool publica = true;
 
-	Variable_Runtime() : fuerte(false) {}
-	Variable_Runtime(Value a) : value(a), fuerte(false) {}
-	Variable_Runtime(Value a, bool b) : value(a), fuerte(b) {}
+	Variable_Runtime() : tipo(PARAM_VOID) {}
+	Variable_Runtime(Value a) : value(a), tipo(PARAM_VOID) {}
+	Variable_Runtime(Value a, tipos_parametros b) : value(a), tipo(b) {}
 };
 
 
@@ -81,14 +66,14 @@ public:
 		return nullptr;
 	}
 
-	Variable_Runtime* AsignarVariable(std::string& id, Value& v, bool fuerte = false)
+	Variable_Runtime* AsignarVariable(std::string& id, Value& v)
 	{
 		Variable_Runtime* vr = findVariable(id);
 		if (vr)
 		{
 			if (vr->publica)
 			{
-				vr->value.asignacion(v, vr->fuerte);
+				vr->value.asignacion(v, vr->tipo);
 				return vr;
 			}
 			else
@@ -99,7 +84,7 @@ public:
 		}
 		else
 		{
-			auto a = _proto_variables.emplace(id, Variable_Runtime(v, fuerte));
+			auto a = _proto_variables.emplace(id, Variable_Runtime(v, PARAM_VOID));
 			if (a.second)
 				return &a.first->second;
 			return nullptr;
@@ -150,17 +135,20 @@ public:
 	Value getRetorno() { return _retorno; }
 
 	void IniciateStaticClassValues(Parser_Class* pClase);
-	ValueCopyOrRef tipoValorToValueOrRef(tipoValor& a, Variable_Runtime* variables, Variable_Runtime* var_clase, Parser_Identificador** ret = NULL);
+	ValueOrMulti getValueOrMulti(tipoValor& a, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	//bool OperacionOperadoresVectores(multi_value*, multi_value*, OPERADORES& op, Variable_Runtime* variables);
-	bool OperacionOperadoresVectores(Value*, multi_value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left, Parser_Identificador* f1 = NULL, Parser_Identificador* f2 = NULL);
-	bool OperacionOperadoresVectores(multi_value*, Value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left, Parser_Identificador* f1 = NULL, Parser_Identificador* f2 = NULL);
-	bool OperacionOperadoresVectores(Value*, Value*, OPERADORES& operador, bool& isPop, bool& left, Parser_Identificador* f1 = NULL, Parser_Identificador* f2 = NULL);
+	bool OperacionOperadoresVectores(Value*, multi_value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left);
+	bool OperacionOperadoresVectores(multi_value*, Value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left);
+	bool OperacionOperadoresVectores(Value*, Value*, OPERADORES& operador, bool& isPop, bool& left);
 
+	Value lectura_arbol_MultiValue_ref(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	Value lectura_arbol_operacional(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	//void setRetorno(Value * v) { delete _retorno; _retorno = v; }
 	//Value * getRetorno() { Value * t = _retorno; _retorno = NULL; return t; }
 	//Value * viewRetorno() { return _retorno; }
 	//void nullRetorno() { if (_retorno != NULL) { delete _retorno;  _retorno = NULL; } }
+
+	void String_to_MultiValue(std::string&, multi_value*, Variable_Runtime*, Variable_Runtime*);
 
 	Value TratarMultiplesValores(multi_value* arr, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	bool CargarDatos(Parser* parser);
@@ -169,7 +157,8 @@ public:
 
 	//VariablePreloaded * Interprete_NuevaVariable(Parser_Parametro * par, VariablePreloaded * variables);
 
-	void getRealValueFromValueWrapper(Value& v);
+	void getRealValueFromValueWrapperRef(Value** v, tipos_parametros* tipo = nullptr);
+	void getRealValueFromValueWrapper(Value& v, tipos_parametros* = nullptr);
 	std::vector<Value> transformarEntradasCall(Call_Value* vF, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	bool Relacional_rec_arbol(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_clase, Value& val_r);
 

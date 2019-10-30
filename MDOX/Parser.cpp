@@ -237,17 +237,17 @@ multi_value* Parser::getValorList(bool& all_value, int& local_index, SendVariabl
 		{
 			std::visit(overloaded
 				{
-					[&](Value & a) {mv->arr.emplace_back(std::move(a)); },
-					[&](auto & a) { mv->arr.emplace_back(std::move(a));  all_value = false; },
+					[&](Value & a) {mv->arr.emplace_back(std::move(c)); },
+					[&](auto & a) { mv->arr.emplace_back(std::move(c));  all_value = false; },
 				}, c->_v1);
 			//delete c;
 		}
 		else
 		{
 			all_value = false;
-			if(c->operador == OP_NONE)
-				mv->arr.emplace_back(std::move(c->_v1));
-			else mv->arr.emplace_back(std::move(c));
+			//if(c->operador == OP_NONE)
+				mv->arr.emplace_back(std::move(c));
+			//else mv->arr.emplace_back(std::move(c));
 		//	delete c;
 		}
 
@@ -296,6 +296,7 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 				long long first_reverse = 0;
 				for (int itr = 0; itr < a->arr.size(); itr++)
 				{
+					/*				
 					//Si devuelve true, implica que requiere reverse
 					if (std::visit(overloaded
 						{
@@ -308,6 +309,17 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 							[](auto&) {return true; }
 
 						}, a->arr[itr]))
+					*/
+					if (a->arr[itr]->operador != OP_NONE || std::visit(overloaded
+						{
+							[&](Parser_Identificador * tr)
+							{
+								if (tr->inicializando)
+									return false;
+								else return true;
+							},
+							[](auto&) {return true; }
+						}, a->arr[itr]->_v1))
 					{
 						if (!reverse)
 						{
@@ -352,17 +364,17 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 				for (int itr = 0; itr < a->arr.size(); itr++)
 				{
 					//Si devuelve true, implica que requiere reverse
-					if (contenedor_operacion_vector->operacionesVector->operador1 == OPERADORES::OP_CHECK_GET || std::visit(overloaded
+					if (contenedor_operacion_vector->operacionesVector->operador1 == OPERADORES::OP_CHECK_GET || 
+						a->arr[itr]->operador != OP_NONE || std::visit(overloaded
 						{
 							[&](Parser_Identificador * tr)
 							{
 								if (tr->inicializando)
-									return true;
-								else return false;
+									return false;
+								else return true;
 							},
-							[](auto&) {return false; }
-
-						}, a->arr[itr]))
+							[](auto&) {return true; }
+						}, a->arr[itr]->_v1))
 					{
 						if (!reverse)
 						{
@@ -410,17 +422,17 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 					for (int itr = 0; itr < a->arr.size(); itr++)
 					{
 						//Si devuelve true, implica que requiere reverse
-						if (contenedor_operacion_vector->operacionesVector->operador1 == OPERADORES::OP_CHECK_GET || std::visit(overloaded
-							{
-								[&](Parser_Identificador * tr)
+						if (contenedor_operacion_vector->operacionesVector->operador1 == OPERADORES::OP_CHECK_GET ||
+							a->arr[itr]->operador != OP_NONE || std::visit(overloaded
 								{
-									if (tr->inicializando)
-										return true;
-									else return false;
-								},
-								[](auto&) {return false; }
-
-							}, a->arr[itr]))
+									[&](Parser_Identificador * tr)
+									{
+										if (tr->inicializando)
+											return false;
+										else return true;
+									},
+									[](auto&) {return true; }
+								}, a->arr[itr]->_v1))
 						{
 							if (!reverse)
 							{
@@ -450,6 +462,16 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 
 
 
+}
+
+//Reduce un arbol a un tipo
+tipoValor ReducirArbolATipo(arbol_operacional * arbol)
+{
+	if (arbol->operador == OP_NONE)
+	{
+		return arbol->_v1;
+	}
+	return arbol;
 }
 
 conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
@@ -539,9 +561,9 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 						std::shared_ptr<mdox_vector> res = std::make_shared<mdox_vector>();
 						res->vector.resize(c->arr.size());
 						int itr = 0;
-						for (std::vector<tipoValor>::iterator it = c->arr.begin(); it != c->arr.end(); ++it)
+						for (std::vector<arbol_operacional*>::iterator it = c->arr.begin(); it != c->arr.end(); ++it)
 						{
-							res->vector[itr] = std::get<Value>(*it);
+							res->vector[itr] = std::get<Value>((*it)->_v1);
 							itr++;
 						}
 						delete c;
@@ -580,7 +602,7 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 				{
 					if (c->arr.size() == 1 && nt2->arr.size() == 1)
 					{
-						contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2->arr[0], operador);
+						contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(ReducirArbolATipo(c->arr[0]), ReducirArbolATipo(nt2->arr[0]), operador);
 						c->arr.clear();
 						nt2->arr.clear();
 						delete c;
@@ -588,13 +610,13 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 					}
 					else if (c->arr.size() == 1)
 					{
-						contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2, operador);
+						contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(ReducirArbolATipo(c->arr[0]), nt2, operador);
 						c->arr.clear();
 						delete c;
 					}
 					else if (nt2->arr.size() == 1)
 					{
-						contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, nt2->arr[0], operador);
+						contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, ReducirArbolATipo(nt2->arr[0]), operador);
 						nt2->arr.clear();
 						delete nt2;
 					}
@@ -628,7 +650,7 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 					{
 						if (c->arr.size() == 1 && nt2->arr.size() == 1 && nt3->arr.size() == 1)
 						{
-							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2->arr[0], operador, nt3->arr[0], operador2);
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(ReducirArbolATipo(c->arr[0]), ReducirArbolATipo(nt2->arr[0]), operador, ReducirArbolATipo(nt3->arr[0]), operador2);
 							c->arr.clear();
 							nt2->arr.clear();
 							nt3->arr.clear();
@@ -638,7 +660,7 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 						}
 						else if (c->arr.size() == 1 && nt2->arr.size() == 1)
 						{
-							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2->arr[0], operador, nt3, operador2);
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(ReducirArbolATipo(c->arr[0]), ReducirArbolATipo(nt2->arr[0]), operador, nt3, operador2);
 							c->arr.clear();
 							nt2->arr.clear();
 							delete c;
@@ -646,7 +668,7 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 						}
 						else if (c->arr.size() == 1 && nt3->arr.size() == 1)
 						{
-							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2, operador, nt3->arr[0], operador2);
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(ReducirArbolATipo(c->arr[0]), nt2, operador, ReducirArbolATipo(nt3->arr[0]), operador2);
 							c->arr.clear();
 							nt3->arr.clear();
 							delete c;
@@ -654,7 +676,7 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 						}
 						else if (nt2->arr.size() == 1 && nt3->arr.size() == 1)
 						{
-							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, nt2->arr[0], operador, nt3->arr[0], operador2);
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, ReducirArbolATipo(nt2->arr[0]), operador, ReducirArbolATipo(nt3->arr[0]), operador2);
 							nt2->arr.clear();
 							nt3->arr.clear();
 							delete nt2;
@@ -662,19 +684,19 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 						}
 						else if (nt2->arr.size() == 1)
 						{
-							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, nt2->arr[0], operador, nt3, operador2);
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, ReducirArbolATipo(nt2->arr[0]), operador, nt3, operador2);
 							nt2->arr.clear();
 							delete nt2;
 						}
 						else if (nt3->arr.size() == 1)
 						{
-							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, nt2, operador, nt3->arr[0], operador2);
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c, nt2, operador, ReducirArbolATipo(nt3->arr[0]), operador2);
 							nt3->arr.clear();
 							delete nt3;
 						}
 						else if (c->arr.size() == 1)
 						{
-							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(c->arr[0], nt2, operador, nt3, operador2);
+							contenedor_operacion_vector->operacionesVector = new OperacionesEnVector(ReducirArbolATipo(c->arr[0]), nt2, operador, nt3, operador2);
 							c->arr.clear();
 							delete c;
 						}
@@ -1730,7 +1752,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 	index = local_index;
 	if (tokenizer.getTokenValue(index) == "<::")
 	{
-		arbol_operacional* pOp = getOperacionInd(index, variables, false);
+		arbol_operacional* pOp = getOperacionInd(index, variables, true);
 		if (pOp)
 		{
 			if (tokenizer.isCloseToken(index))
@@ -1748,7 +1770,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 	index = local_index;
 	if (tokenizer.getTokenValue(index) == "::>")
 	{
-		arbol_operacional* pOp = getOperacion(index, variables, true);
+		arbol_operacional* pOp = getOperacionInd(index, variables, false);
 		if (pOp)
 		{
 			if (tokenizer.isCloseToken(index))
@@ -2103,15 +2125,9 @@ bool ComprobarIdentificadores(arbol_operacional* pOp)
 			if (!a->contenedor && !a->is_vector)
 			{
 				//Comprobamos que todos los valores del multivalue, son identificadores.
-				for (std::vector<tipoValor>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
+				for (std::vector<arbol_operacional*>::iterator it = a->arr.begin(); it != a->arr.end(); ++it)
 				{
-					if (std::visit(overloaded{
-					[&](arbol_operacional * a)->bool { return ComprobarIdentificadores(a); },
-					[&](Value & a)->bool {return false; },
-					[&](Parser_Identificador * a)->bool {return true; },
-					[&](Call_Value * a)->bool { return false; },
-					[&](auto&)->bool {  return false; },
-						}, *it))
+					if (ComprobarIdentificadores(*it))
 						continue;
 					else return false;
 				}

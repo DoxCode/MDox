@@ -351,10 +351,34 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		Errores::generarCabeceraError(node, 4519, tipo, true);
 		std::cout << "La variable '" << value << "' no es estática, por lo que no se puede llamar desde un miembro estático.";
 		break;
-
+		
 	case Errores::ERROR_FORMAT_NO_ACEPTADA:
-		Errores::generarCabeceraError(node, 4520, tipo, false);
+		Errores::generarCabeceraError(node, 4007, tipo, true);
 		std::cout << "No se ha podido formatear la cadena obtenida al valor proporcionado.";
+		break;
+
+	case Errores::ERROR_REGEX_NOT_MATCH:
+		Errores::generarCabeceraError(node, 4008, tipo, true);
+		std::cout << "No se ha producido ninguna coincidencia para el regex '" + value + "' en la cadena '" + value2 + "'.";
+		break;
+
+	case Errores::ERROR_CLASE_VAR_NOT_EXIST:
+		Errores::generarCabeceraError(node, 4520, tipo, true);
+		std::cout << "El objeto no contiene ninguna variable con el nombre '" + value + "' declarado.";
+		break;
+
+	case Errores::ERROR_REGEX_VAR_NOT_AVAILABLE_TRANSFORM:
+		Errores::generarCabeceraError(node, 4009, tipo, true);
+		std::cout << "La variable '" + value + "' no es de un tipo convertible a regex.";
+		break;
+	case Errores::ERROR_INPUT_NOT_MATCH:
+		Errores::generarCabeceraError(node, 4010, tipo, true);
+		std::cout << "El valor de entrada no coincide con las especificaciones del input.";
+		break;
+
+	case Errores::ERROR_REGEX_INVALID:
+		Errores::generarCabeceraError(node, 4011, tipo, true);
+		std::cout << "El regex introducido no es correcto: " + value;
 		break;
 		
 	}
