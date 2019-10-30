@@ -391,6 +391,15 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "Double overflow, el literal no se ha podido transformar, su tamaño supera el límite permitido.";
 		break;
 
+	case Errores::ERROR_OPERATION_DOUBLE_OPERATOR:
+		Errores::generarCabeceraError(node, 2011, tipo, true);
+		std::cout << "Error al realizar la operación, no puede haber dos operadores seguidos en una operación, puede que falten paréntesis.";
+		break;
+
+	case Errores::ERROR_SINTAXIS_PARENTESIS:
+		Errores::generarCabeceraError(node, 2012, tipo, true);
+		std::cout << "No se ha detectado el cierre corecto del paréntesis.";
+		break;
 		
 	}
 	std::cout << "\n";

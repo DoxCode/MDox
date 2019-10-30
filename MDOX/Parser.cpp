@@ -1277,6 +1277,8 @@ arbol_operacional * Parser::getOperacion(int& local_index, SendVariables& variab
 				}
 				else	//No puede haber dos operadores seguidos, de haberlos, no es una operación EJ: 5+2+-3
 				{
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_OPERATION_DOUBLE_OPERATOR, &out);
 					return NULL;
 				}
 
@@ -1387,6 +1389,8 @@ arbol_operacional * Parser::getOperacion(int& local_index, SendVariables& variab
 
 	if (left_scope > 0) // Fallos con los parentesis.
 	{
+		auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+		Errores::generarError(Errores::ERROR_SINTAXIS_PARENTESIS, &out);
 		return NULL;
 	}
 	//std::cout << "#3. \n";
@@ -1599,8 +1603,10 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 						deletePtr(pSent);
 					}
 				}
-
+				auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+				Errores::generarError(Errores::ERROR_SINTAXIS_PARENTESIS, &out);
 				deletePtr(pCond);
+				return NULL;
 			}
 			else/*else condicional*/ return NULL;
 		}
@@ -1635,7 +1641,10 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 					}
 				}
 
+				auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+				Errores::generarError(Errores::ERROR_SINTAXIS_PARENTESIS, &out);
 				deletePtr(pCond);
+				return NULL;
 			}
 			else return NULL;
 		}
@@ -1678,6 +1687,8 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 					}
 					else
 					{
+						auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+						Errores::generarError(Errores::ERROR_SINTAXIS_PARENTESIS, &out);
 						deletePtr(pOp);
 						deletePtr(pCond);
 						deletePtr(pIg);
