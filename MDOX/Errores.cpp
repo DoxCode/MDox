@@ -380,6 +380,17 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		Errores::generarCabeceraError(node, 4011, tipo, true);
 		std::cout << "El regex introducido no es correcto: " + value;
 		break;
+
+	case Errores::ERROR_INTEGER_OVERFLOW:
+		Errores::generarCabeceraError(node, 2009, tipo, true);
+		std::cout << "Integer overflow, el literal no se ha podido transformar, su tamaño supera el límite permitido.";
+		break;
+
+	case Errores::ERROR_DOUBLE_OVERFLOW:
+		Errores::generarCabeceraError(node, 2010, tipo, true);
+		std::cout << "Double overflow, el literal no se ha podido transformar, su tamaño supera el límite permitido.";
+		break;
+
 		
 	}
 	std::cout << "\n";

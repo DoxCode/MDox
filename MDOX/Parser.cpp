@@ -49,8 +49,20 @@ Value Parser::getLiteral(bool& v, int& local_index)
 				// Siempre calcularemos doubles, si luego hay que reducirlo a float, se hará
 				// en la creación del arbol de acción, nunca en el parser.
 				std::string doub = token + "." + token2;
+				double value;
 
-				double value = s2d(doub, std::locale::classic());
+				try {
+					value = s2d(doub, std::locale::classic());
+				}
+				catch (const std::out_of_range)
+				{
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_DOUBLE_OVERFLOW, &out);
+					v = false;
+					return Value();
+				}
+
+				
 				//double value = std::stold(doub);
 
 				local_index = l_index;
@@ -63,7 +75,18 @@ Value Parser::getLiteral(bool& v, int& local_index)
 		else
 		{
 			//Se trata de un ENTERO
-			long long value = std::stoll(token);
+			long long value;
+
+			try {
+				value = std::stoll(token);
+			}
+			catch (const std::out_of_range)
+			{
+				auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+				Errores::generarError(Errores::ERROR_INTEGER_OVERFLOW, &out);
+				v = false;
+				return Value();
+			}
 
 			if (value > INT_MAX)
 			{
