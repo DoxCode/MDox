@@ -63,7 +63,7 @@ bool Interprete::CargarDatos(Parser* parser)
 
 
 		parser->isGlobal = true;
-		arbol_operacional* p3 = parser->getOperacion(local, variables);
+		arbol_operacional* p3 = parser->getOperacionInd(local, variables);
 		parser->isGlobal = false;
 
 		if (p3)
