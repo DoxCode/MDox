@@ -1521,11 +1521,17 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 
 	if (tokenizer.getTokenValue(index) == "{")
 	{
+		int n_index = index;
+		if (tokenizer.getTokenValue(n_index) == "}")
+		{
+			local_index = n_index;
+			return new Sentencia_Empty();
+		}
+
 		std::vector<Parser_Sentencia*> valor;
 		//Copiamos todas las variables actuales	
 		//std::vector<Variable> variables_local(variables);
 		SendVariables variables_local(variables);
-
 
 		while (true)
 		{

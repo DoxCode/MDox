@@ -134,7 +134,7 @@ public:
 	void retornoSinValor() { _retorno = std::monostate(); return_activo = true; }
 	Value getRetorno() { return _retorno; }
 
-	void IniciateStaticClassValues(Parser_Class* pClase);
+	//void IniciateStaticClassValues(Parser_Class* pClase);
 	ValueOrMulti getValueOrMulti(tipoValor& a, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	//bool OperacionOperadoresVectores(multi_value*, multi_value*, OPERADORES& op, Variable_Runtime* variables);
 	bool OperacionOperadoresVectores(Value*, multi_value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left);

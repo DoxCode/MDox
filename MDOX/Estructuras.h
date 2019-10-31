@@ -730,6 +730,7 @@ public:
 // ############################################################
 
 enum SentenciaType {
+	SENT_EMPTY,
 	SENT_REC,
 	SENT_IF,
 	SENT_WHILE,
@@ -768,6 +769,11 @@ public:
 		}
 		valor.clear();
 	}
+};
+
+class Sentencia_Empty : public Parser_Sentencia {
+public:
+	Sentencia_Empty() : Parser_Sentencia(SENT_EMPTY) {}
 };
 
 class Sentencia_IF : public Parser_Sentencia {

@@ -1425,6 +1425,12 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 
 			Errores::saltarErrores = false;
 
+			if ((*funciones)[*dItr]->body->tipo == SENT_EMPTY)
+			{
+				delete[] variables;
+				return  std::monostate();
+			}
+
 			if (Interprete_Sentencia((*funciones)[*dItr]->body, variables, var_class))
 			{
 				if (this->ignoreCalled())
