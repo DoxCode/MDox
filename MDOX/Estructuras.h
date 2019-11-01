@@ -417,7 +417,7 @@ public:
 	Value(std::string& a) : value(a) {  };
 	Value(bool& a) : value(a) {  };
 	Value(std::monostate&) : value(std::monostate()) {  };
-	Value(std::shared_ptr<mdox_vector>& a) : value(std::make_shared<mdox_vector>(*a)) {  };
+	Value(std::shared_ptr<mdox_vector>& a) : value(a) {  };
 	Value(std::shared_ptr<mdox_object>& a) : value(a) { };
 	Value(Variable_Runtime* a) : value(a) { };
 
@@ -428,11 +428,7 @@ public:
 	Value(bool&& a) : value(std::move(a)) {  };
 	Value(std::shared_ptr<mdox_vector>&& a) : value(std::move(a)) {  };
 
-	Value(val_variant& a) : value(std::visit(overloaded
-		{ 
-			[&](std::shared_ptr<mdox_vector>& c)->val_variant {  return std::make_shared<mdox_vector>(*c); },
-			[&](auto & c)->val_variant {  return a; },
-		}, a)) {  };
+	Value(val_variant& a) : value(a) {  };
 
 	/*
 	Value operator=(Value& lhs)
