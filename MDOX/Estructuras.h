@@ -325,26 +325,10 @@ static int prioridad(OPERADORES & a) {
 static bool isRelationalOperator(OPERADORES a) { return (a >= OP_REL_EQUAL && a <= OP_REL_MAJOR_OR_EQUAL); }
 
 
-class Value;
+class mdox_vector;
 
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...)->overloaded<Ts...>;
-
-class mdox_vector
-{
-public:
-	std::vector<Value> vector;
-	mdox_vector() {};
-
-	//mdox_vector(Value& v) { vector = { v }; };
-	//mdox_vector(Value&& v) { vector = { std::move(v) }; };
-
-	mdox_vector(std::vector<Value>& b) : vector(b) {};
-	mdox_vector(std::vector<Value>&& b) : vector(std::move(b)) {};
-
-	// Llamado al usar el operador @@
-	std::shared_ptr<mdox_vector> createCopyIn();
-};
 
 
 
@@ -461,6 +445,22 @@ public:
 	*/
 };
 
+
+class mdox_vector
+{
+public:
+	std::deque<Value> vector;
+	mdox_vector() {};
+
+	//mdox_vector(Value& v) { vector = { v }; };
+	//mdox_vector(Value&& v) { vector = { std::move(v) }; };
+
+	mdox_vector(std::deque<Value>& b) : vector(b) {};
+	mdox_vector(std::deque<Value>&& b) : vector(std::move(b)) {};
+
+	// Llamado al usar el operador @@
+	std::shared_ptr<mdox_vector> createCopyIn();
+};
 
 // ################################################################
 // ####################### IDENTIFICADOR ########################## 

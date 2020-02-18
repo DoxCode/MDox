@@ -26,10 +26,10 @@ Value Value::copyIn()
 std::shared_ptr<mdox_vector> mdox_vector::createCopyIn()
 {
 	std::shared_ptr<mdox_vector> of = std::make_shared<mdox_vector>();
-	of->vector.reserve(vector.size());
+	//of->vector.reserve(vector.size());
 
 	//	for (int itr = 0; itr < this->vector.size(); itr++)
-	for (std::vector<Value>::iterator it = vector.begin(); it != vector.end(); ++it)
+	for (std::deque<Value>::iterator it = vector.begin(); it != vector.end(); ++it)
 	{
 		of->vector.emplace_back(it->copyIn());
 	}
@@ -120,9 +120,9 @@ Value Value::Suma(Value& v1, Value& v2)
 			[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
 			{		
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+//				r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Suma(v1,*sss));
 				}
@@ -132,9 +132,9 @@ Value Value::Suma(Value& v1, Value& v2)
 			[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
 			{
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+				//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Suma(*sss, v2));
 				}
@@ -143,9 +143,9 @@ Value Value::Suma(Value& v1, Value& v2)
 			[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
 			{
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+				//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Suma(*sss, v2));
 				}
@@ -154,9 +154,9 @@ Value Value::Suma(Value& v1, Value& v2)
 			[&](std::shared_ptr<mdox_vector> & b, std::string&)->Value
 			{
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+				//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Suma(*sss, v2));
 				}
@@ -165,9 +165,9 @@ Value Value::Suma(Value& v1, Value& v2)
 			[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
 			{
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+				//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Suma(*sss, v2));
 				}
@@ -178,9 +178,9 @@ Value Value::Suma(Value& v1, Value& v2)
 			[&v2](std::shared_ptr<mdox_vector> & b, int&)->Value
 			{
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+				//r->vector.reserve(b->vector.size());
 				//r.resize(b.size());
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Suma(*sss, v2));
 				}
@@ -192,10 +192,10 @@ Value Value::Suma(Value& v1, Value& v2)
 				if (a->vector.size() == b->vector.size() && !a->vector.empty())
 				{
 					std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-					r->vector.reserve(a->vector.size());
+					//r->vector.reserve(a->vector.size());
 
 					int itr = 0;
-					for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+					for (std::deque<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
 					{
 						r->vector.emplace_back(Value::Suma(*sss, b->vector[itr]));
 						itr++;
@@ -211,7 +211,7 @@ Value Value::Suma(Value& v1, Value& v2)
 				}
 
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+				//r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
 				Value* a1 = &*a->vector.begin();
 				Value* b1 = &*b->vector.begin();
@@ -417,9 +417,9 @@ Value Value::Resta(Value& v1, Value& v2)
 					[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Resta(v1, *sss));
 						}
@@ -429,9 +429,9 @@ Value Value::Resta(Value& v1, Value& v2)
 					[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Resta(*sss, v2));
 						}
@@ -440,9 +440,9 @@ Value Value::Resta(Value& v1, Value& v2)
 					[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Resta(*sss, v2));
 						}
@@ -451,9 +451,9 @@ Value Value::Resta(Value& v1, Value& v2)
 					[&](std::shared_ptr<mdox_vector> & b, std::string&)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Resta(*sss, v2));
 						}
@@ -462,9 +462,9 @@ Value Value::Resta(Value& v1, Value& v2)
 					[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Resta(*sss, v2));
 						}
@@ -473,9 +473,9 @@ Value Value::Resta(Value& v1, Value& v2)
 					[&](std::shared_ptr<mdox_vector> & b, int&)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Resta(*sss, v2));
 						}
@@ -487,10 +487,10 @@ Value Value::Resta(Value& v1, Value& v2)
 						if (a->vector.size() == b->vector.size() && !a->vector.empty())
 						{
 							std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-							r->vector.reserve(a->vector.size());
+							//r->vector.reserve(a->vector.size());
 
 							int itr = 0;
-							for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+							for (std::deque<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
 							{
 								r->vector.emplace_back(Value::Resta(*sss, b->vector[itr]));
 								itr++;
@@ -506,7 +506,7 @@ Value Value::Resta(Value& v1, Value& v2)
 						}
 
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+						//r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
 						Value* a1 = &*a->vector.begin();
 						Value* b1 = &*b->vector.begin();
@@ -678,9 +678,9 @@ Value Value::Multiplicacion(Value& v1, Value& v2)
 					[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Multiplicacion(v1, *sss));
 						}
@@ -690,9 +690,9 @@ Value Value::Multiplicacion(Value& v1, Value& v2)
 					[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Multiplicacion(*sss, v2));
 						}
@@ -701,9 +701,9 @@ Value Value::Multiplicacion(Value& v1, Value& v2)
 					[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Multiplicacion(*sss, v2));
 						}
@@ -712,9 +712,9 @@ Value Value::Multiplicacion(Value& v1, Value& v2)
 					[&](std::shared_ptr<mdox_vector> & b, std::string&)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Multiplicacion(*sss, v2));
 						}
@@ -723,9 +723,9 @@ Value Value::Multiplicacion(Value& v1, Value& v2)
 					[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Multiplicacion(*sss, v2));
 						}
@@ -735,9 +735,9 @@ Value Value::Multiplicacion(Value& v1, Value& v2)
 					[&](std::shared_ptr<mdox_vector> & b, int&)->Value
 					{
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(b->vector.size());
+						//r->vector.reserve(b->vector.size());
 
-						for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+						for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 						{
 							r->vector.emplace_back(Value::Multiplicacion(*sss, v2));
 						}
@@ -749,10 +749,10 @@ Value Value::Multiplicacion(Value& v1, Value& v2)
 						if (a->vector.size() == b->vector.size() && !a->vector.empty())
 						{
 							std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-							r->vector.reserve(a->vector.size());
+							//r->vector.reserve(a->vector.size());
 
 							int itr = 0;
-							for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+							for (std::deque<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
 							{
 								r->vector.emplace_back(Value::Multiplicacion(*sss, b->vector[itr]));
 								itr++;
@@ -768,7 +768,7 @@ Value Value::Multiplicacion(Value& v1, Value& v2)
 						}
 
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-						r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+						//r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
 						Value* a1 = &*a->vector.begin();
 						Value* b1 = &*b->vector.begin();
@@ -918,9 +918,9 @@ Value Value::Div(Value& v1, Value& v2)
 		[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Div(v1, *sss));
 				}
@@ -930,9 +930,9 @@ Value Value::Div(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Div(*sss, v2));
 				}
@@ -941,9 +941,9 @@ Value Value::Div(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Div(*sss, v2));
 				}
@@ -956,9 +956,9 @@ Value Value::Div(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Div(*sss, v2));
 				}
@@ -967,9 +967,9 @@ Value Value::Div(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, int&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Div(*sss, v2));
 				}
@@ -981,10 +981,10 @@ Value Value::Div(Value& v1, Value& v2)
 			if (a->vector.size() == b->vector.size() && !a->vector.empty())
 			{
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(a->vector.size());
+				//r->vector.reserve(a->vector.size());
 
 				int itr = 0;
-				for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Div(*sss, b->vector[itr]));
 					itr++;
@@ -1000,7 +1000,7 @@ Value Value::Div(Value& v1, Value& v2)
 			}
 
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-			r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+			//r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
 			Value* a1 = &*a->vector.begin();
 			Value* b1 = &*b->vector.begin();
@@ -1149,9 +1149,9 @@ Value Value::DivEntera(Value& v1, Value& v2)
 		[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::DivEntera(v1, *sss));
 				}
@@ -1161,9 +1161,9 @@ Value Value::DivEntera(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::DivEntera(*sss,v2));
 				}
@@ -1172,9 +1172,9 @@ Value Value::DivEntera(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::DivEntera(*sss,v2));
 				}
@@ -1187,9 +1187,9 @@ Value Value::DivEntera(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::DivEntera(*sss,v2));
 				}
@@ -1198,9 +1198,9 @@ Value Value::DivEntera(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, int&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::DivEntera(*sss,v2));
 				}
@@ -1212,10 +1212,10 @@ Value Value::DivEntera(Value& v1, Value& v2)
 			if (a->vector.size() == b->vector.size() && !a->vector.empty())
 			{
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(a->vector.size());
+				//r->vector.reserve(a->vector.size());
 
 				int itr = 0;
-				for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::DivEntera(*sss, b->vector[itr]));
 					itr++;
@@ -1231,7 +1231,7 @@ Value Value::DivEntera(Value& v1, Value& v2)
 			}
 
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-			r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+			//	r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
 			Value* a1 = &*a->vector.begin();
 			Value* b1 = &*b->vector.begin();
@@ -1378,9 +1378,9 @@ Value Value::Mod(Value& v1, Value& v2)
 		[&](auto&, std::shared_ptr<mdox_vector> & b)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Mod(v1,*sss));
 				}
@@ -1390,9 +1390,9 @@ Value Value::Mod(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, const bool&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Mod(*sss,v2));
 				}
@@ -1401,9 +1401,9 @@ Value Value::Mod(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, const double&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Mod(*sss,v2));
 				}
@@ -1412,9 +1412,9 @@ Value Value::Mod(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, std::string&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Mod(*sss,v2));
 				}
@@ -1423,9 +1423,9 @@ Value Value::Mod(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, long long&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Mod(*sss,v2));
 				}
@@ -1434,9 +1434,9 @@ Value Value::Mod(Value& v1, Value& v2)
 		[&](std::shared_ptr<mdox_vector> & b, int&)->Value
 		{
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(b->vector.size());
+			//r->vector.reserve(b->vector.size());
 
-				for (std::vector<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Mod(*sss,v2));
 				}
@@ -1449,10 +1449,10 @@ Value Value::Mod(Value& v1, Value& v2)
 			if (a->vector.size() == b->vector.size() && !a->vector.empty())
 			{
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-				r->vector.reserve(a->vector.size());
+				//r->vector.reserve(a->vector.size());
 
 				int itr = 0;
-				for (std::vector<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
+				for (std::deque<Value>::iterator sss = a->vector.begin(); sss != a->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Mod(*sss, b->vector[itr]));
 					itr++;
@@ -1468,7 +1468,7 @@ Value Value::Mod(Value& v1, Value& v2)
 			}
 
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
-			r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
+			//r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
 			Value* a1 = &*a->vector.begin();
 			Value* b1 = &*b->vector.begin();
@@ -1615,7 +1615,16 @@ Value Value::Offset(Value& v1, Value& v2)
 				 return Value();
 			}
 		},
+		[&v1](std::shared_ptr<mdox_vector>& a, std::shared_ptr<mdox_object>& b)
+		{
+			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_brack)
+			{
+				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_brack, v1, b->variables_clase);
+			}
 
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->pID->nombre);
+			return Value();
+		},
 
 		[&v1](auto & a, std::shared_ptr<mdox_object> & b)
 		{
@@ -1628,16 +1637,7 @@ Value Value::Offset(Value& v1, Value& v2)
 			return Value();
 		},
 
-		[&v1](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_object> & b)
-		{
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_brack)
-			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_brack, v1, b->variables_clase);
-			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->pID->nombre);
-			return Value();
-		},
 
 		[&v2](std::shared_ptr<mdox_object> & a, auto & b)
 		{
@@ -2230,11 +2230,11 @@ short int Value::OperadoresEspeciales_Pop(Value* v, bool& left)
 		[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->short int {a->vector.emplace_back(*v); left = true; return true; },
 
 		//[&](auto&, std::shared_ptr<mdox_vector>& a) {  a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return *this; },
-		[&](std::string&, std::shared_ptr<mdox_vector> & a)->short int {a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](int&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](double&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](long long&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](bool&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](std::string&, std::shared_ptr<mdox_vector> & a)->short int {a->vector.emplace_front(*_this); return true; },
+		[&](int&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_front(*_this); return true; },
+		[&](double&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_front(*_this); return true; },
+		[&](long long&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_front(*_this); return true; },
+		[&](bool&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_front(*_this); return true; },
 		//[&](std::shared_ptr<mdox_vector>& a, std::shared_ptr<mdox_vector>& b) {  a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return *this; },
 
 
@@ -2598,11 +2598,11 @@ bool Value::Cast(const tipos_parametros tipo)
 	case PARAM_VECTOR:
 	{
 		return std::visit(overloaded{
-			[&](std::string & b) { *_this = Value(std::make_shared<mdox_vector>(std::vector<Value>{b})); return true; },
-			[&](bool& a) {  *_this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
-			[&](int& a) {  *_this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a})); return true; },
-			[&](long long& a) {  *_this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
-			[&](double& a) { *_this = Value(std::make_shared<mdox_vector>(std::vector<Value>{a}));  return true; },
+			[&](std::string & b) { *_this = Value(std::make_shared<mdox_vector>(std::deque<Value>{b})); return true; },
+			[&](bool& a) {  *_this = Value(std::make_shared<mdox_vector>(std::deque<Value>{a}));  return true; },
+			[&](int& a) {  *_this = Value(std::make_shared<mdox_vector>(std::deque<Value>{a})); return true; },
+			[&](long long& a) {  *_this = Value(std::make_shared<mdox_vector>(std::deque<Value>{a}));  return true; },
+			[&](double& a) { *_this = Value(std::make_shared<mdox_vector>(std::deque<Value>{a}));  return true; },
 			[](std::shared_ptr<mdox_vector>&) { return true; },
 			[](auto&) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
 			}, _this->value);

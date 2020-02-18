@@ -221,7 +221,7 @@ Value Interprete::TratarMultiplesValores(multi_value* arr, Variable_Runtime* var
 	if (arr->is_vector)
 	{
 		std::shared_ptr <mdox_vector> res = std::make_shared<mdox_vector>();
-		res->vector.reserve(arr->arr.size());
+		//res->vector.reserve(arr->arr.size());
 
 		//int itr = 0;
 		for (std::vector<arbol_operacional*>::iterator it = arr->arr.begin(); it != arr->arr.end(); ++it)
