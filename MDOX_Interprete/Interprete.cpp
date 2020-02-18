@@ -23,15 +23,12 @@ bool Interprete::CargarDatos(Parser* parser)
 	}
 	this->clases.clear();
 
-
 	/*	std::cout << "TOKENS: \n";
-
 		for (unsigned i = 0; i < parser->tokenizer.tokens.size(); i++)
 		{
 			std::cout << "  [" << parser->tokenizer.tokens.at(i)->token << "]  ";
 		}
-
-		std::cout << "\n\n";*/
+		std::cout << "\n\n"; */
 
 
 	this->nombre_ficheros.push_back(parser->tokenizer.fichero);
@@ -218,6 +215,7 @@ void Interprete::getRealValueFromValueWrapperRef(Value** v, tipos_parametros* ti
 		}, (*v)->value);
 }
 
+
 Value Interprete::TratarMultiplesValores(multi_value* arr, Variable_Runtime* variables, Variable_Runtime* var_class)
 {
 	if (arr->is_vector)
@@ -321,8 +319,17 @@ Value Interprete::TratarMultiplesValores(multi_value* arr, Variable_Runtime* var
 		if (isPop)
 		{
 			if (left)
-				return std::get<Value>(v1);
-			else return std::get<Value>(v2);
+			{
+				Value* _val = &(std::get<Value>(v1));
+				getRealValueFromValueWrapperRef(&_val);
+				return *_val;
+			}
+			else
+			{
+				Value* _val = &(std::get<Value>(v2));
+				getRealValueFromValueWrapperRef(&_val);
+				return *_val;
+			}
 		}
 	
 		return true;
@@ -378,6 +385,60 @@ Value Interprete::lectura_arbol_MultiValue_ref(arbol_operacional* node, Variable
 	return lectura_arbol_operacional(node, variables, var_class);
 }
 
+//LLamado desde CallValue, en caso de que haya un identificador que sea un objeto o un vector
+//en lugar de pasar dicho objeto, pasará la referencia a la variable runtime.
+//Esto se hará para pasar referencia de referencia por funciones, que es cuando se llama a CallValue
+Value Interprete::lectura_arbol_CallValue(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_class)
+{
+	if (node->operador == OP_NONE)
+	{
+		return std::visit(overloaded
+			{
+				[&](Value & a)->Value { 
+				return std::visit(overloaded{
+						[&](std::shared_ptr<mdox_vector>& a)->Value
+						{
+							return std::make_shared<mdox_vector>(*a);
+						},
+						[&](auto& a)->Value { return a; },
+						}, a.value);
+				},
+				[&](Parser_Identificador * a)->Value
+				{
+					Variable_Runtime* vr = a->var_global ? &this->variables_globales[a->index] : a->var_class ? &var_class[a->index] : a->is_Static ? &a->static_link->static_var_runtime[a->index] : &variables[a->index];
+
+					if (a->fuerte)
+					{
+						//vr->value.inicializacion(a->tipo);
+						vr->tipo = a->tipo->value;
+					}
+
+					if (std::visit(overloaded{
+						[](std::shared_ptr<mdox_vector>&)
+						{
+							return true;
+						},
+						[](auto&) { return false; },
+						}, vr->value.value))
+					{
+						return vr;
+					}
+					else return vr->value;
+
+				},
+				[&](Call_Value * a)->Value { return a->is_class ? ExecClass(a, transformarEntradasCall(a, variables,var_class)) : ExecFuncion(a, transformarEntradasCall(a, variables,var_class),var_class); },
+				[&](multi_value * a)->Value
+				{
+						return TratarMultiplesValores(a, variables,var_class);
+				},
+					// [&](wrapper_object_call & a)->Value { Value* v = a.getValue(true);  return v == nullptr ? std::monostate() : *v;  },
+				[&](auto&)->Value { return std::monostate(); },
+			}, node->_v1);
+	}
+
+	return lectura_arbol_operacional(node, variables, var_class);
+}
+
 //Value, Parser_Identificador*, Valor_Funcion*, arbol_operacional*
 Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_class)
 {
@@ -395,7 +456,11 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 						identificador->value.inicializacion(a->tipo);
 						identificador->tipo = a->tipo->value;
 					}
-					
+					else if (a->tipo != NULL)
+					{
+						identificador->value.value = std::monostate();
+						identificador->tipo = PARAM_VOID;
+					}
 
 					identificador->publica = node->is_Public;
 
@@ -449,6 +514,11 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 				identificador->value.inicializacion(a->tipo);
 				identificador->tipo = a->tipo->value;
 			}
+			else if (a->tipo != NULL)
+			{
+				identificador->value.value = std::monostate();
+				identificador->tipo = PARAM_VOID;
+			}
 
 			if (a->inicializando)
 			{
@@ -458,7 +528,15 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 			identificador->value.operacion_Asignacion(
 				std::visit(overloaded{
 				[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a,variables,var_class); },
-				[](Value & a)->Value {return a; },
+				[](Value& a)->Value {
+						return std::visit(overloaded{
+						[](std::shared_ptr<mdox_vector>& a)->Value
+							{
+								return std::make_shared<mdox_vector>(*a);
+							},
+						[](auto& a)->Value { return a; },
+						}, a.value); 
+					},
 				[&](Parser_Identificador * a)->Value
 					{
 						return a->var_global ? this->variables_globales[a->index].value : a->var_class ? var_class[a->index].value : a->is_Static ? a->static_link->static_var_runtime[a->index].value : variables[a->index].value;
@@ -485,11 +563,19 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 					{
 						[&](Variable_Runtime* a2)->Value
 						{
-
+														
 							a2->value.operacion_Asignacion(
 							std::visit(overloaded{
 							[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a,variables,var_class); },
-							[](Value & a)->Value {return a; },
+							[](Value & a)->Value {
+								return std::visit(overloaded{
+								[](std::shared_ptr<mdox_vector>& a)->Value
+									{
+										return std::make_shared<mdox_vector>(*a);
+									},
+								[](auto& a)->Value { return a; },
+								}, a.value);
+							},
 							[&](Parser_Identificador * a)->Value
 								{
 									return a->var_global ? this->variables_globales[a->index].value : a->var_class ? var_class[a->index].value : a->is_Static ? a->static_link->static_var_runtime[a->index].value : variables[a->index].value;
@@ -509,7 +595,15 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 			// ......................    Arbol operacional para aceptar casos como: a = b = 5;
 			Value vr = std::visit(overloaded{
 			[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a,variables,var_class); },
-			[](Value & a)->Value {return a; },
+			[](Value & a)->Value {
+				return std::visit(overloaded{
+				[](std::shared_ptr<mdox_vector>& a)->Value
+					{
+						return std::make_shared<mdox_vector>(*a);
+					},
+				[](auto& a)->Value { return a; },
+				}, a.value);
+			},
 			[&](Parser_Identificador * a)->Value { return a->var_global ? this->variables_globales[a->index].value : a->var_class ? var_class[a->index].value : a->is_Static ? a->static_link->static_var_runtime[a->index].value : variables[a->index].value; },
 			[&](Call_Value* a)->Value { return a->is_class ? ExecClass(a, transformarEntradasCall(a, variables,var_class)) : ExecFuncion(a, transformarEntradasCall(a, variables,var_class),var_class); },
 			[&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables,var_class); },
@@ -705,22 +799,33 @@ ValueOrMulti Interprete::getValueOrMulti(tipoValor& a, Variable_Runtime* variabl
 		[](Value & a)->ValueOrMulti {return a; },
 		[&](Parser_Identificador * a)->ValueOrMulti
 		{ 
+
+			Variable_Runtime* vr = a->var_global ? &this->variables_globales[a->index] : a->var_class ? &var_class[a->index] : a->is_Static ? &a->static_link->static_var_runtime[a->index] : &variables[a->index];
+
 			if (a->fuerte)
-			{
-				Variable_Runtime* vr = a->var_global ? &this->variables_globales[a->index] : a->var_class ? &var_class[a->index] : a->is_Static ? &a->static_link->static_var_runtime[a->index] : &variables[a->index];
+			{			
 				vr->tipo = a->tipo->value;
-				vr->value = std::monostate();
-				return vr;
+			//	vr->value = std::monostate();
+
+				return std::visit(overloaded{
+					[&vr](Variable_Runtime*)->Value { return vr->value; },
+					[&vr](auto&)->Value { return vr;  },
+					}, vr->value.value);
 			}
 
 			if (a->inicializando)
-			{
-				Variable_Runtime* vr = a->var_global ? &this->variables_globales[a->index] : a->var_class ? &var_class[a->index] : a->is_Static ? &a->static_link->static_var_runtime[a->index] : &variables[a->index];
-				vr->value = std::monostate();
-				return vr;
+			{		
+			//	vr->value = std::monostate();
+				return std::visit(overloaded{
+					[&vr](Variable_Runtime*)->Value { return vr->value; },
+					[&vr](auto&)->Value { return vr;  },
+					}, vr->value.value);
 			}
 
-			return a->var_global ? &this->variables_globales[a->index] : a->var_class ? &var_class[a->index] : a->is_Static ? &a->static_link->static_var_runtime[a->index] : &variables[a->index];
+			return std::visit(overloaded{
+				[&vr](Variable_Runtime*)->Value { return vr->value; },
+				[&vr](auto&)->Value { return vr;  },
+				}, vr->value.value);
 			
 		},		
 		[&](Call_Value * a)->ValueOrMulti { return a->is_class ? ExecClass(a, transformarEntradasCall(a, variables, var_class)) : ExecFuncion(a, transformarEntradasCall(a, variables, var_class),var_class); },
@@ -729,7 +834,7 @@ ValueOrMulti Interprete::getValueOrMulti(tipoValor& a, Variable_Runtime* variabl
 		}, a);
 }
 
-bool Interprete::OperacionOperadoresVectores(Value * v1, Value * v2, OPERADORES& operador, bool& isPop, bool& left)
+short int Interprete::OperacionOperadoresVectores(Value * v1, Value * v2, OPERADORES& operador, bool& isPop, bool& left)
 {
 	if (operador == OP_CHECK_GET)
 	{
@@ -743,7 +848,7 @@ bool Interprete::OperacionOperadoresVectores(Value * v1, Value * v2, OPERADORES&
 	}
 }
 
-bool Interprete::OperacionOperadoresVectores(multi_value* v1, Value* v2,  OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_class, bool& isPop, bool& left)
+short int Interprete::OperacionOperadoresVectores(multi_value* v1, Value* v2,  OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_class, bool& isPop, bool& left)
 {
 	if (operador == OP_CHECK_GET)
 	{
@@ -754,7 +859,7 @@ bool Interprete::OperacionOperadoresVectores(multi_value* v1, Value* v2,  OPERAD
 		int itr = 0;
 		for (std::vector<arbol_operacional*>::iterator it = v1->arr.begin(); it != v1->arr.end(); ++it)
 		{
-			if (!lectura_arbol_MultiValue_ref(*it,variables, var_class).OperadoresEspeciales_Check(v2, itr))
+			if (lectura_arbol_MultiValue_ref(*it,variables, var_class).OperadoresEspeciales_Check(v2, itr))
 				return false;
 			itr++;
 		}
@@ -764,14 +869,14 @@ bool Interprete::OperacionOperadoresVectores(multi_value* v1, Value* v2,  OPERAD
 		isPop = true;
 		for (std::vector<arbol_operacional*>::iterator it = v1->arr.begin(); it != v1->arr.end(); ++it)
 		{
-			if (!lectura_arbol_MultiValue_ref(*it, variables, var_class).OperadoresEspeciales_Pop(v2, left))
-				return false;
+			if (short int x = lectura_arbol_MultiValue_ref(*it, variables, var_class).OperadoresEspeciales_Pop(v2, left); x != 1)
+				return x;
 		}
 	}
 	return true;
 }
 
-bool Interprete::OperacionOperadoresVectores(Value* v1, multi_value* v2, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_class, bool& isPop, bool& left)
+short int Interprete::OperacionOperadoresVectores(Value* v1, multi_value* v2, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_class, bool& isPop, bool& left)
 {
 	if (operador == OP_CHECK_GET)
 	{
@@ -794,14 +899,14 @@ bool Interprete::OperacionOperadoresVectores(Value* v1, multi_value* v2, OPERADO
 	else // POP
 	{
 		isPop = true;
+
+		//std::for_each(v2->arr.rbegin(), v2->arr.rend(), [&](arbol_operacional * it)
 		for (std::vector<arbol_operacional*>::iterator it = v2->arr.begin(); it != v2->arr.end(); ++it)
 		{
-			Value ref = lectura_arbol_MultiValue_ref(*it, variables, var_class);
-			if (!v1->OperadoresEspeciales_Pop(&ref, left))
-			{
-				return false;
-			}
-		}
+				Value ref = lectura_arbol_MultiValue_ref(*it, variables, var_class);
+				if (short int x= v1->OperadoresEspeciales_Pop(&ref, left); x != 1)
+					return x;
+			};
 	}
 	return true;
 }
@@ -848,7 +953,7 @@ std::vector<Value> Interprete::transformarEntradasCall(Call_Value * vF, Variable
 	int k = 0;
 	for (std::vector<arbol_operacional*>::iterator entrada = vF->entradas.begin(); entrada != vF->entradas.end(); ++entrada)
 	{
-		entradas[k] = lectura_arbol_operacional((*entrada), variables, var_class);
+		entradas[k] = lectura_arbol_CallValue((*entrada), variables, var_class);
 		k++;
 	}
 	return entradas;
@@ -1184,6 +1289,14 @@ Value Interprete::ExecClass(Call_Value* vf, std::vector<Value>& entradas)
 	int itr = 0;
 	for (std::vector<Value>::iterator dItr = entradas.begin(); dItr != entradas.end(); ++dItr)
 	{
+	/*	std::visit(overloaded{
+				[&](std::shared_ptr<mdox_vector>& a)->Value
+					{
+						return std::make_shared<mdox_vector>(*a);
+					},
+				[&](auto& a)->Value { return a; },
+			}, dItr->value);*/
+
 		objeto_salida->variables_clase[constructor->entradas[itr]].value.asignacion(*dItr,false);
 		itr++;
 	}
@@ -1277,7 +1390,10 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 				{
 					if (!std::visit(overloaded
 						{
-							[&](Value & a) { return a.igualdad_Condicional(entradas[ent_itr]); },
+							[&](Value & a) { 
+								return a.igualdad_CondicionalFuncion(entradas[ent_itr]);
+						
+							},
 
 							[&](Parser_Identificador * a)
 							{
@@ -1290,12 +1406,23 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 								}
 
 								if (a->inicializando)
-									return identificador->value.asignacion(entradas[ent_itr], identificador->tipo != PARAM_VOID);
+								{
+									return std::visit(overloaded{
+
+										[&](Variable_Runtime* a)->bool
+										{
+											identificador->value = a;
+											return true;
+										},
+										[&](auto & a)->bool { return identificador->value.asignacion(entradas[ent_itr], identificador->tipo != PARAM_VOID);  },
+									}, entradas[ent_itr].value);
+	
+								}
 								else
-									return identificador->value.igualdad_Condicional(entradas[ent_itr]);
+									return identificador->value.igualdad_CondicionalFuncion(entradas[ent_itr]);
 							},
 
-							[&](Call_Value * a) { return entradas[ent_itr].igualdad_Condicional(a->is_class ? ExecClass(a, transformarEntradasCall(a, variables,var_class)) : ExecFuncion(a, transformarEntradasCall(a, variables,var_class),var_class)); },
+							[&](Call_Value * a) { return entradas[ent_itr].igualdad_CondicionalFuncion(a->is_class ? ExecClass(a, transformarEntradasCall(a, variables,var_class)) : ExecFuncion(a, transformarEntradasCall(a, variables,var_class),var_class)); },
 							[&](multi_value * a) 
 							{  
 								if (a->contenedor)
@@ -1304,14 +1431,28 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 									{
 										Variable_Runtime* identificador = a->operacionesVector->id_v->var_global ? &this->variables_globales[a->operacionesVector->id_v->index] : a->operacionesVector->id_v->is_Static ? &a->operacionesVector->id_v->static_link->static_var_runtime[a->operacionesVector->id_v->index] : &variables[a->operacionesVector->id_v->index];
 
-										if (!identificador->value.asignacion(entradas[ent_itr], false))
+										//if (!identificador->value.asignacion(entradas[ent_itr], false))
+										//	return false;
+
+										if (!std::visit(overloaded{
+
+										[&](Variable_Runtime * a)->bool
+										{			
+											identificador->value = a;
+											return true;
+										},
+										[&](auto & a)->bool { return identificador->value.asignacion(entradas[ent_itr], false);  },
+											}, entradas[ent_itr].value))
+										{
 											return false;
+										}
+										
 
 										//hackfix para evitar que en funciones [xs:x], xs se convierta en monostate
 										a->operacionesVector->id_v->inicializando = false;
 
-										Parser_Identificador* f1 = NULL;
-										Parser_Identificador* f2 = NULL;
+										//Parser_Identificador* f1 = NULL;
+										//Parser_Identificador* f2 = NULL;
 
 										ValueOrMulti v1 = getValueOrMulti(a->operacionesVector->v1, variables, var_class);
 										ValueOrMulti v2 = getValueOrMulti(a->operacionesVector->v2, variables, var_class);
@@ -1328,13 +1469,13 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 														{
 															[&](Value & a2)
 															{
-																if (!OperacionOperadoresVectores(&a1, &a2, a->operacionesVector->operador1, isPop, left))
+																if (OperacionOperadoresVectores(&a1, &a2, a->operacionesVector->operador1, isPop, left) != 1)
 																	return false;
 																return true;
 															},
 															[&](multi_value * a2)
 															{
-																if (!OperacionOperadoresVectores(&a1, a2, a->operacionesVector->operador1, variables, var_class, isPop, left))
+																if (OperacionOperadoresVectores(&a1, a2, a->operacionesVector->operador1, variables, var_class, isPop, left) != 1)
 																	return false;
 
 																v2IsMulti = true;
@@ -1348,7 +1489,7 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 														{
 															[&](Value & a2)
 															{
-																if (!OperacionOperadoresVectores(a1, &a2, a->operacionesVector->operador1, variables, var_class, isPop, left))
+																if (OperacionOperadoresVectores(a1, &a2, a->operacionesVector->operador1, variables, var_class, isPop, left) != 1)
 																	return false;
 																return true;
 															},
@@ -1374,13 +1515,13 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 													{
 														[&](Value & a3)
 														{
-															if (!OperacionOperadoresVectores(&std::get<Value>(v2), &a3, a->operacionesVector->operador1, isPop, left))
+															if (OperacionOperadoresVectores(&std::get<Value>(v2), &a3, a->operacionesVector->operador1, isPop, left) != 1)
 																return false;
 															return true;
 														},
 														[&](multi_value * a3)
 														{
-															if (!OperacionOperadoresVectores(&std::get<Value>(v2), a3, a->operacionesVector->operador1, variables, var_class, isPop, left))
+															if (OperacionOperadoresVectores(&std::get<Value>(v2), a3, a->operacionesVector->operador1, variables, var_class, isPop, left) != 1)
 																return false;
 
 															v2IsMulti = true;
@@ -1395,7 +1536,7 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 									}
 								}
 
-								return entradas[ent_itr].igualdad_Condicional(TratarMultiplesValores(a, variables, var_class));
+								return entradas[ent_itr].igualdad_CondicionalFuncion(TratarMultiplesValores(a, variables, var_class));
 							},
 							[&](auto&) { return false; },
 						}, (*it)->_v1))
@@ -1406,9 +1547,9 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 				}
 				else
 				{
-				Value v = lectura_arbol_operacional((*it), variables, var_class);
+				    Value v = lectura_arbol_operacional((*it), variables, var_class);
 					this->getRealValueFromValueWrapper(v);
-					if (!v.igualdad_Condicional(entradas[ent_itr]))
+					if (!v.igualdad_CondicionalFuncion(entradas[ent_itr]))
 					{
 						entradas_incorrectas = true;
 						break;

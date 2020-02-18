@@ -24,12 +24,20 @@ class Variable_Runtime
 {
 public:
 	Value value;
-	tipos_parametros tipo; // Si no es void, es fuerte.
+	tipos_parametros tipo; // Si no es void, no es fuerte.
 	bool publica = true;
 
 	Variable_Runtime() : tipo(PARAM_VOID) {}
 	Variable_Runtime(Value a) : value(a), tipo(PARAM_VOID) {}
 	Variable_Runtime(Value a, tipos_parametros b) : value(a), tipo(b) {}
+
+	//Llamado al usar @@
+	void copyIn(Variable_Runtime& vr)
+	{
+		vr.tipo = this->tipo;
+		vr.publica = publica;
+		vr.value = value.copyIn();
+	}
 };
 
 
@@ -91,6 +99,32 @@ public:
 		}
 	}
 
+	//Llamado al usar el operador @
+	std::shared_ptr<mdox_object> createCopy()
+	{
+		std::shared_ptr<mdox_object> of = std::make_shared<mdox_object>(this->clase);
+		
+		for (int itr = 0; itr < this->clase->preload_var; itr++)
+		{
+			of->variables_clase[itr] = this->variables_clase[itr];
+		}
+
+		return of;
+	}
+
+	// Llamado al usar el operador @@
+	std::shared_ptr<mdox_object> createCopyIn()
+	{
+		std::shared_ptr<mdox_object> of = std::make_shared<mdox_object>(this->clase);
+
+		for (int itr = 0; itr < this->clase->preload_var; itr++)
+		{
+			variables_clase[itr].copyIn(of->variables_clase[itr]);
+		}
+
+		return of;
+	}
+
 	mdox_object(Parser_Class* c) : clase(c) 
 	{
 		this->variables_clase = new Variable_Runtime[c->preload_var];
@@ -137,10 +171,11 @@ public:
 	//void IniciateStaticClassValues(Parser_Class* pClase);
 	ValueOrMulti getValueOrMulti(tipoValor& a, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	//bool OperacionOperadoresVectores(multi_value*, multi_value*, OPERADORES& op, Variable_Runtime* variables);
-	bool OperacionOperadoresVectores(Value*, multi_value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left);
-	bool OperacionOperadoresVectores(multi_value*, Value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left);
-	bool OperacionOperadoresVectores(Value*, Value*, OPERADORES& operador, bool& isPop, bool& left);
+	short int OperacionOperadoresVectores(Value*, multi_value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left);
+	short int OperacionOperadoresVectores(multi_value*, Value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left);
+	short int OperacionOperadoresVectores(Value*, Value*, OPERADORES& operador, bool& isPop, bool& left);
 
+	Value lectura_arbol_CallValue(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_class);
 	Value lectura_arbol_MultiValue_ref(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	Value lectura_arbol_operacional(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	//void setRetorno(Value * v) { delete _retorno; _retorno = v; }
@@ -156,7 +191,7 @@ public:
 	bool Interprete_Sentencia(Parser_Sentencia* sentencia, Variable_Runtime* variables, Variable_Runtime* var_clase);
 
 	//VariablePreloaded * Interprete_NuevaVariable(Parser_Parametro * par, VariablePreloaded * variables);
-
+	
 	void getRealValueFromValueWrapperRef(Value** v, tipos_parametros* tipo = nullptr);
 	void getRealValueFromValueWrapper(Value& v, tipos_parametros* = nullptr);
 	std::vector<Value> transformarEntradasCall(Call_Value* vF, Variable_Runtime* variables, Variable_Runtime* var_clase);

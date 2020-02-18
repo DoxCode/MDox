@@ -3,6 +3,41 @@
 #include "../MDOX_Interprete/Interprete.h" //Requerido para acceder a los operadores de los objetos, es necesarios para procesar el arbol.
 #include <algorithm>  
 
+
+/**
+	Usado como copia interna cuando se llama a un operador '@@'
+*/
+Value Value::copyIn()
+{
+	return std::visit(overloaded{
+	[](std::shared_ptr<mdox_object> & a)->Value
+	{
+			return a->createCopyIn();
+	},
+	[](std::shared_ptr<mdox_vector> & a)->Value
+	{
+		return a->createCopyIn();
+	},
+	[&](auto&)->Value {return this->value; },
+
+		}, value);
+}
+
+std::shared_ptr<mdox_vector> mdox_vector::createCopyIn()
+{
+	std::shared_ptr<mdox_vector> of = std::make_shared<mdox_vector>();
+	of->vector.reserve(vector.size());
+
+	//	for (int itr = 0; itr < this->vector.size(); itr++)
+	for (std::vector<Value>::iterator it = vector.begin(); it != vector.end(); ++it)
+	{
+		of->vector.emplace_back(it->copyIn());
+	}
+
+	return of;
+}
+
+
 template <typename T>
 std::string Value::to_string_p(const T& a_value, const int n)
 {
@@ -2146,7 +2181,7 @@ bool Value::OperadoresEspeciales_Check(Value* v, int index/*, Parser_Identificad
 	}
 }
 
-bool Value::OperadoresEspeciales_Pop(Value* v, bool& left)
+short int Value::OperadoresEspeciales_Pop(Value* v, bool& left)
 {
 	tipos_parametros tipo_1 = PARAM_VOID, tipo_2 = PARAM_VOID;
 
@@ -2155,9 +2190,10 @@ bool Value::OperadoresEspeciales_Pop(Value* v, bool& left)
 	Interprete::instance->getRealValueFromValueWrapperRef(&v, &tipo_2);
 
 	return std::visit(overloaded{
-		[&](std::shared_ptr<mdox_vector> & a, std::monostate)->bool
+		[&](std::shared_ptr<mdox_vector> & a, std::monostate)->short int
 		{
-			if (a->vector.size() == 0) return false;
+			left = true;
+			if (a->vector.size() == 0) return 2;
 			if (tipo_2 != PARAM_VOID)
 			{
 				v->inicializacion(tipo_2);
@@ -2167,12 +2203,11 @@ bool Value::OperadoresEspeciales_Pop(Value* v, bool& left)
 			}
 			v->asignacion(a->vector.back(), false);
 			a->vector.pop_back();
-			left = true;
 			return true;
 		},
-		[&](std::monostate, std::shared_ptr<mdox_vector> & a)->bool
+		[&](std::monostate, std::shared_ptr<mdox_vector> & a)->short int
 		{ 
-			if (a->vector.size() == 0) return false;
+			if (a->vector.size() == 0) return 2;
 			if (tipo_1 != PARAM_VOID)
 			{
 				_this->inicializacion(tipo_1);
@@ -2187,23 +2222,23 @@ bool Value::OperadoresEspeciales_Pop(Value* v, bool& left)
 		}, //NO recomendado su uso.
 
 		//[&](std::shared_ptr<mdox_vector>& a, auto&) {  a->vector.emplace_back(v); return v; },
-		[&](std::shared_ptr<mdox_vector> & a, int&)->bool { a->vector.emplace_back(*v); left = true; return true; },
-		[&](std::shared_ptr<mdox_vector> & a, std::string&)->bool {  a->vector.emplace_back(*v); left = true; return true; },
-		[&](std::shared_ptr<mdox_vector> & a, bool&)->bool {  a->vector.emplace_back(*v); left = true; return true; },
-		[&](std::shared_ptr<mdox_vector> & a, long long&)->bool { a->vector.emplace_back(*v); left = true; return true; },
-		[&](std::shared_ptr<mdox_vector> & a, double&)->bool {  a->vector.emplace_back(*v); left = true; return true; },
-		[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->bool {a->vector.emplace_back(*v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, int&)->short int { a->vector.emplace_back(*v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, std::string&)->short int {  a->vector.emplace_back(*v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, bool&)->short int {  a->vector.emplace_back(*v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, long long&)->short int { a->vector.emplace_back(*v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, double&)->short int {  a->vector.emplace_back(*v); left = true; return true; },
+		[&](std::shared_ptr<mdox_vector> & a, std::shared_ptr<mdox_vector>&)->short int {a->vector.emplace_back(*v); left = true; return true; },
 
 		//[&](auto&, std::shared_ptr<mdox_vector>& a) {  a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return *this; },
-		[&](std::string&, std::shared_ptr<mdox_vector> & a)->bool {a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](int&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](double&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](long long&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
-		[&](bool&, std::shared_ptr<mdox_vector> & a)->bool { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](std::string&, std::shared_ptr<mdox_vector> & a)->short int {a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](int&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](double&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](long long&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
+		[&](bool&, std::shared_ptr<mdox_vector> & a)->short int { a->vector.emplace_back(*_this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return true; },
 		//[&](std::shared_ptr<mdox_vector>& a, std::shared_ptr<mdox_vector>& b) {  a->vector.emplace_back(*this); std::rotate(a->vector.rbegin(), a->vector.rbegin() + 1, a->vector.rend()); return *this; },
 
 
-		[](auto,auto)->bool { Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, ":"); return false; },
+		[](auto,auto)->short int { Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, ":"); return false; },
 		}, _this->value, v->value);
 	
 }
@@ -2288,11 +2323,12 @@ bool Value::asignacion(Value & v, bool fuerte)
 	{
 		if (tipo != PARAM_VOID)
 			fuerte = true;
-		else return false;
+		else fuerte = false;
 	}
 
 	if (!fuerte)
 	{
+		//TODO PERFORMANCE
 		*_this = Value(v.value);
 		return true;
 	}
@@ -2385,7 +2421,7 @@ bool Value::asignacion(Value & v, bool fuerte)
 
 			[&](std::shared_ptr<mdox_vector>&, std::shared_ptr<mdox_vector> & b)
 			{
-				*_this = Value(b);
+				*_this = b;
 				return true;
 			},
 
@@ -2596,6 +2632,12 @@ bool Value::ValueToBool()
 		}, value);
 }
 
+bool Value::igualdad_CondicionalFuncion(Value& v)
+{
+	Interprete::instance->getRealValueFromValueWrapper(*this);
+	Interprete::instance->getRealValueFromValueWrapper(v);
+	return this->igualdad_Condicional(v);
+}
 
 bool Value::igualdad_Condicional(Value & v)
 {
@@ -3600,8 +3642,37 @@ bool Value::operacion_Asignacion(Value & v, OPERADORES & op, bool fuerte)
 
 Value Value::operacion_Unitaria(OPERADORES & op)
 {
+	Interprete::instance->getRealValueFromValueWrapper(*this);
 	switch (op)
 	{
+	case OP_COPY:
+	{
+		return std::visit(overloaded{
+		[](std::shared_ptr<mdox_object> & a)->Value
+		{
+			return a->createCopy();
+		},
+		[](std::shared_ptr<mdox_vector> & a)->Value
+		{
+			return std::make_shared<mdox_vector>(*a);
+		},
+		[&](auto&)->Value { return value; },
+			}, value);
+	}
+	case OP_IN_COPY:
+	{
+		return std::visit(overloaded{
+		[](std::shared_ptr<mdox_object> & a)->Value
+		{
+			return a->createCopyIn();
+		},
+		[](std::shared_ptr<mdox_vector> & a)->Value
+		{
+			return a->createCopyIn();
+		},
+		[&](auto&)->Value { return value; },
+			}, value);
+	}
 	case OP_NEGADO:
 	{
 		return std::visit(overloaded{
@@ -3707,6 +3778,8 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 // inclusive un string con un valor numérico como "743j", dará como resultado b=743
 void Value::print()
 {
+	Interprete::instance->getRealValueFromValueWrapper(*this);
+
 	std::visit(overloaded{
 		[&](std::monostate) { std::cout << "<void>"; },
 		[&](std::shared_ptr<mdox_vector> & a) {

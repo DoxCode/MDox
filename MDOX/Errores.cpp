@@ -234,7 +234,7 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 
 	case Errores::ERROR_OPERADOR_INVALIDO:
 		Errores::generarCabeceraError(node, 2017, tipo);
-		std::cout << "No se ha podido aplicar el operador " << value << ". Es posible que el tipo de elemento no permita el uso del mismo.  ";
+		std::cout << "No se ha podido aplicar el operador '" << value << "'. Es posible que el tipo de elemento no permita el uso del mismo.  ";
 		break;
 
 	case Errores::ERROR_ASIGNACION_VALOR_VOID:
@@ -399,8 +399,12 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 	case Errores::ERROR_SINTAXIS_PARENTESIS:
 		Errores::generarCabeceraError(node, 2024, tipo, true);
 		std::cout << "No se ha detectado el cierre corecto del paréntesis.";
+		break;		
+
+	case Errores::ERROR_ASIGNACION_FALLO:
+		Errores::generarCabeceraError(node, 2025, tipo, false);
+		std::cout << "Un valor se debe asignar a una variable y se está asignando a otro valor.";
 		break;
-		
 	}
 	std::cout << "\n";
 }

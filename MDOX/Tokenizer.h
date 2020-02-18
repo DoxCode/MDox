@@ -99,6 +99,7 @@ public:
 				inx--;
 				return true;
 			}
+		inx--;
 		return false;
 	}
 

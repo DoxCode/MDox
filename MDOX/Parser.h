@@ -12,8 +12,12 @@ class Variable
 public:
 	std::string nombre;
 	int index;
+	// Cacheado para comprobar si la variable fue inicializada en algun momento.
+	// Luego se usará para dar valor al identificador de turno.
+	bool inicializando = false;
 
 	Variable(std::string a, int i) : nombre(a), index(i) {}
+	Variable(std::string a, int i, bool init) : nombre(a), index(i), inicializando(init) {}
 };
 
 class SendVariables
@@ -97,6 +101,7 @@ public:
 	//Cacheado de variables
 	Variable* BusquedaVariableLocal(Parser_Identificador* ID, std::vector<Variable>& variables);
 	int BusquedaVariable(Parser_Identificador * ID, SendVariables& variables);
+	int BusquedaVariable(Parser_Identificador* ID, SendVariables& variables, Variable**);
 	void clearVariables() { variables_globales.clear(); }
 	void CargarEnCacheOperaciones(arbol_operacional* node, SendVariables& variables, bool inside);
 //	void IncrementarVariables() { isGlobal ? numero_variables_globales++ : numero_variables_funcion++; }

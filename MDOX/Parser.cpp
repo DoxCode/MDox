@@ -388,15 +388,15 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 				{
 					//Si devuelve true, implica que requiere reverse
 					if (contenedor_operacion_vector->operacionesVector->operador1 == OPERADORES::OP_CHECK_GET || 
-						a->arr[itr]->operador != OP_NONE || std::visit(overloaded
+						a->arr[itr]->operador != OP_NONE || /*Devuelve true si es un id sin inicializar que toma datos*/std::visit(overloaded
 						{
 							[&](Parser_Identificador * tr)
 							{
 								if (tr->inicializando)
-									return false;
-								else return true;
+									return true;
+								else return false;
 							},
-							[](auto&) {return true; }
+							[](auto&) {return false; }
 						}, a->arr[itr]->_v1))
 					{
 						if (!reverse)
@@ -451,10 +451,10 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 									[&](Parser_Identificador * tr)
 									{
 										if (tr->inicializando)
-											return false;
-										else return true;
+											return true;
+										else return false;
 									},
-									[](auto&) {return true; }
+									[](auto&) {return false; }
 								}, a->arr[itr]->_v1))
 						{
 							if (!reverse)
@@ -528,8 +528,12 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 		if (pID)
 		{
 			local_index = index2;
+			pID->inicializando = true;
 
-			pID->fuerte = true;
+			if (pD1->value != PARAM_VOID)
+				pID->fuerte = true;
+			
+
 			pID->tipo = pD1;
 			pID->generarPosicion(&tokenizer);
 			return pID;
@@ -579,6 +583,7 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 				if (is_vector)
 				{
 					c->is_vector = true;
+					delete contenedor_operacion_vector;
 					if (all_value)
 					{
 						std::shared_ptr<mdox_vector> res = std::make_shared<mdox_vector>();
@@ -589,7 +594,7 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 							res->vector[itr] = std::get<Value>((*it)->_v1);
 							itr++;
 						}
-						delete c;
+						delete c;	
 						return Value(std::move(res));
 					}
 					return c;
@@ -866,6 +871,8 @@ OPERADORES Parser::getOperador(int& local_index)
 	else if (v == "+") return OPERADORES::OP_ARIT_SUMA;
 	else if (v == "-") return OPERADORES::OP_ARIT_RESTA;
 	else if (v == "*") return OPERADORES::OP_ARIT_MULT;
+	else if (v == "@") return OPERADORES::OP_COPY;
+	else if (v == "@@") return OPERADORES::OP_IN_COPY;
 	else if (v == "/") return OPERADORES::OP_ARIT_DIV;
 	else if (v == "div") return OPERADORES::OP_ARIT_DIV_ENTERA;
 	else if (v == "%") return OPERADORES::OP_ARIT_MOD;
@@ -1143,7 +1150,6 @@ arbol_operacional * Parser::getOperacion(int& local_index, SendVariables& variab
 	// TIPOS 0 -> Puede ser cualquier cosa. (left <- No existe o fue un parentesis)
 	// TIPOS 1 -> Puede ser un Valor ó un paréntesis de inicio. (left <- Fue un operador) EJ: 3 +  ó 3(xx) 3( = 3*(
 	// TIPOS 2 -> Puede ser un Operador (left <- Fue un Valor)
-	//
 
 	int is_op = 0;
 	int left_scope = 0;
@@ -1349,6 +1355,12 @@ arbol_operacional * Parser::getOperacion(int& local_index, SendVariables& variab
 			}
 			else if (aux == OPERADORES::OP_BRACKET_LEFT)
 			{			
+				if (this->tokenizer.tokens[index - (long long)1]->firstNewLine)
+				{
+					index--;
+					break;
+				}
+
 				normal_operator_do(left_scope, is_op, aux, stack, op_stack);
 				is_op = 0;
 				op_stack.push_back(OPERADORES::OP_SCOPE_LEFT);
@@ -1926,6 +1938,7 @@ Parser_Funcion* Parser::getFuncion(int& local_index, std::vector<Variable>* var_
 					}
 				}
 
+
 				int t3_index = index;
 
 				if (tokenizer.getTokenValue(t3_index) == "::")
@@ -1984,6 +1997,10 @@ Parser_Funcion* Parser::getFuncion(int& local_index, std::vector<Variable>* var_
 					}
 					else
 					{
+						local_index = index;
+						auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+						Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, &out);
+
 						this->readingFunction = false;
 						deletePtr(pID);
 
@@ -2673,26 +2690,43 @@ Variable* Parser::BusquedaVariableLocal(Parser_Identificador* ID, std::vector<Va
 	return NULL;
 }
 
+
+
+int Parser::BusquedaVariable(Parser_Identificador* ID, SendVariables& variables)
+{
+	return BusquedaVariable(ID, variables, NULL);
+}
+
+
 /*
 Buscamos variables entre las globales y variables locales
 */
-int Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& variables)
+int Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& variables, Variable ** res)
 {
 	Variable* v = BusquedaVariableLocal(ID, variables.variables_locales);
 
 	if (v != NULL)
+	{
+		if (res != NULL)
+			*res = v;
+
 		return v->index;
+	}
 
 	for (std::vector<Variable>::iterator it = this->variables_globales.begin(); it != this->variables_globales.end(); ++it)
 	{
 		if (it->nombre == ID->nombre)
 		{
 			ID->var_global = true;
+			
+			if (res != NULL)
+				*res = &(*it);
+
 			return (*it).index;
 		}
 	}
 
-	if (/*this->readingFunction && */this->readingStaticValue && this->readingClass)
+	if (/*this->readingFunction &&*/this->readingStaticValue && this->readingClass)
 	{
 		std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(ID->nombre);
 		if (got != this->readingClass->static_var_map.end())
@@ -2700,6 +2734,7 @@ int Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& variables
 			ID->index = got->second;
 			ID->is_Static = true;
 			ID->static_link = this->readingClass;
+
 			return ID->index;
 		}
 	}
@@ -2707,9 +2742,12 @@ int Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& variables
 	if (variables.variables_clase != NULL)
 	{
 		v = BusquedaVariableLocal(ID, *variables.variables_clase);
-		
+							
 		if (v != NULL)
 		{
+			if (res != NULL)
+				*res = v;
+
 			ID->var_class = true;
 			return v->index;
 		}
@@ -2726,7 +2764,8 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 			{
 				[&](Parser_Identificador * a)
 				{
-					int IndexVar = this->BusquedaVariable(a, variables);
+					Variable* var;
+					int IndexVar = this->BusquedaVariable(a, variables, &var);
 					if (IndexVar == -1)
 					{
 						//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
@@ -2750,12 +2789,13 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 						}
 						else
 						{
+							a->inicializando = true;		
+
 							if (this->isGlobal)
 							{
-								this->variables_globales.push_back(Variable(a->nombre, this->variables_globales.size()));
+								this->variables_globales.push_back(Variable(a->nombre, this->variables_globales.size(),true));
 								a->index = this->variables_globales.back().index;
 								a->var_global = true;
-								a->inicializando = true;
 
 							}
 							else if (!this->readingFunction && this->readingStaticValue && this->readingClass) //Si no es una funcion, es que esta leyendo una variable
@@ -2763,23 +2803,28 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 								int inx = this->readingClass->static_var_map.size();
 								this->readingClass->static_var_map.emplace(a->nombre, inx);
 								a->index = inx;
-								a->inicializando = true;
 								a->is_Static = true;
 								a->static_link = this->readingClass;
 							}
 							else
 							{
 								int d = *variables.num_local_var;
-								variables.push_VarLocal(Variable(a->nombre, d));
+								variables.push_VarLocal(Variable(a->nombre, d, true));
 								if (this->readingClass)
 									this->readingClass->_variables_map.emplace(std::move(a->nombre), d);
 								a->index = variables.variables_locales.back().index;
-								a->inicializando = true;
 							}
 						}
 					}
 					else
+					{
+						if (a->inicializando)
+							var->inicializando = true;
+						else if (var->inicializando)
+							a->inicializando = true;
+
 						a->index = IndexVar;
+					}
 
 				},
 				[&](auto&) { return; },
@@ -2795,10 +2840,20 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 	{
 		std::visit(overloaded
 			{
-				[&](arbol_operacional * a) { CargarEnCacheOperaciones(a, variables,inside); },
+				[&](arbol_operacional * a) 
+				{ 
+					if (arbol->operador == OP_IG_EQUAL)
+					{
+						Errores::generarError(Errores::ERROR_ASIGNACION_FALLO, &a->parametros);
+						existenErrores = true;
+					}
+					else
+						CargarEnCacheOperaciones(a, variables,inside); 
+				},
 				[&](Parser_Identificador * a)
 				{
-					int IndexVar = this->BusquedaVariable(a, variables);
+					Variable* var;
+					int IndexVar = this->BusquedaVariable(a, variables, &var);
 					if (IndexVar == -1)
 					{
 						//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
@@ -2814,20 +2869,21 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 							}
 						}*/
 
+						a->inicializando = true;
+
 						//Si no existe, la creamos.
 						if (this->isGlobal)
 						{
 							this->variables_globales.push_back(Variable(a->nombre, this->variables_globales.size()));
 							a->index = this->variables_globales.back().index;
 							a->var_global = true;
-							a->inicializando = true;
+
 						}
 						else if (!this->readingFunction && this->readingStaticValue && this->readingClass)
 						{
 							int inx = this->readingClass->static_var_map.size();
 							this->readingClass->static_var_map.emplace(a->nombre, inx);
 							a->index = inx;
-							a->inicializando = true;
 							a->is_Static = true;
 							a->static_link = this->readingClass;
 						}
@@ -2838,12 +2894,14 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 							if (this->readingClass)
 								this->readingClass->_variables_map.emplace(std::move(a->nombre), d);
 							a->index = variables.variables_locales.back().index;
-							a->inicializando = true;
 						}
 					}
-					else 
-					a->index = IndexVar;
-					
+					else
+					{
+						a->inicializando = var->inicializando;
+						var->inicializando = false;
+						a->index = IndexVar;
+					}
 				},
 				[](auto&) {return; },
 			}, arbol->_v1);
@@ -2853,7 +2911,8 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 					[&](arbol_operacional * a2) { CargarEnCacheOperaciones(a2, variables,inside); },
 					[&](Parser_Identificador * a2)
 					{
-							int IndexVar = this->BusquedaVariable(a2, variables);
+							Variable* var;
+							int IndexVar = this->BusquedaVariable(a2, variables, &var);
 							if (IndexVar == -1)
 							{
 								//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
@@ -2869,35 +2928,46 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 									}
 								}*/
 
-								//Si no existe, la creamos.
-								if (this->isGlobal)
+								if (arbol->operador == OP_IG_EQUAL)
 								{
-									this->variables_globales.push_back(Variable(a2->nombre, this->variables_globales.size()));
-									a2->index = this->variables_globales.back().index;
-									a2->var_global = true;
-									a2->inicializando = true;
-								}
-								else if (!this->readingFunction && this->readingStaticValue && this->readingClass)
-								{
-									int inx = this->readingClass->static_var_map.size();
-									this->readingClass->static_var_map.emplace(a2->nombre, inx);
-									a2->index = inx;
-									a2->inicializando = true;
-									a2->is_Static = true;
-									a2->static_link = this->readingClass;
+									Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a2->parametros, a2->nombre);
+									existenErrores = true;
 								}
 								else
 								{
-									int d = *variables.num_local_var;
-									variables.push_VarLocal(Variable(a2->nombre, d));
-									if (this->readingClass)
-										this->readingClass->_variables_map.emplace(std::move(a2->nombre), d);
-									a2->index = variables.variables_locales.back().index;
 									a2->inicializando = true;
+
+									//Si no existe, la creamos.
+									if (this->isGlobal)
+									{
+										this->variables_globales.push_back(Variable(a2->nombre, this->variables_globales.size()));
+										a2->index = this->variables_globales.back().index;
+										a2->var_global = true;
+									}
+									else if (!this->readingFunction && this->readingStaticValue && this->readingClass)
+									{
+										int inx = this->readingClass->static_var_map.size();
+										this->readingClass->static_var_map.emplace(a2->nombre, inx);
+										a2->index = inx;
+										a2->is_Static = true;
+										a2->static_link = this->readingClass;
+									}
+									else
+									{
+										int d = *variables.num_local_var;
+										variables.push_VarLocal(Variable(a2->nombre, d));
+										if (this->readingClass)
+											this->readingClass->_variables_map.emplace(std::move(a2->nombre), d);
+										a2->index = variables.variables_locales.back().index;
+									}
 								}
 							}
 							else 
+							{
+								a2->inicializando = var->inicializando;
+								var->inicializando = false;
 								a2->index = IndexVar;
+							}
 							
 					},
 			}, arbol->_v2);

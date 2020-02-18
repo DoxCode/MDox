@@ -199,6 +199,8 @@ enum OPERADORES {
 
 	//Prior 6
 	OP_ARIT_MULT,
+	OP_COPY,
+	OP_IN_COPY,
 	OP_ARIT_DIV,
 	OP_ARIT_DIV_ENTERA,
 	OP_ARIT_MOD,
@@ -246,6 +248,8 @@ static bool is_single_operator(OPERADORES & p)
 	case ELEM_NEG_FIRST:
 	case OP_ITR_PLUS:
 	case OP_ITR_MIN:
+	case OP_COPY:
+	case OP_IN_COPY:
 		return true;
 	}
 
@@ -271,6 +275,8 @@ static bool is_left(OPERADORES & p)
 	switch (p)
 	{
 	case OP_NEGADO:
+	case OP_COPY:
+	case OP_IN_COPY:
 	case OP_ITR_PLUS:
 	case OP_ITR_MIN:
 	case OP_ARIT_SUMA:
@@ -335,6 +341,9 @@ public:
 
 	mdox_vector(std::vector<Value>& b) : vector(b) {};
 	mdox_vector(std::vector<Value>&& b) : vector(std::move(b)) {};
+
+	// Llamado al usar el operador @@
+	std::shared_ptr<mdox_vector> createCopyIn();
 };
 
 
@@ -375,9 +384,11 @@ public:
 	static Value Mod(Value& v1, Value& v2);
 	static Value Offset(Value& v1, Value& v2); //[x]
 	
+
+	Value copyIn();
 	Value ClassAccess(Parser_Identificador* v2, Call_Value * call = nullptr, Variable_Runtime* variables = nullptr, Variable_Runtime* var_class = nullptr);
 	bool OperadoresEspeciales_Check(Value* v, int index);
-	bool OperadoresEspeciales_Pop(Value* v, bool& left);
+	short int OperadoresEspeciales_Pop(Value* v, bool& left);
 	Value operacion_Binaria(Value& v, const OPERADORES op);
 	bool OperacionRelacional(Value& v, const OPERADORES op);
 	Value operacion_Unitaria(OPERADORES& op);
@@ -394,6 +405,7 @@ public:
 	bool mayorIgualQue_Condicional(Value& v);
 	bool menorIgualQue_Condicional(Value& v);
 	bool igualdad_Condicional(Value& v);
+	bool igualdad_CondicionalFuncion(Value& v);
 
 	bool ValueToBool();
 	bool Cast(Parser_Declarativo* pDec);
@@ -408,6 +420,7 @@ public:
 	static std::string to_string_p(const T& a_value, const int n = 10);
 
 	Value() : value(std::monostate()) {};
+
 	//Value(valueType v) : value(v);
 	//Value(val_variant v) : value(v) {};
 
@@ -465,7 +478,7 @@ public:
 
 	int index = -1;
 	std::string nombre;
-	bool fuerte = false;
+	bool fuerte = false; // Redundante, se obtiene se obtiene con el tipo (VOID = false, ELSE = true), pero bool es más rápido por runtime.
 	bool inicializando = false;
 
 

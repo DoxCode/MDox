@@ -84,21 +84,22 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 			}
 
 			//TOKENIZER:: operaciones con 2 caracteres
-			if (itr + 1 < (*it)->val.size())
+			if (itr + (long long)1 < (*it)->val.size())
 			{
-				const char c2 = (*it)->val.at(itr+1);
+				const char c2 = (*it)->val.at(itr+(long long)1);
 
 				if (
-					(c == '+' && c2 == '+') ||
-					(c == '-' && c2 == '-') ||
-					(c == ':' && c2 == ':') ||
-					(c == '+' && c2 == '=') ||
-					(c == '-' && c2 == '=') ||
-					(c == '=' && c2 == '=') ||
-					(c == '!' && c2 == '=') ||
-					(c == '<' && c2 == '=') ||
-					(c == '>' && c2 == '=') ||
-					(c == '&' && c2 == '&') ||
+					(c == '+' && c2 == '+') || 
+					(c == '-' && c2 == '-') || 
+					(c == ':' && c2 == ':') || 
+					(c == '+' && c2 == '=') || 
+					(c == '-' && c2 == '=') || 
+					(c == '=' && c2 == '=') || 
+					(c == '!' && c2 == '=') || 
+					(c == '<' && c2 == '=') || 
+					(c == '>' && c2 == '=') || 
+					(c == '&' && c2 == '&') || 
+					(c == '@' && c2 == '@') || 
 					(c == '|' && c2 == '|')
 					)
 				{
@@ -117,7 +118,7 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 				}
 			}
 
-			p = strchr("()[]{}:,*+-^\"'<>;=!%/.", c);
+			p = strchr("()[]{}:,*+-^\"'<>;=!%/.@", c);
 
 			if (p)
 			{
@@ -180,7 +181,7 @@ bool str_compare(std::string str, int itr,  std::string busq)
 
 bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 {
-	std::ifstream ifs(ruta);
+	std::fstream ifs(ruta);
 	std::string temp_line;
 
 	std::vector<Linea*> raw_string;
@@ -224,6 +225,7 @@ bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 			{
 				if (temp_line.size() > 0)
 				{
+
 					raw_string.push_back(new Linea(line, temp_line));
 				}
 				break;
