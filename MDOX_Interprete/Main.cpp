@@ -29,21 +29,9 @@ int main(int argument_count, char * argument_list[])
 
 		Core::Start();
 
-		Parser_Identificador* vId = new Parser_Identificador("main");
-		std::vector<Value> entradas;
-
-		Call_Value vf = Call_Value(vId);
-		parser.valores_llamadas.emplace_back(&vf);
-
 		Interprete * interprete = new Interprete();
-		if (!interprete->CargarDatos(&parser))
-		{
-			return 0;
-		}
-
-		interprete->ExecFuncion(&vf, entradas, NULL);
-
-		return 0;
+		interprete->CargarDatos(&parser);
+		return 1;
 	}
 
 	std::cout << "Bienvenido a MDOX, version " << VERSION << "(" << ESTADO << ")  \n";
@@ -104,7 +92,7 @@ void Iniciar_Interprete()
 		//Comando adicional, tomado como una SENTENCIA.
 		Parser parser = Parser();
 		parser.tokenizer.generarTokens(lines);
-		interprete->Interpretar(&parser);
+		interprete->CargarDatos(&parser);
 
 		//Lexing("",ibs);
 

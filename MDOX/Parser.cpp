@@ -215,7 +215,7 @@ Parser_Identificador* Parser::getIdentificador(int& local_index)
 	std::string token = tokenizer.getTokenValue(index);
 
 	//Comprobamos que el identificador no es una palabra reservada del sistema.
-	std::vector<std::string> palabras_reservadas = { "return", "break", "if", "else", "vector", "int", "double", "void", "bool", "operator", "constructor", "class", "function", "while", "for", "continue", "lint", "string" };
+	std::vector<std::string> palabras_reservadas = { "global", "return", "break", "if", "else", "vector", "int", "double", "void", "bool", "operator", "constructor", "class", "function", "while", "for", "continue", "lint", "string" };
 
 	if (std::find(palabras_reservadas.begin(), palabras_reservadas.end(), token) != palabras_reservadas.end())
 	{
@@ -497,24 +497,20 @@ tipoValor ReducirArbolATipo(arbol_operacional * arbol)
 	return arbol;
 }
 
-conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
+Parser_Identificador* Parser::getVariableID(int& local_index, SendVariables& variables)
 {
-	int index = local_index;
-	ret = true;
+	int indexR = local_index;
 
-	//Comprobamos que sea un literal.
-	bool l;
-	Value v1 = getLiteral(l, index);
+	bool is_global = false;
 
-	if (l)
-	{
-		local_index = index;
-		return std::move(v1);
-	}
+	if (tokenizer.getTokenValue(indexR) == "global")
+		is_global = true;
+	else indexR = local_index;
 
+
+	int index = indexR;
 	// ###### Comprobamos si se trata de un declarativo `+ Identificador ######
 	// Declarativo + Identificados -> int varA
-	index = local_index;
 
 	Parser_Declarativo* pD1 = getDeclarativo(index);
 
@@ -532,15 +528,44 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 
 			if (pD1->value != PARAM_VOID)
 				pID->fuerte = true;
-			
 
+			pID->var_global = is_global;
 			pID->tipo = pD1;
 			pID->generarPosicion(&tokenizer);
 			return pID;
 		}
-
 		deletePtr(pD1);
-		//Comprobar PUNTEROS
+	}
+
+	index = indexR;
+
+	Parser_Identificador* i = getIdentificador(index);
+	
+	if(i)
+	{
+		i->var_global = is_global;
+		local_index = index;
+		return i;
+	}
+
+
+	return NULL;
+}
+
+
+conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
+{
+	int index = local_index;
+	ret = true;
+
+	//Comprobamos que sea un literal.
+	bool l;
+	Value v1 = getLiteral(l, index);
+
+	if (l)
+	{
+		local_index = index;
+		return std::move(v1);
 	}
 
 	//Comprobamos si se trata de un vector
@@ -832,15 +857,17 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 				}
 			}
 		}
-		else //Es un IDENTIFICADOR
-		{
-			local_index = index;
-			return i;
-		}
 	}
 
-
 	index = local_index;
+	Parser_Identificador* i2 = getVariableID(index, variables);
+	if (i2)
+	{
+		local_index = index;
+		ret = true;
+		return i2;
+	}
+
 
 	ret = false;
 	return std::monostate();
@@ -1878,7 +1905,6 @@ Parser_Funcion* Parser::getFuncion(int& local_index, std::vector<Variable>* var_
 				this->readingFunction = true;
 
 				//Variables por función
-				this->isGlobal = false;
 				SendVariables variables(var_class);
 
 				std::vector<arbol_operacional*> entradas;
@@ -2791,12 +2817,10 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 						{
 							a->inicializando = true;		
 
-							if (this->isGlobal)
+							if (this->isMain && a->var_global)
 							{
-								this->variables_globales.push_back(Variable(a->nombre, this->variables_globales.size(),true));
-								a->index = this->variables_globales.back().index;
-								a->var_global = true;
-
+									this->variables_globales.push_back(Variable(a->nombre, this->variables_globales.size(), true));
+									a->index = this->variables_globales.back().index;
 							}
 							else if (!this->readingFunction && this->readingStaticValue && this->readingClass) //Si no es una funcion, es que esta leyendo una variable
 							{
@@ -2872,12 +2896,10 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 						a->inicializando = true;
 
 						//Si no existe, la creamos.
-						if (this->isGlobal)
+						if (this->isMain && a->var_global)
 						{
 							this->variables_globales.push_back(Variable(a->nombre, this->variables_globales.size()));
 							a->index = this->variables_globales.back().index;
-							a->var_global = true;
-
 						}
 						else if (!this->readingFunction && this->readingStaticValue && this->readingClass)
 						{
@@ -2938,11 +2960,11 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 									a2->inicializando = true;
 
 									//Si no existe, la creamos.
-									if (this->isGlobal)
+									if (this->isMain && a2->var_global)
 									{
 										this->variables_globales.push_back(Variable(a2->nombre, this->variables_globales.size()));
 										a2->index = this->variables_globales.back().index;
-										a2->var_global = true;
+
 									}
 									else if (!this->readingFunction && this->readingStaticValue && this->readingClass)
 									{

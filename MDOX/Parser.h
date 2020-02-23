@@ -66,10 +66,12 @@ public:
 	Parser_Class* readingClass = nullptr;
 
 
-	//Cacheado de variables
-	//Variales globales aún no implementadas.
 	std::vector<Variable> variables_globales;
-	bool isGlobal = false;
+
+	//Variables y sentencias del scope superior que llamaremos Main
+	std::vector<Parser_Sentencia*> sentenciasMain;
+	//std::vector<Variable> variablesMain;
+	bool isMain = false;
 
 	std::vector<Call_Value*> valores_llamadas;
 
@@ -83,6 +85,7 @@ public:
 	Parser_Identificador* getIdentificador(int& local_index);
 	//multi_value* getValorLista(int& local_index, std::vector<Variable>& variables);
 	//conmp getValorItr(bool& ret, int& local_index, std::vector<Variable>& variables);
+	Parser_Identificador* getVariableID(int& local_index, SendVariables& variables);
 	conmp getValor(bool& v, int& local_index, SendVariables& variables);
 	multi_value* getValorList(bool& all_value, int& local_index, SendVariables& variables);
 	arbol_operacional* getOperacion(int& local_index, SendVariables& variables, bool inside = false);

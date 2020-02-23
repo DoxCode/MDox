@@ -35,7 +35,7 @@ public:
 	void copyIn(Variable_Runtime& vr)
 	{
 		vr.tipo = this->tipo;
-		vr.publica = publica;
+		//vr.publica = publica;
 		vr.value = value.copyIn();
 	}
 };
@@ -149,8 +149,8 @@ private:
 public:
 	static Interprete* instance;
 
-	Variable_Runtime* variables_globales;
-
+	Variable_Runtime* variablesMain; //Variables del scope superior que llamaremos MAIN
+	Variable_Runtime* variables_globales; //Variable globales, aplicables en todo el entorno
 
 	std::vector<Fichero*> nombre_ficheros; //Nombre de ficheros cargados en la instancia actual del interprete.
 	std::vector<Parser_Funcion*> funciones;
@@ -187,7 +187,7 @@ public:
 
 	Value TratarMultiplesValores(multi_value* arr, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	bool CargarDatos(Parser* parser);
-	void Interpretar(Parser* parser);
+	//void Interpretar(Parser* parser);
 	bool Interprete_Sentencia(Parser_Sentencia* sentencia, Variable_Runtime* variables, Variable_Runtime* var_clase);
 
 	//VariablePreloaded * Interprete_NuevaVariable(Parser_Parametro * par, VariablePreloaded * variables);

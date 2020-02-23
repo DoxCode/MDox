@@ -32,7 +32,6 @@ bool Interprete::CargarDatos(Parser* parser)
 
 
 	this->nombre_ficheros.push_back(parser->tokenizer.fichero);
-	std::vector<arbol_operacional*> var_globales;
 	SendVariables variables;
 
 	//Interpretando datos...size_t
@@ -58,18 +57,14 @@ bool Interprete::CargarDatos(Parser* parser)
 			continue;
 		}
 
-
-		parser->isGlobal = true;
-		arbol_operacional* p3 = parser->getOperacionInd(local, variables);
-		parser->isGlobal = false;
+		parser->isMain = true;
+		Parser_Sentencia* p3 = parser->getSentencia(local, variables);
+		parser->isMain = false;
 
 		if (p3)
 		{
-			if (parser->tokenizer.isCloseToken(local))
-			{
-				var_globales.push_back(p3);
-				continue;
-			}
+			parser->sentenciasMain.push_back(p3);
+			continue;
 		}
 
 
@@ -87,10 +82,17 @@ bool Interprete::CargarDatos(Parser* parser)
 		return false;
 
 	this->variables_globales = new Variable_Runtime[parser->variables_globales.size()];
+	this->variablesMain = new Variable_Runtime[variables.variables_locales.size()];
 
-	for (std::vector<arbol_operacional*>::iterator it = var_globales.begin(); it != var_globales.end(); ++it)
+	for (std::vector<Parser_Sentencia*>::iterator it = parser->sentenciasMain.begin(); it != parser->sentenciasMain.end(); ++it)
 	{
-		lectura_arbol_operacional((*it), NULL, NULL);
+		if(!Interprete_Sentencia((*it), variablesMain, NULL))
+		{
+			Errores::generarError(Errores::ERROR_CRITICO, &(*it)->parametros);
+			delete[] variablesMain;
+			delete[] variables_globales;
+			break;
+		}
 	}
 
 	return true;
@@ -99,7 +101,7 @@ bool Interprete::CargarDatos(Parser* parser)
 // Esta función solo será llamada para archivos incompletos, que no contienen una función main de inicio.
 // así como para el interprete por consola.
 // Se considerará una función propiamente.
-
+/*
 void Interprete::Interpretar(Parser* parser)
 {
 	int local = 0;
@@ -157,7 +159,7 @@ void Interprete::Interpretar(Parser* parser)
 	delete inst;
 	delete[] variables;
 }
-
+*/
 /*
 Value* wrapper_object_call::getValue(bool show_error,  tipos_parametros* tipo)
 {

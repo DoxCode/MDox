@@ -139,7 +139,7 @@ bool Comandos(std::string comando, Interprete * interprete)
 				std::cout << d <<" :: Error crítico del Parser. \n";
 			}
 			
-			std::cout << "Fichero incluido correctamente. \n";
+			//std::cout << "Fichero incluido correctamente. \n";
 
 			return false;
 		}
