@@ -12,24 +12,70 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 	std::string val = "";
 
 	bool _cadena = false;
+	bool _comillaSimple = false;
 	bool anteriorLinea = false;
+	bool continue_line = false;
 
 	for (std::vector<Linea*>::iterator it = str.begin(); it != str.end(); ++it)
 	{
 		anteriorLinea = true;
+		bool ignore_next = false;
+
+
 		for (unsigned itr = 0; itr < (*it)->val.size(); itr++)
 		{
 			const char c = (*it)->val.at(itr);
 
 			if (_cadena)
 			{
-				if (c == '"')
+				if (c == '\\' && !ignore_next)
 				{
-					if (val.size() > 0)
+					if ((*it)->val.size() == itr + 1)
 					{
+						continue_line = true;
+						continue;
+					}
+
+					ignore_next = true;
+					continue;
+				}
+
+				if (ignore_next)
+				{
+					switch (c)
+					{
+						case '\\': val += '\\'; break;
+						case '"': val += '"'; break;
+						case 'n': val += '\n'; break;
+						case 't': val += '\t'; break;
+						case 'r': val += '\r'; break;
+						case '?': val += '\?'; break;
+						case 'a': val += '\a'; break;
+						case 'b': val += '\b'; break;
+						case 'f': val += '\f'; break;
+						case 'v': val += '\v'; break;
+						case '0': val += '\0'; break;
+						case '\'': val += "'"; break;
+						default: val += c;
+					}
+
+					if ((*it)->val.size() == itr + 1)
+					{
+						continue_line = true;
+						continue;
+					}
+
+					ignore_next = false;
+					continue;
+				}
+
+				if ((c == '"' && !_comillaSimple) || (c == '\'' && _comillaSimple))
+				{
+					//if (val.size() > 0)
+					//{
 						tokens.push_back(new Token((*it)->linea,itr,val, anteriorLinea));
 						val = "";
-					}
+				//	}
 
 					std::string chr(1, c);
 					tokens.push_back(new Token((*it)->linea, itr, chr, anteriorLinea));
@@ -37,8 +83,20 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 				}
 				else
 				{
+					//Llega al final de linea sin haber encontrado fin de string, lo sigue buscando en posteriores.
+					if ((*it)->val.size() == itr + 1)
+					{
+						continue_line = true;
+						val += c;
+						
+						continue;
+					}
+
 					val += c;
+
 				}
+
+				continue_line = false;
 				continue;
 			}
 
@@ -132,12 +190,26 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 				tokens.push_back(new Token((*it)->linea, itr, chr, anteriorLinea));
 
 				if (c == '"')
+				{
 					_cadena = true;
+					_comillaSimple = false;
+				}
+				else if (c == '\'')
+				{
+					_cadena = true;
+					_comillaSimple = true;
+				}
 
 				continue;
 			}
 
 			val += c;
+		}
+
+		if (continue_line)
+		{
+			val += '\n';
+			continue;
 		}
 
 		if (val.size() > 0)

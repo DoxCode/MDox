@@ -27,11 +27,29 @@ Value Parser::getLiteral(bool& v, int& local_index)
 		{
 			local_index = index;
 			v = true;
-			ReplaceAll(value, "\\n", "\n");
 			return Value(value);
 		}
 	}
 
+	index = local_index;
+	if (tokenizer.getTokenValue(index) == "'")
+	{
+		std::string value = tokenizer.getTokenValue(index);
+
+		if (value == "'")
+		{
+			local_index = index;
+			v = true;
+			return Value((std::string)"");
+		}
+
+		if (tokenizer.getTokenValue(index) == "'")
+		{
+			local_index = index;
+			v = true;
+			return Value(value);
+		}
+	}
 	//######### Probando si puede tratarse de un FLOAT o un ENTERO
 	index = local_index;
 	std::string token = tokenizer.getTokenValue(index);
