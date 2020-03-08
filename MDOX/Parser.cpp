@@ -3,6 +3,81 @@
 #include <string>
 #include <iomanip>
 
+std::vector<Variable>* Parser::variables_globales_parser = NULL;
+std::vector<Fichero*> Parser::nombre_ficheros;   //Nombre de ficheros cargados en la instancia actual del interprete.
+std::vector<Parser_Funcion*> Parser::funciones;
+std::vector<Parser_Class*> Parser::clases;
+SendVariables Parser::variables_scope;
+
+bool Parser::GenerarArbol()
+{
+	//Borramos la lista de funciones existentes actualmente.
+/*	for (std::vector<Parser_Funcion*>::iterator it = Parser::funciones.begin(); it != Parser::funciones.end(); ++it)
+	{
+		delete (*it);
+	}
+	this->funciones.clear();
+	*/
+	//Borramos la lista de clases existentes actualmente.
+	/*for (std::vector<Parser_Class*>::iterator it = Parser::clases.begin(); it != Parser::clases.end(); ++it)
+	{
+		delete (*it);
+	}
+	this->clases.clear();
+	*/
+
+	Parser::nombre_ficheros.push_back(this->tokenizer.fichero);
+	//SendVariables variables;
+
+	//Interpretando datos...size_t
+	int local = 0;
+	while (local < this->tokenizer.tokens.size())
+	{
+		//	std::cout << "--:: " << parser.tokenizer.tokens.at(local) << " :: " << local << " \n";
+
+
+		Parser_Funcion* p2 = this->getFuncion(local);
+
+		if (p2)
+		{
+			funciones.push_back(p2);
+			continue;
+		}
+
+		Parser_Class* pClass = this->getClass(local);
+
+		if (pClass)
+		{
+			this->clases.push_back(pClass);
+			continue;
+		}
+
+		this->isMain = true;
+		Parser_Sentencia* p3 = this->getSentencia(local, variables_scope);
+		this->isMain = false;
+
+		if (p3)
+		{
+			this->sentenciasMain.push_back(p3);
+			continue;
+		}
+
+
+		OutData_Parametros data = OutData_Parametros(this->tokenizer.token_actual->linea, this->tokenizer.token_actual->char_horizontal, this->nombre_ficheros.back());
+		Errores::generarError(Errores::ERROR_DE_SINTAXIS, &data, this->tokenizer.token_actual->token);
+		return false;
+	}
+
+	// Tratamiento de valores de funciones por el parser.
+	if (!this->preloadCalls(this->funciones, &this->clases))
+		return false;
+
+	if (this->existenErrores)
+		return false;
+
+	return true;
+}
+
 // ############################################################
 // ######################## LITERALES  ######################## 
 // ############################################################
@@ -233,7 +308,7 @@ Parser_Identificador* Parser::getIdentificador(int& local_index)
 	std::string token = tokenizer.getTokenValue(index);
 
 	//Comprobamos que el identificador no es una palabra reservada del sistema.
-	std::vector<std::string> palabras_reservadas = { "global", "return", "break", "if", "else", "vector", "int", "double", "void", "bool", "operator", "constructor", "class", "function", "while", "for", "continue", "lint", "string" };
+	std::vector<std::string> palabras_reservadas = { "include","global", "return", "break", "if", "else", "vector", "int", "double", "void", "bool", "operator", "constructor", "class", "function", "while", "for", "continue", "lint", "string" };
 
 	if (std::find(palabras_reservadas.begin(), palabras_reservadas.end(), token) != palabras_reservadas.end())
 	{
@@ -1361,13 +1436,15 @@ arbol_operacional * Parser::getOperacion(int& local_index, SendVariables& variab
 						[&](auto&)->bool {  return false; },
 						}, pN))
 					{
-						Errores::generarError(Errores::ERROR_OPERADOR_ACCESO_CLASE_INVALIDO, NULL);
+						auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+						Errores::generarError(Errores::ERROR_OPERADOR_ACCESO_CLASE_INVALIDO, &out);
 						return NULL;
 					}
 				}
 				else
 				{
-					Errores::generarError(Errores::ERROR_OPERADOR_ACCESO_CLASE_INVALIDO, NULL);
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_OPERADOR_ACCESO_CLASE_INVALIDO, &out);
 					return NULL;
 				}
 
@@ -1878,6 +1955,46 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 				return sif;
 			}
 			deletePtr(pOp);
+		}
+	}
+
+	//##########   -- INCLUDES --   ##########
+	index = local_index;
+	if (tokenizer.getTokenValue(index) == "include")
+	{
+		bool l;
+		Value v1 = getLiteral(l, index);
+
+		if (l)
+		{
+			if (auto pStr = std::get_if<std::string>(&v1.value))
+			{
+				Parser* parser = new Parser();
+				Sentencia_Include* pInclude = new Sentencia_Include(parser);
+				//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
+				bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero((std::string)*pStr);
+
+				if (!correcto)
+				{
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_INCLUDE_RUTA_INVALIDA, &out, (std::string)* pStr);
+					return NULL;
+				}
+				if (!parser->GenerarArbol())
+				{
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_INCLUDE_FALLO, &out, (std::string) * pStr);
+					return NULL;
+				}
+
+				local_index = index;
+				return pInclude;
+			}
+
+			auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+			Errores::generarError(Errores::ERROR_INCLUDE_PARAMETRO, &out);
+			index = local_index;
+			return NULL;		
 		}
 	}
 
@@ -2757,7 +2874,7 @@ int Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& variables
 		return v->index;
 	}
 
-	for (std::vector<Variable>::iterator it = this->variables_globales.begin(); it != this->variables_globales.end(); ++it)
+	for (std::vector<Variable>::iterator it = this->variables_globales_parser->begin(); it != this->variables_globales_parser->end(); ++it)
 	{
 		if (it->nombre == ID->nombre)
 		{
@@ -2837,8 +2954,8 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 
 							if (this->isMain && a->var_global)
 							{
-									this->variables_globales.push_back(Variable(a->nombre, this->variables_globales.size(), true));
-									a->index = this->variables_globales.back().index;
+									this->variables_globales_parser->push_back(Variable(a->nombre, this->variables_globales_parser->size(), true));
+									a->index = this->variables_globales_parser->back().index;
 							}
 							else if (!this->readingFunction && this->readingStaticValue && this->readingClass) //Si no es una funcion, es que esta leyendo una variable
 							{
@@ -2916,8 +3033,8 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 						//Si no existe, la creamos.
 						if (this->isMain && a->var_global)
 						{
-							this->variables_globales.push_back(Variable(a->nombre, this->variables_globales.size()));
-							a->index = this->variables_globales.back().index;
+							this->variables_globales_parser->push_back(Variable(a->nombre, this->variables_globales_parser->size()));
+							a->index = this->variables_globales_parser->back().index;
 						}
 						else if (!this->readingFunction && this->readingStaticValue && this->readingClass)
 						{
@@ -2980,8 +3097,8 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 									//Si no existe, la creamos.
 									if (this->isMain && a2->var_global)
 									{
-										this->variables_globales.push_back(Variable(a2->nombre, this->variables_globales.size()));
-										a2->index = this->variables_globales.back().index;
+										this->variables_globales_parser->push_back(Variable(a2->nombre, this->variables_globales_parser->size()));
+										a2->index = this->variables_globales_parser->back().index;
 
 									}
 									else if (!this->readingFunction && this->readingStaticValue && this->readingClass)

@@ -405,6 +405,27 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		Errores::generarCabeceraError(node, 2025, tipo, false);
 		std::cout << "Un valor se debe asignar a una variable y se está asignando a otro valor.";
 		break;
+
+
+		/*
+			ERROR_INCLUDE_FALLO, //Error 2026
+			ERROR_INCLUDE_RUTA_INVALIDA, //Error 2027
+			ERROR_INCLUDE_PARAMETRO, //Error 2028
+		*/
+	case Errores::ERROR_INCLUDE_FALLO:
+		Errores::generarCabeceraError(node, 2026, tipo, false);
+		std::cout << "Se ha producido un error al leer el fichero '"+value+"' desde el include.";
+		break;
+
+	case Errores::ERROR_INCLUDE_RUTA_INVALIDA:
+		Errores::generarCabeceraError(node, 2026, tipo, false);
+		std::cout << "Error en el include. El fichero de la ruta '" + value + "' no existe o ne se puede acceder hasta el.";
+		break;
+
+	case Errores::ERROR_INCLUDE_PARAMETRO:
+		Errores::generarCabeceraError(node, 2026, tipo, false);
+		std::cout << "Error de parseado, un include debe tener asociado un string. 'include <string>'";
+		break;
 	}
 	std::cout << "\n";
 }

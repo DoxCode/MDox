@@ -128,7 +128,7 @@ bool Comandos(std::string comando, Interprete * interprete)
 
 			try
 			{
-				if (!interprete->CargarDatos(&parser))
+				if (!parser.GenerarArbol() || !interprete->Interpretar(&parser))
 				{
 					std::cout << "Se ha producido un error en la lectura del fichero. \n";
 					return false;

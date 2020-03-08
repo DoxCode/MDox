@@ -149,12 +149,10 @@ private:
 public:
 	static Interprete* instance;
 
-	Variable_Runtime* variablesMain; //Variables del scope superior que llamaremos MAIN
-	Variable_Runtime* variables_globales; //Variable globales, aplicables en todo el entorno
+	bool varLoaded = false;
 
-	std::vector<Fichero*> nombre_ficheros; //Nombre de ficheros cargados en la instancia actual del interprete.
-	std::vector<Parser_Funcion*> funciones;
-	std::vector<Parser_Class*> clases;
+	Variable_Runtime* variablesMain = NULL;         //Variables del scope superior que llamaremos MAIN
+	Variable_Runtime* variables_globales = NULL;    //Variable globales, aplicables en todo el entorno
 
 	//Retorno continue
 	bool ignoreCalled() { if (ignore_activo) { ignore_activo = false; return true; } return false; }
@@ -186,7 +184,9 @@ public:
 	void String_to_MultiValue(std::string&, multi_value*, Variable_Runtime*, Variable_Runtime*);
 
 	Value TratarMultiplesValores(multi_value* arr, Variable_Runtime* variables, Variable_Runtime* var_clase);
-	bool CargarDatos(Parser* parser);
+	
+	bool Interprete::Interpretar(Parser* parser);
+	//bool CargarDatos(Parser* parser);
 	//void Interpretar(Parser* parser);
 	bool Interprete_Sentencia(Parser_Sentencia* sentencia, Variable_Runtime* variables, Variable_Runtime* var_clase);
 
@@ -216,10 +216,6 @@ public:
 	~Interprete()
 	{
 
-		for (std::vector<Parser_Funcion*>::iterator it = funciones.begin(); it != funciones.end(); ++it)
-		{
-			delete (*it);
-		}
 	};
 };
 

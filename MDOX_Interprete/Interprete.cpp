@@ -7,179 +7,30 @@
 
 Interprete* Interprete::instance;
 
-bool Interprete::CargarDatos(Parser* parser)
+
+// Iniciando parseado e interprete
+bool Interprete::Interpretar(Parser* parser)
 {
-	//Borramos la lista de funciones existentes actualmente.
-	for (std::vector<Parser_Funcion*>::iterator it = this->funciones.begin(); it != this->funciones.end(); ++it)
+
+	if (!varLoaded)
 	{
-		delete (*it);
+		this->variables_globales = new Variable_Runtime[Parser::variables_globales_parser->size()];
+		this->variablesMain = new Variable_Runtime[Parser::variables_scope.variables_locales.size()];
+		varLoaded = true;
 	}
-	this->funciones.clear();
-
-	//Borramos la lista de clases existentes actualmente.
-	for (std::vector<Parser_Class*>::iterator it = this->clases.begin(); it != this->clases.end(); ++it)
-	{
-		delete (*it);
-	}
-	this->clases.clear();
-
-	/*	std::cout << "TOKENS: \n";
-		for (unsigned i = 0; i < parser->tokenizer.tokens.size(); i++)
-		{
-			std::cout << "  [" << parser->tokenizer.tokens.at(i)->token << "]  ";
-		}
-		std::cout << "\n\n"; */
-
-
-	this->nombre_ficheros.push_back(parser->tokenizer.fichero);
-	SendVariables variables;
-
-	//Interpretando datos...size_t
-	int local = 0;
-	while (local < parser->tokenizer.tokens.size())
-	{
-		//	std::cout << "--:: " << parser.tokenizer.tokens.at(local) << " :: " << local << " \n";
-
-
-		Parser_Funcion* p2 = parser->getFuncion(local);
-
-		if (p2)
-		{
-			funciones.push_back(p2);
-			continue;
-		}
-
-		Parser_Class* pClass = parser->getClass(local);
-
-		if (pClass)
-		{
-			this->clases.push_back(pClass);
-			continue;
-		}
-
-		parser->isMain = true;
-		Parser_Sentencia* p3 = parser->getSentencia(local, variables);
-		parser->isMain = false;
-
-		if (p3)
-		{
-			parser->sentenciasMain.push_back(p3);
-			continue;
-		}
-
-
-		OutData_Parametros data = OutData_Parametros(parser->tokenizer.token_actual->linea, parser->tokenizer.token_actual->char_horizontal, this->nombre_ficheros.back());
-		Errores::generarError(Errores::ERROR_DE_SINTAXIS, &data, parser->tokenizer.token_actual->token);
-		return false;
-
-	}
-	
-	// Tratamiento de valores de funciones por el parser.
-	if (!parser->preloadCalls(this->funciones, &this->clases))
-		return false;
-
-	if (parser->existenErrores)
-		return false;
-
-	this->variables_globales = new Variable_Runtime[parser->variables_globales.size()];
-	this->variablesMain = new Variable_Runtime[variables.variables_locales.size()];
 
 	for (std::vector<Parser_Sentencia*>::iterator it = parser->sentenciasMain.begin(); it != parser->sentenciasMain.end(); ++it)
 	{
 		if(!Interprete_Sentencia((*it), variablesMain, NULL))
 		{
 			Errores::generarError(Errores::ERROR_CRITICO, &(*it)->parametros);
-			delete[] variablesMain;
-			delete[] variables_globales;
-			break;
+			return false;
 		}
 	}
 
 	return true;
 }
 
-// Esta función solo será llamada para archivos incompletos, que no contienen una función main de inicio.
-// así como para el interprete por consola.
-// Se considerará una función propiamente.
-/*
-void Interprete::Interpretar(Parser* parser)
-{
-	int local = 0;
-
-	//Parser_Sentencia * inst = new Sentencia_Recursiva()
-	std::vector<Parser_Sentencia*> valor;
-
-	SendVariables variables_funcion;
-	parser->isGlobal = false;
-
-	while (local < parser->tokenizer.tokens.size())
-	{
-		//	std::cout << "--:: " << parser.tokenizer.tokens.at(local) << " :: " << local << " \n";
-
-		Parser_Sentencia* p2 = parser->getSentencia(local, variables_funcion);
-
-		if (p2)
-		{
-			valor.push_back(p2);
-		}
-		else
-		{
-			OutData_Parametros data = OutData_Parametros(parser->tokenizer.token_actual->linea, parser->tokenizer.token_actual->char_horizontal, NULL);
-			Errores::generarError(Errores::ERROR_DE_SINTAXIS, &data, parser->tokenizer.token_actual->token);
-			//delete p2;
-			return;
-		}
-	}
-
-	Parser_Sentencia* inst = new Sentencia_Recursiva(valor);
-
-	Variable_Runtime* variables = new Variable_Runtime[*variables_funcion.num_local_var];
-	if (!parser->preloadCalls(this->funciones, &this->clases))
-	{
-		delete inst;
-		delete[] variables;
-		return;
-	}
-
-	if (parser->existenErrores)
-	{
-		delete inst;
-		delete[] variables;
-		return;
-	}
-
-	if (!Interprete_Sentencia(inst, variables, NULL))
-	{
-		Errores::generarError(Errores::ERROR_CRITICO, &(inst)->parametros);
-		delete inst;
-		delete[] variables;
-		return;
-	}
-
-	delete inst;
-	delete[] variables;
-}
-*/
-/*
-Value* wrapper_object_call::getValue(bool show_error,  tipos_parametros* tipo)
-{
-	Variable_Runtime* rtv = this->objeto->findVariable(this->var->nombre);
-	if (rtv == nullptr)
-	{
-		Errores::generarError(Errores::ERROR_CLASE_CALL_VARIABLE_NO_EXISTE, NULL, this->var->nombre);
-		return nullptr;
-	}
-	if (!rtv->publica)
-	{
-		Errores::generarError(Errores::ERROR_CLASE_VAR_PRIVATE, NULL, this->var->nombre);
-		return nullptr;
-	}
-	else
-	{
-		if (tipo) *tipo = rtv->tipo;
-		return &rtv->value;
-	}
-}*/
 
 void Interprete::getRealValueFromValueWrapper(Value& v, tipos_parametros* tipo)
 {
@@ -1003,6 +854,12 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 		v.print();
 		return true;
 	}
+	//include
+	case SENT_INCLUDE:
+	{
+		Sentencia_Include* x = static_cast<Sentencia_Include*>(sentencia);	
+		return this->Interpretar(x->parser);
+	}
 	// FUNCION ENTRADA DATOS :
 	// Permite recibir por consola datos.
 	case SENT_INPUT:
@@ -1257,7 +1114,7 @@ Value Interprete::ExecClass(Call_Value* vf, std::vector<Value>& entradas)
 	}
 
 	//Tomamos la clase del objeto que estamos creando
-	Parser_Class* claseMain = this->clases[vf->inx_class->class_index];
+	Parser_Class* claseMain = Parser::clases[vf->inx_class->class_index];
 
 	std::shared_ptr<mdox_object> objeto_salida = std::make_shared<mdox_object>(claseMain);
 
@@ -1357,7 +1214,7 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 		else
 		{
 			indices_parseados = &vf->inx_funcion->funcionesItrData;
-			funciones = &this->funciones;
+			funciones = &Parser::funciones;
 		}
 	}
 

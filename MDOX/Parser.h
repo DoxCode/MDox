@@ -52,7 +52,16 @@ class Parser {
 protected:
 public:
 	Tokenizer tokenizer;
-	
+
+	//static Variable_Runtime* variablesMain; //Variables del scope superior que llamaremos MAIN
+	//static Variable_Runtime* variables_globales; //Variable globales, aplicables en todo el entorno
+
+	static std::vector<Fichero*> nombre_ficheros; //Nombre de ficheros cargados en la instancia actual del interprete.
+	static std::vector<Parser_Funcion*> funciones;
+	static std::vector<Parser_Class*> clases;
+
+	static SendVariables variables_scope; //Usado para el transpaso de variables por ámbito
+
 	bool existenErrores = false;
 	
 	bool readingFunction = false;
@@ -65,9 +74,10 @@ public:
 	//Este valor se usará para las llamadas a funciones.
 	Parser_Class* readingClass = nullptr;
 
+	static std::vector<Variable>* variables_globales_parser;
 
-	std::vector<Variable> variables_globales;
 
+	bool Parser::GenerarArbol();
 	//Variables y sentencias del scope superior que llamaremos Main
 	std::vector<Parser_Sentencia*> sentenciasMain;
 	//std::vector<Variable> variablesMain;
@@ -77,7 +87,11 @@ public:
 
 
 	
-	Parser() {  }
+	Parser() 
+	{  
+		if (Parser::variables_globales_parser == NULL)
+			Parser::variables_globales_parser = new std::vector<Variable>();
+	}
 
 	//Funciones detectoras de parametros
 	Value getLiteral(bool& v, int& local_index);
@@ -105,7 +119,6 @@ public:
 	Variable* BusquedaVariableLocal(Parser_Identificador* ID, std::vector<Variable>& variables);
 	int BusquedaVariable(Parser_Identificador * ID, SendVariables& variables);
 	int BusquedaVariable(Parser_Identificador* ID, SendVariables& variables, Variable**);
-	void clearVariables() { variables_globales.clear(); }
 	void CargarEnCacheOperaciones(arbol_operacional* node, SendVariables& variables, bool inside);
 //	void IncrementarVariables() { isGlobal ? numero_variables_globales++ : numero_variables_funcion++; }
 	//int getLastIndex() { return isGlobal ? numero_variables_globales : numero_variables_funcion; }

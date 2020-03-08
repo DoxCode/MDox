@@ -29,8 +29,11 @@ int main(int argument_count, char * argument_list[])
 
 		Core::Start();
 
+		if (!parser.GenerarArbol())
+			return 0;
+
 		Interprete * interprete = new Interprete();
-		interprete->CargarDatos(&parser);
+		interprete->Interpretar(&parser);
 		return 1;
 	}
 
@@ -49,7 +52,9 @@ Teniendo en cuenta de que a parte de código, también puede haber comandos.
 */
 void Iniciar_Interprete()
 {
-	Interprete * interprete = new Interprete();
+
+	Parser parser = Parser();
+	Interprete interprete = Interprete();
 
 
 	bool salida = false;
@@ -65,7 +70,7 @@ void Iniciar_Interprete()
 
 		if (ComandoInterprete(ibs))
 		{
-			salida = Comandos(ibs, interprete);
+			salida = Comandos(ibs, &interprete);
 			continue;
 		}
 
@@ -90,9 +95,12 @@ void Iniciar_Interprete()
 		else lines.push_back(new Linea(1, ibs));
 
 		//Comando adicional, tomado como una SENTENCIA.
-		Parser parser = Parser();
 		parser.tokenizer.generarTokens(lines);
-		interprete->CargarDatos(&parser);
+
+		if (!parser.GenerarArbol())
+			return;
+
+		interprete.Interpretar(&parser);
 
 		//Lexing("",ibs);
 

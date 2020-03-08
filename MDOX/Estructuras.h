@@ -667,6 +667,8 @@ public:
 	OperacionesEnVector(tipoValor& l, tipoValor& v, OPERADORES& op, tipoValor&& v2, OPERADORES& op2) : v1(l), v2(v), operador1(op), operador2(op2), v3(std::move(v2)) { isOnlyValue(); };
 };
 
+
+
 using conmp = std::variant< std::monostate, Value, Parser_Identificador*, Call_Value*, OPERADORES, multi_value*>;
 using stack_conmp = std::deque<conmp>;
 
@@ -749,6 +751,7 @@ enum SentenciaType {
 	SENT_PRINT,
 	SENT_INPUT,
 	SENT_OP,
+	SENT_INCLUDE,
 };
 
 class Parser_Sentencia : public Parser_NODE {
@@ -763,6 +766,19 @@ public:
 	virtual ~Parser_Sentencia() {
 	};
 };
+
+class Parser;
+class Sentencia_Include : public Parser_Sentencia
+{
+public:
+	Parser* parser;
+	Sentencia_Include(Parser* p) : parser(p),Parser_Sentencia(SENT_INCLUDE) {}
+	virtual ~Sentencia_Include()
+	{
+		delete parser;
+	}
+};
+
 
 class Sentencia_Recursiva : public Parser_Sentencia {
 public:
