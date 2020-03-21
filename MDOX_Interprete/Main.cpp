@@ -52,15 +52,14 @@ Teniendo en cuenta de que a parte de código, también puede haber comandos.
 */
 void Iniciar_Interprete()
 {
-
-	Parser parser = Parser();
-	Interprete interprete = Interprete();
-
-
 	bool salida = false;
 
 	while (!salida)
 	{
+		Parser::removeParserCache();
+		Parser parser = Parser();
+		Interprete interprete = Interprete();
+
 		std::cout << "\nInterprete> ";
 		std::string ibs;
 		getline(std::cin, ibs);
@@ -98,7 +97,7 @@ void Iniciar_Interprete()
 		parser.tokenizer.generarTokens(lines);
 
 		if (!parser.GenerarArbol())
-			return;
+			continue;
 
 		interprete.Interpretar(&parser);
 

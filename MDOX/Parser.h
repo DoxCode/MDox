@@ -42,7 +42,7 @@ public:
 	}
 
 
-	SendVariables() : variables_clase(NULL), _num_local_var(0), num_local_var(&_num_local_var) {};
+	SendVariables() : variables_clase(NULL), _num_local_var(0) { num_local_var = &_num_local_var; };
 	SendVariables(std::vector<Variable>& a) : variables_clase(&a), _num_local_var(0), num_local_var(&_num_local_var) {};
 	SendVariables(std::vector<Variable>* a) :variables_clase(a), _num_local_var(0), num_local_var(&_num_local_var) {};
 	SendVariables(SendVariables& a) : variables_locales(a.variables_locales), variables_clase(a.variables_clase), num_local_var(a.num_local_var) {};
@@ -61,6 +61,8 @@ public:
 	static std::vector<Parser_Class*> clases;
 
 	static SendVariables variables_scope; //Usado para el transpaso de variables por ámbito
+
+	static void removeParserCache();
 
 	bool existenErrores = false;
 	
@@ -84,6 +86,7 @@ public:
 	bool isMain = false;
 
 	std::vector<Call_Value*> valores_llamadas;
+
 
 
 	
@@ -138,10 +141,29 @@ public:
 	{};
 };
 
+//Funciones para los tipos atómicos propios del lenguaje. 
+// (int, string, double, vector...)
+class Core_Function_AtomicTypes
+{
+public:
+	bool (*funcion_exec)(Value, std::vector<Value>&);
+
+	Core_Function_AtomicTypes(bool (*c)(Value, std::vector<Value>&)) : funcion_exec(c){}
+
+	~Core_Function_AtomicTypes() {};
+};
+
 class Core
 {
 public:
+
+	static std::map<std::string, Core_Function_AtomicTypes> core_atomic_int;
+	static std::map<std::string, Core_Function_AtomicTypes> core_atomic_string;
+	static std::map<std::string, Core_Function_AtomicTypes> core_atomic_lint;
+	static std::map<std::string, Core_Function_AtomicTypes> core_atomic_vector;
+
 	static std::vector<Core_Function*> core_functions;
+	static void Core_Function_Int(Call_Value* call);
 	static void Start();
 
 };

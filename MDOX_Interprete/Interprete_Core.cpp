@@ -5,21 +5,21 @@ std::vector<Core_Function*> Core::core_functions;
 
 void Core::Start()
 {
+
 	//Agregada función print.
-	Core_Function_Interprete * print = new Core_Function_Interprete("print", { PARAM_VOID }, PARAM_VOID);
+	Core_Function_Interprete* print = new Core_Function_Interprete("print", { PARAM_VOID }, PARAM_VOID);
 	print->funcion_exec = &funcion_print;
 	Core::core_functions.push_back(print);
 
-	Core_Function_Interprete * now = new Core_Function_Interprete("now", {}, PARAM_LINT);
+	Core_Function_Interprete* now = new Core_Function_Interprete("now", {}, PARAM_LINT);
 	now->funcion_exec = &funcion_now;
 	Core::core_functions.push_back(now);
 
-	Core_Function_Interprete * sleep = new Core_Function_Interprete("sleep", {PARAM_INT}, PARAM_VOID);
+	Core_Function_Interprete* sleep = new Core_Function_Interprete("sleep", { PARAM_INT }, PARAM_VOID);
 	sleep->funcion_exec = &funcion_sleep;
 	Core::core_functions.push_back(sleep);
 
 }
-
 
 //_----------------------- FUNCIONES
 /*
@@ -28,7 +28,7 @@ void Core::Start()
 	ENTRADA: <VOID>
 	SALIDA: <VOID>
 */
-bool funcion_print(std::vector<Value>& a, Interprete* interprete)
+bool funcion_print(std::vector<Value>& a)
 {
 		//Errores::generarError(Errores::ERROR_FUNCION_PARAMETRO_OPERACION_INVALIDA, b, "print");
 		a[0].print();
@@ -44,19 +44,19 @@ bool funcion_print(std::vector<Value>& a, Interprete* interprete)
 	SALIDA: <LINT>
 */
 // TODO: Cuando esten implementados los enums, NOW recibira ms, s, etc y devolvera eso.
-bool funcion_now(std::vector<Value>& a, Interprete* interprete)
+bool funcion_now(std::vector<Value>& a)
 {
 	//Value_LINT * v = new Value_LINT(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 	
 	Value v = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-	interprete->setRetorno(v);
+	Interprete::instance->setRetorno(v);
 
 	//Errores::generarError(Errores::ERROR_FUNCION_IMPOSIBLE_RECUPERAR_FECHA, b);
 	return true;
 }
 
 
-bool funcion_sleep(std::vector<Value>& a, Interprete* interprete)
+bool funcion_sleep(std::vector<Value>& a)
 {
 	Value v = a[0];
 

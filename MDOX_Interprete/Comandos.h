@@ -1,13 +1,7 @@
 #ifndef COMANDOS_H
 #define COMANDOS_H
 
-#include <map>
-#include <string>
-#include <tuple>
-#include <iostream>
-#include <fstream>
-#include <list>
-#include <vector>
+
 
 //#include "../MDOX/Parser.h"
 //#include "../MDOX/Funciones.h"

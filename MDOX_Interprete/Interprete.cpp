@@ -1042,7 +1042,7 @@ bool Interprete::FuncionCore(Call_Value* vf, std::vector<Value>& entradas)
 			Core_Function_Interprete* funcionInterprete = static_cast<Core_Function_Interprete*>(Core::core_functions[*dItr]);
 
 			//std::vector<Value>&, Interprete*, OutData_Parametros*);
-			if (funcionInterprete->funcion_exec(entradas, this))
+			if (funcionInterprete->funcion_exec(entradas))
 			{
 				return true;
 			}
@@ -1177,8 +1177,7 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 	std::vector<int>* indices_parseados;
 	std::vector<Parser_Funcion*>* funciones;
 
-	// ------------ Tipos de Funciones  ------------
-	// **** Comenzamos probando si se trata de una función del core del lenguaje.
+
 	Errores::saltarErrores = true;
 	if (pClass)
 	{
@@ -1196,6 +1195,8 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 	}
 	else
 	{
+		// ------------ Tipos de Funciones  ------------
+		// **** Comenzamos probando si se trata de una función del core del lenguaje.
 		if (this->FuncionCore(vf, entradas))
 		{
 			if (this->returnCalled())

@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 
-#define deletePtr(x) {delete x; x = NULL;}
+#define deletePtr(x) {if(x){ delete x; x = NULL;}}
 
 double s2d(const std::string str, const std::locale &loc);
 void ReplaceAll(std::string& str, const std::string& from, const std::string& to);

@@ -8,6 +8,10 @@
 #include <tuple>
 #include <iostream>
 #include <unordered_map>
+#include <algorithm>  
+#include <map>
+#include <bitset>
+#include <fstream>
 
 #include "Tokenizer.h"
 

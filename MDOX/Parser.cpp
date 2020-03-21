@@ -9,6 +9,22 @@ std::vector<Parser_Funcion*> Parser::funciones;
 std::vector<Parser_Class*> Parser::clases;
 SendVariables Parser::variables_scope;
 
+void Parser::removeParserCache()
+{
+	deletePtr(Parser::variables_globales_parser);
+	Parser::nombre_ficheros.clear();
+	Parser::funciones.clear();
+	Parser::clases.clear();
+
+	Parser::variables_scope.variables_locales.clear();
+
+	if(Parser::variables_scope.variables_clase)
+	Parser::variables_scope.variables_clase->clear();
+
+	*Parser::variables_scope.num_local_var = 0;
+	
+}
+
 bool Parser::GenerarArbol()
 {
 	//Borramos la lista de funciones existentes actualmente.
@@ -1492,7 +1508,17 @@ arbol_operacional * Parser::getOperacion(int& local_index, SendVariables& variab
 			else if (aux == OPERADORES::OP_BRACKET_RIGHT)
 			{
 				if (scope_right_do(left_scope, is_op, stack, op_stack))
-					continue;
+				{
+					OPERADORES c = op_stack.back();
+
+					if (c == OPERADORES::OP_BRACKET_LEFT)
+					{
+						stack.push_back(c);
+						op_stack.pop_back();
+						continue;
+					}
+					else return NULL;
+				}
 				else
 				{
 					if (left_scope < 0)

@@ -1,7 +1,7 @@
 
 #include "parser.h"
 #include "../MDOX_Interprete/Interprete.h" //Requerido para acceder a los operadores de los objetos, es necesarios para procesar el arbol.
-#include <algorithm>  
+
 
 
 /**
@@ -1683,6 +1683,102 @@ Value Value::ClassAccess(Parser_Identificador* v2, Call_Value* call, Variable_Ru
 
 	return std::visit(overloaded{
 
+
+		//
+
+		[&](int& a)->Value
+		{
+			if (call)
+			{
+				std::map<std::string, Core_Function_AtomicTypes>::iterator it;
+				it = Core::core_atomic_int.find(call->ID->nombre);
+				if (it != Core::core_atomic_int.end())
+				{
+					if (it->second.funcion_exec(*this, Interprete::instance->transformarEntradasCall(call, variables, var_class)))
+						return Interprete::instance->getRetornoAndEnd();
+
+					return std::monostate();
+				}
+
+				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_NOT_EXIST, Errores::outData, "int", call->ID->nombre);
+				return std::monostate();
+			}
+			else
+			{
+				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_VAR_NOT_EXIST, Errores::outData, "int", v2->nombre);
+				return std::monostate();
+			}
+		},
+		[&](long long& a)->Value
+		{
+			if (call)
+			{
+				std::map<std::string, Core_Function_AtomicTypes>::iterator it;
+				it = Core::core_atomic_lint.find(call->ID->nombre);
+				if (it != Core::core_atomic_lint.end())
+				{
+					if (it->second.funcion_exec(*this, Interprete::instance->transformarEntradasCall(call, variables, var_class)))
+						return Interprete::instance->getRetornoAndEnd();
+
+					return std::monostate();
+				}
+
+				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_NOT_EXIST, Errores::outData, "lint", call->ID->nombre);
+				return std::monostate();
+			}
+			else
+			{
+				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_VAR_NOT_EXIST, Errores::outData, "lint", v2->nombre);
+				return std::monostate();
+			}
+		},
+		[&](std::string& a)->Value
+		{
+			if (call)
+			{
+				std::map<std::string, Core_Function_AtomicTypes>::iterator it;
+				it = Core::core_atomic_string.find(call->ID->nombre);
+				if (it != Core::core_atomic_string.end())
+				{					
+					if (it->second.funcion_exec(*this, Interprete::instance->transformarEntradasCall(call, variables, var_class)))
+						return Interprete::instance->getRetornoAndEnd();
+
+					return std::monostate();
+				}
+
+				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_NOT_EXIST, Errores::outData, "string", call->ID->nombre);
+				return std::monostate();
+
+			}
+			else
+			{
+				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_VAR_NOT_EXIST, Errores::outData, "string", v2->nombre);
+				return std::monostate();
+			}
+		},
+		[&](std::shared_ptr<mdox_vector>& a)->Value
+		{
+			if (call)
+			{
+				std::map<std::string, Core_Function_AtomicTypes>::iterator it;
+				it = Core::core_atomic_vector.find(call->ID->nombre);
+				if (it != Core::core_atomic_vector.end())
+				{
+					if (it->second.funcion_exec(*this, Interprete::instance->transformarEntradasCall(call, variables, var_class)))
+						return Interprete::instance->getRetornoAndEnd();
+
+					return std::monostate();
+				}
+
+				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_NOT_EXIST, Errores::outData, "int", call->ID->nombre);
+				return std::monostate();
+			}
+			else
+			{
+				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_VAR_NOT_EXIST, Errores::outData, "int", v2->nombre);
+				return std::monostate();
+			}
+		},
 		[&](std::shared_ptr<mdox_object> & a)->Value 
 		{ 
 			if (call)
@@ -2512,7 +2608,7 @@ bool Value::Cast(const tipos_parametros tipo)
 			},
 			[&](bool& a) { *_this = Value((int)a); return true; },
 			[](int& a) { return true; },
-			[](long long& a) { return true; },
+			[&](long long& a) { *_this = Value((int)a); return true; },
 			[&](double& a) { *_this = Value((int)a); return true; },
 			[](auto&) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },
 			}, _this->value);
@@ -2533,7 +2629,7 @@ bool Value::Cast(const tipos_parametros tipo)
 				return true;
 			},
 			[&]( bool& a) { *_this = Value((long long)a); return true; },
-			[]( int& a) { return true; },
+			[&]( int& a) { *_this = Value((long long)a); return true; },
 			[]( long long& a) { return true; },
 			[&]( double& a) { *_this = Value((long long)a); return true; },
 			[](auto&) { Errores::generarError(Errores::ERROR_CONVERSION_DESCONOCIDA, Errores::outData);  return false; },

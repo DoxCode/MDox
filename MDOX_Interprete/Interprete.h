@@ -9,6 +9,7 @@
 #include <math.h>  
 #include <chrono>
 #include <thread>
+#include <regex>
 
 class MDOX_Regex_Transform
 {
@@ -165,6 +166,7 @@ public:
 	bool returnCalled() { if (return_activo) { return_activo = false; return true; } return false; }
 	void retornoSinValor() { _retorno = std::monostate(); return_activo = true; }
 	Value getRetorno() { return _retorno; }
+	Value getRetornoAndEnd() { return_activo = false; return _retorno; }
 
 	//void IniciateStaticClassValues(Parser_Class* pClase);
 	ValueOrMulti getValueOrMulti(tipoValor& a, Variable_Runtime* variables, Variable_Runtime* var_clase);
@@ -222,12 +224,14 @@ public:
 class Core_Function_Interprete : public Core_Function
 {
 public:
-	bool (*funcion_exec)(std::vector<Value>&, Interprete*);
+	bool (*funcion_exec)(std::vector<Value>&);
 
 	Core_Function_Interprete(std::string a, std::vector<tipos_parametros> b, tipos_parametros c) : Core_Function(a, b, c) {}
 
 	~Core_Function_Interprete() {};
 };
+
+
 
 
 //Interprete * Interprete::instance;

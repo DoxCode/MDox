@@ -243,8 +243,13 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		break;
 
 	case Errores::ERROR_OFFSET_INVALIDO:
-		Errores::generarCabeceraError(node, 2019, tipo, false);
-		std::cout << "El valor introducido como offset ('" << value << "') está fuera del rango aceptado.  ";
+		Errores::generarCabeceraError(node, 2019, tipo, true);
+		std::cout << "El valor introducido como indice ('" << value << "') está fuera del rango aceptado.  ";
+		break;
+
+	case Errores::ERROR_OFFSET_INVALIDO_FUNCTION:
+		Errores::generarCabeceraError(node, 2019, tipo, true);
+		std::cout << "El valor índice introducido en la función '"<<value<<"' está fuera de rango.";
 		break;
 
 	case Errores::ERROR_CLASE_CONSTRUCTOR_SINTAXIS:
@@ -406,6 +411,20 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "Un valor se debe asignar a una variable y se está asignando a otro valor.";
 		break;
 
+	case Errores::ERROR_CLASE_ATOMIC_VAR_NOT_EXIST:
+		Errores::generarCabeceraError(node, 4521, tipo, false);
+		std::cout << "El tipo '"<<value<<"' no contiene ninguna variable con el nombre de '"<< value2 << "'.";
+		break;
+
+	case Errores::ERROR_CLASE_ATOMIC_FUNCTION_NOT_EXIST:
+		Errores::generarCabeceraError(node, 4522, tipo, false);
+		std::cout << "El tipo '" << value << "' no contiene ninguna función con el nombre de '" << value2 << "'.";
+		break;
+	case Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER:
+		Errores::generarCabeceraError(node, 4523, tipo, false);
+		std::cout << "La función '" << value << "' solo puede contener los parámetros: '" << value2 << "'.";
+		break;
+		
 
 		/*
 			ERROR_INCLUDE_FALLO, //Error 2026
@@ -427,6 +446,8 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "Error de parseado, un include debe tener asociado un string. 'include <string>'";
 		break;
 	}
+
+
 	std::cout << "\n";
 }
 
