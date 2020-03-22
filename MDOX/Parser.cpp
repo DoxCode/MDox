@@ -8,6 +8,7 @@ std::vector<Fichero*> Parser::nombre_ficheros;   //Nombre de ficheros cargados e
 std::vector<Parser_Funcion*> Parser::funciones;
 std::vector<Parser_Class*> Parser::clases;
 SendVariables Parser::variables_scope;
+std::vector<std::string> Parser::requireList;
 
 void Parser::removeParserCache()
 {
@@ -324,7 +325,7 @@ Parser_Identificador* Parser::getIdentificador(int& local_index)
 	std::string token = tokenizer.getTokenValue(index);
 
 	//Comprobamos que el identificador no es una palabra reservada del sistema.
-	std::vector<std::string> palabras_reservadas = { "include","global", "return", "break", "if", "else", "vector", "int", "double", "void", "bool", "operator", "constructor", "class", "function", "while", "for", "continue", "lint", "string" };
+	std::vector<std::string> palabras_reservadas = { "require", "include","global", "return", "break", "if", "else", "vector", "int", "double", "void", "bool", "operator", "constructor", "class", "function", "while", "for", "continue", "lint", "string" };
 
 	if (std::find(palabras_reservadas.begin(), palabras_reservadas.end(), token) != palabras_reservadas.end())
 	{
@@ -1984,7 +1985,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 		}
 	}
 
-	//##########   -- INCLUDES --   ##########
+	//##########   -- INCLUDE --   ##########
 	index = local_index;
 	if (tokenizer.getTokenValue(index) == "include")
 	{
@@ -2035,6 +2036,59 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 			Errores::generarError(Errores::ERROR_INCLUDE_PARAMETRO, &out);
 			index = local_index;
 			return NULL;		
+		}
+	}
+
+	//##########   -- REQUIRE --   ##########
+	index = local_index;
+	if (tokenizer.getTokenValue(index) == "require")
+	{
+		bool l;
+		Value v1 = getLiteral(l, index);
+
+		if (l)
+		{
+			if (auto pStr = std::get_if<std::string>(&v1.value))
+			{
+				Parser* parser = new Parser();
+
+				std::string ruta = getAbsolutePathFromRelative((std::string) * pStr);
+
+				if (std::find(Parser::requireList.begin(), Parser::requireList.end(), ruta) != Parser::requireList.end())
+				{
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_INCLUDE_REQ_ALREADY, &out, ruta);
+					index = local_index;
+					return NULL;
+				}
+
+				Parser::requireList.emplace_back(ruta);
+
+				Sentencia_Include* pInclude = new Sentencia_Include(parser);
+				//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
+				bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero((std::string) * pStr);
+
+				if (!correcto)
+				{
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_INCLUDE_RUTA_INVALIDA, &out, (std::string) * pStr);
+					return NULL;
+				}
+				if (!parser->GenerarArbol())
+				{
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_INCLUDE_FALLO, &out, (std::string) * pStr);
+					return NULL;
+				}
+
+				local_index = index;
+				return pInclude;
+			}
+
+			auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+			Errores::generarError(Errores::ERROR_INCLUDE_PARAMETRO, &out);
+			index = local_index;
+			return NULL;
 		}
 	}
 

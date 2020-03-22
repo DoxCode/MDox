@@ -59,6 +59,7 @@ public:
 	static std::vector<Fichero*> nombre_ficheros; //Nombre de ficheros cargados en la instancia actual del interprete.
 	static std::vector<Parser_Funcion*> funciones;
 	static std::vector<Parser_Class*> clases;
+	static std::vector<std::string> requireList; //Se usa para comprobar que un fichero ya fue incluido
 
 	static SendVariables variables_scope; //Usado para el transpaso de variables por ámbito
 

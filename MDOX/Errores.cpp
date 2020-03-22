@@ -451,6 +451,12 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "Existe una referencia circular en el import. Compruebe que los includes no se están llamando entre ellos. Referencia circular en: " + value + ".";
 		break;
 
+	case Errores::ERROR_INCLUDE_REQ_ALREADY:
+		Errores::generarCabeceraError(node, 2030, tipo, false);
+		std::cout << "Ya se ha hecho con anterioridad un require a '" + value + "'. No se puede realizar require del mismo documento más de una vez.";
+		break;
+
+
 	}
 
 
