@@ -1996,6 +1996,20 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 			if (auto pStr = std::get_if<std::string>(&v1.value))
 			{
 				Parser* parser = new Parser();
+
+				std::string ruta = getAbsolutePathFromRelative((std::string)* pStr);
+
+				if (std::find(this->includeList.begin(), this->includeList.end(), ruta) != this->includeList.end())
+				{
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_INCLUDE_REF_CIRCULAR, &out, ruta);
+					index = local_index;
+					return NULL;
+				}
+				
+				parser->includeList = this->includeList;
+				parser->includeList.emplace_back(ruta);
+
 				Sentencia_Include* pInclude = new Sentencia_Include(parser);
 				//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
 				bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero((std::string)*pStr);

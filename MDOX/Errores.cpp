@@ -445,7 +445,14 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		Errores::generarCabeceraError(node, 2026, tipo, false);
 		std::cout << "Error de parseado, un include debe tener asociado un string. 'include <string>'";
 		break;
+
+	case Errores::ERROR_INCLUDE_REF_CIRCULAR:
+		Errores::generarCabeceraError(node, 2029, tipo, false);
+		std::cout << "Existe una referencia circular en el import. Compruebe que los includes no se están llamando entre ellos. Referencia circular en: " + value + ".";
+		break;
+
 	}
+
 
 
 	std::cout << "\n";

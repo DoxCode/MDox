@@ -86,7 +86,7 @@ public:
 	bool isMain = false;
 
 	std::vector<Call_Value*> valores_llamadas;
-
+	std::vector<std::string> includeList; //Se usa para comprobar que no hay referencias circulares.
 
 
 	
