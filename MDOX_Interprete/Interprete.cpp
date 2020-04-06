@@ -539,59 +539,21 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 	{
 		if (node->is_Static)
 		{
-			Call_Value* _c1 = std::get<Call_Value*>(node->_v1);
+			//Para haber llegado hasta aquí, el primer punto (v1) damos por hecho que es IDENTIFICADOR.	
+			Parser_Identificador* id_clase = std::get<Parser_Identificador*>(node->_v1);
 
-			if (_c1->inx_class)
-			{
-				if (_c1->class_link_static->valores_estaticos_iniciados)
+			return std::visit(overloaded{
+				[&](Parser_Identificador* a)->Value 
+				{   
+					return &(Parser::clases)[id_clase->index]->static_var_runtime[a->index];		
+				},
+				[&](Call_Value* a)->Value 
 				{
-					return &_c1->class_link_static->static_var_runtime[_c1->inx_class->_especial_var];
-				}
-				else
-				{
-					_c1->class_link_static->static_var_runtime = new Variable_Runtime[_c1->class_link_static->variables_static.size()];
+					return ExecFuncion(a, transformarEntradasCall(a, variables, var_class), var_class, (Parser::clases)[id_clase->index]);		
+				},
+				[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return std::monostate(); },
+				}, node->_v2);
 
-					for (std::vector<arbol_operacional*>::iterator it = _c1->class_link_static->variables_static.begin(); it != _c1->class_link_static->variables_static.end(); ++it)
-					{
-						lectura_arbol_operacional(*it, variables, var_class);
-					}
-
-					_c1->class_link_static->valores_estaticos_iniciados = true;
-					return &_c1->class_link_static->static_var_runtime[_c1->inx_class->_especial_var];
-
-				}
-				
-			}
-			else if (_c1->inx_funcion) //se trata de la llamda a una función estatica
-			{
-				if (_c1->class_link_static)
-				{
-					if (!_c1->class_link_static->valores_estaticos_iniciados)
-					{
-						_c1->class_link_static->static_var_runtime = new Variable_Runtime[_c1->class_link_static->variables_static.size()];
-
-						for (std::vector<arbol_operacional*>::iterator it = _c1->class_link_static->variables_static.begin(); it != _c1->class_link_static->variables_static.end(); ++it)
-						{
-							lectura_arbol_operacional(*it, variables, var_class);
-						}
-
-						_c1->class_link_static->valores_estaticos_iniciados = true;
-					}
-				}
-
-				Call_Value* _c2 = std::get<Call_Value*>(node->_v2);
-
-				//Se trata de la llamada  a una variable estatica
-				if (_c1->inx_funcion)
-				{
-					return ExecFuncion(_c2, transformarEntradasCall(_c2, variables, var_class), var_class, _c1->class_link_static);
-				}
-			}
-			else
-			{
-				Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);
-				return std::monostate();
-			}
 		}
 
 		Parser_Identificador* id;

@@ -514,7 +514,7 @@ class IndexCall_Class
 public:
 	int class_index = -2; // -1: Constructor por defecto, -2: ERROR será enviado - llamada no valida
 	int constructor_index;
-	int _especial_var; //usado para especificar la variable estática a la cual accederá.
+	//int _especial_var; //usado para especificar la variable estática a la cual accederá.
 };
 
 //Basicamente se trataría de funciones con un retorno de un valor dado.
@@ -529,17 +529,16 @@ public:
 	std::vector<arbol_operacional*> entradas;
 
 
+	bool skip = false;
+
 	//Si valor enlace = NULL implica que en ningún momento podrá tratarse de un valor estático.
 	//En caso contrario la posibilidad existe y tiene que ser tratada en el preloadCalls.
 	//Este valos se modifica en el preload de operaciones.
 	bool is_Static = false;
-	arbol_operacional* valor_enlace = NULL;
-	Parser_Class* class_link_static = nullptr; // SOLO si es estatico
+	//arbol_operacional* valor_enlace = NULL; // Retocar para cambiar el acceso a estaticos
+
 	bool function_parent_is_static = false; // Indica si la función en la que se ejecuta la llamada es estática o no.
 
-	bool skip = false; //Indica si este call debe ser saltado o no en el preload.
-
-	
 	//En el caso de que la llamada sea a una función
 	IndexCall_Function* inx_funcion = NULL;
 

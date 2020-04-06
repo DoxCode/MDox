@@ -1785,7 +1785,7 @@ Value Value::ClassAccess(Parser_Identificador* v2, Call_Value* call, Variable_Ru
 				return Interprete::instance->ExecFuncion(call, Interprete::instance->transformarEntradasCall(call, variables, var_class), a->variables_clase, a->clase);
 			else
 			{
-				auto ret = a->findVariable(v2->nombre);//wrapper_object_call(a,v2);
+				auto ret = a->findVariableAndCreateVoidIfNotExist(v2->nombre);//wrapper_object_call(a,v2);
 				if (ret == nullptr)
 				{
 					Errores::generarError(Errores::ERROR_CLASE_VAR_NOT_EXIST, Errores::outData, v2->nombre);

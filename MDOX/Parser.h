@@ -61,6 +61,7 @@ public:
 	static std::vector<Parser_Class*> clases;
 	static std::vector<std::string> requireList; //Se usa para comprobar que un fichero ya fue incluido
 
+
 	static SendVariables variables_scope; //Usado para el transpaso de variables por ámbito
 
 	static void removeParserCache();
@@ -68,8 +69,6 @@ public:
 	bool existenErrores = false;
 	
 	bool readingFunction = false;
-	//bool readingStaticFunction = false;
-	//bool readingStaticVariable = false;
 	bool readingStaticValue = false;
 
 	//readingClass devolverá donde se está ejecutando el parser, será nulo si es a nivel de raiz o de función de raiz
@@ -87,6 +86,10 @@ public:
 	bool isMain = false;
 
 	std::vector<Call_Value*> valores_llamadas;
+
+	//Basicamente llamadas del estilo <identificador>.<operacion>
+	std::vector<arbol_operacional*> lista_llamadas_estaticas;
+
 	std::vector<std::string> includeList; //Se usa para comprobar que no hay referencias circulares.
 
 
@@ -115,9 +118,9 @@ public:
 	etiquetas_class getLabelClass(int& local_index);
 	Parser_ClassConstructor* getClassConstructor(int& local_index, std::vector<Variable>& variable);
 	bool getClassOperadores(int& local_index, Parser_Class* clase, std::vector<Variable>& variables_clases);
-	void PreloadStaticCalls(std::vector<Parser_Class*>* clases);
-
-	bool preloadCalls(std::vector<Parser_Funcion*>&, std::vector<Parser_Class*>* a = NULL);
+	
+	void PreloadStaticCalls();
+	bool preloadCalls();
 
 	//Cacheado de variables
 	Variable* BusquedaVariableLocal(Parser_Identificador* ID, std::vector<Variable>& variables);

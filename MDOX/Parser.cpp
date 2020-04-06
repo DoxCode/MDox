@@ -86,7 +86,7 @@ bool Parser::GenerarArbol()
 	}
 
 	// Tratamiento de valores de funciones por el parser.
-	if (!this->preloadCalls(this->funciones, &this->clases))
+	if (!this->preloadCalls())
 		return false;
 
 	if (this->existenErrores)
@@ -894,9 +894,19 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 		
 	}
 
+	bool constructor_clase = false;
+	//Se trata de un constructor de clase
+	index = local_index;
+	if (tokenizer.getTokenValue(index) == "new")
+	{
+		constructor_clase = true;
+	}
+
 
 	//En caso de no ser un literal, podrá ser o una llamada a una función o un identificador.
-	index = local_index;
+	if(!constructor_clase)
+		index = local_index;
+
 	Parser_Identificador* i = getIdentificador(index);
 
 	if (i)
@@ -928,6 +938,7 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 						v->generarPosicion(&tokenizer);
 						v->inside_class = this->readingClass;
 						v->function_parent_is_static = this->readingStaticValue;
+						v->is_class = constructor_clase;
 
 						this->valores_llamadas.emplace_back(v);
 						return v;
@@ -953,6 +964,7 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 						v->generarPosicion(&tokenizer);
 						v->inside_class = this->readingClass;
 						v->function_parent_is_static = this->readingStaticValue;
+						v->is_class = constructor_clase;
 
 						this->valores_llamadas.emplace_back(v);
 						return v;
@@ -2407,7 +2419,7 @@ void Call_Value::setFuncion()
 	if (inx_funcion == NULL || inx_class)
 	{
 		inx_funcion = new IndexCall_Function();
-		is_class = false;
+		//is_class = false;
 	}
 }
 
@@ -2416,7 +2428,7 @@ void Call_Value::setClass()
 	if (inx_class == NULL || inx_funcion)
 	{
 		inx_class = new IndexCall_Class();
-		is_class = true;
+		//is_class = true;
 	}
 }
 
@@ -2981,7 +2993,7 @@ int Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& variables
 		}
 	}
 
-	if (/*this->readingFunction &&*/this->readingStaticValue && this->readingClass)
+	if (/*this->readingFunction &&this->readingStaticValue &&*/ this->readingClass)
 	{
 		std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(ID->nombre);
 		if (got != this->readingClass->static_var_map.end())
@@ -2994,7 +3006,7 @@ int Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& variables
 		}
 	}
 
-	if (variables.variables_clase != NULL)
+	if (variables.variables_clase != NULL && !this->readingStaticValue)
 	{
 		v = BusquedaVariableLocal(ID, *variables.variables_clase);
 							
@@ -3023,19 +3035,6 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 					int IndexVar = this->BusquedaVariable(a, variables, &var);
 					if (IndexVar == -1)
 					{
-						//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
-						/*if (this->readingFunction && this->readingStaticValue && this->readingClass)
-						{
-							std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(a->nombre);
-							if (got != this->readingClass->static_var_map.end())
-							{
-								a->index = got->second;
-								a->is_Static = true;
-								a->static_link = this->readingClass;
-								return;
-							}
-						}*/
-
 						//Si no existe y la variable no esta en una localizacion inside, la creamos.
 						if (inside)
 						{
@@ -3097,8 +3096,15 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 				{ 
 					if (arbol->operador == OP_IG_EQUAL)
 					{
-						Errores::generarError(Errores::ERROR_ASIGNACION_FALLO, &a->parametros);
-						existenErrores = true;
+						if (a->operador == OP_CLASS_ACCESS)
+						{
+							CargarEnCacheOperaciones(a, variables, inside);
+						}
+						else
+						{
+							Errores::generarError(Errores::ERROR_ASIGNACION_FALLO, &a->parametros);
+							existenErrores = true;
+						}
 					}
 					else
 						CargarEnCacheOperaciones(a, variables,inside); 
@@ -3109,19 +3115,6 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 					int IndexVar = this->BusquedaVariable(a, variables, &var);
 					if (IndexVar == -1)
 					{
-						//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
-					/*	if (this->readingFunction && this->readingStaticValue && this->readingClass)
-						{
-							std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(a->nombre);
-							if (got != this->readingClass->static_var_map.end())
-							{
-								a->index = got->second;
-								a->is_Static = true;
-								a->static_link = this->readingClass;
-								return;
-							}
-						}*/
-
 						a->inicializando = true;
 
 						//Si no existe, la creamos.
@@ -3166,19 +3159,6 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 							int IndexVar = this->BusquedaVariable(a2, variables, &var);
 							if (IndexVar == -1)
 							{
-								//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
-							/*	if (this->readingFunction && this->readingStaticValue && this->readingClass)
-								{
-									std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(a2->nombre);
-									if (got != this->readingClass->static_var_map.end())
-									{
-										a2->index = got->second;
-										a2->is_Static = true;
-										a2->static_link = this->readingClass;
-										return;
-									}
-								}*/
-
 								if (arbol->operador == OP_IG_EQUAL)
 								{
 									Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a2->parametros, a2->nombre);
@@ -3234,8 +3214,11 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 				int IndexVar= this->BusquedaVariable(a, variables);
 				if (IndexVar == -1)
 				{
-					Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a->parametros, a->nombre);
-					existenErrores = true;
+					//En caso de que no exista el identificado, es posible que se trate de un identificador que hace referencia
+					//a una clase y por lo tanto, el segundo parametro sea una operación estática sobre la miosma.
+					//Guardamos por tanto la operación en lista_llamadas_estaticas, para comprobarlo al final del parseado, debido
+					//que en el momento de pasar por esta función es posible que las clases aún no hayan sido leídas en su totalidad.
+					lista_llamadas_estaticas.emplace_back(arbol);
 				}
 				else a->index = IndexVar;
 			},
@@ -3245,10 +3228,10 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 			// se pueda comprobar si se trata de una variable o funcion estática.
 			[&](Call_Value* a) 
 			{
-				if (a->entradas.size() == 0)
-				{
-					a->valor_enlace = arbol;
-				}
+				//if (a->entradas.size() == 0)
+				//{
+					//a->valor_enlace = arbol;
+				//}
 			},
 			}, arbol->_v1);
 
@@ -3256,10 +3239,11 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 			[](auto&) {},
 			[&](Call_Value * a)
 			{
+
 				 a->skip = true;
 			},
 			}, arbol->_v2);
-
+			
 	
 	}
 	else
@@ -3272,19 +3256,6 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 				int IndexVar = this->BusquedaVariable(a, variables);
 				if (IndexVar == -1)
 				{
-					//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
-				/*	if (this->readingFunction && this->readingStaticValue && this->readingClass)
-					{
-						std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(a->nombre);
-						if (got != this->readingClass->static_var_map.end())
-						{
-							a->index = got->second;
-							a->is_Static = true;
-							a->static_link = this->readingClass;
-							return;
-						}
-					}*/
-
 					Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a->parametros, a->nombre);
 					existenErrores = true;
 				}
@@ -3301,19 +3272,6 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 			int IndexVar2 = this->BusquedaVariable(a2, variables);
 			if (IndexVar2 == -1)
 			{
-				//Si es nula y estatica, implica que podria estar intentar acceder a una variable estatica
-				/*if (this->readingFunction && this->readingStaticValue && this->readingClass)
-				{
-					std::unordered_map<std::string, int>::iterator got = this->readingClass->static_var_map.find(a2->nombre);
-					if (got != this->readingClass->static_var_map.end())
-					{
-						a2->index = got->second;
-						a2->is_Static = true;
-						a2->static_link = this->readingClass;
-						return;
-					}
-				}*/
-
 				Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a2->parametros, a2->nombre);
 				existenErrores = true;
 			}
@@ -3324,123 +3282,156 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 	}
 }
 
-void Parser::PreloadStaticCalls(std::vector<Parser_Class*>* clases)
+/**
+	<identificador>.<operacion>
+	Usado para confirmar si las operaciones en lista_llamadas_estaticas, son realmente llamadas a clases estáticas.
+	De no serlo, devuelve error, de serlo será una llamada estatica a esa clase.
+**/
+void Parser::PreloadStaticCalls()
 {
-	for (std::vector<Call_Value*>::iterator it = this->valores_llamadas.begin(); it != this->valores_llamadas.end(); ++it)
+
+	for (std::vector<arbol_operacional*>::iterator it = this->lista_llamadas_estaticas.begin(); it != this->lista_llamadas_estaticas.end(); ++it)
 	{
-		if ((*it)->inx_class == NULL)
-			continue;
+		//Para haber llegado hasta aquí, el primer punto (v1) damos por hecho que es IDENTIFICADOR.	
+		Parser_Identificador* id_clase = std::get<Parser_Identificador*>((*it)->_v1);
 
-		if ((*it)->entradas.size() > 0)
-			continue;
+		bool clase_existe = false;
+		int itr;
 
-		//Comprobamos si es una llamada estática a una función o clase.
-		if ((*it)->valor_enlace)
+		for (itr = 0; itr < Parser::clases.size(); itr++)
 		{
-			bool existe = false;
-			for (int itr = 0; itr < clases->size(); itr++)
+			if ((Parser::clases)[itr]->pID->nombre == id_clase->nombre)
 			{
-				//Debe coincidir el nombre de la misma.
-				if ((*clases)[itr]->pID->nombre == (*it)->ID->nombre)
+				id_clase->index = itr;
+				(*it)->is_Static = true;
+				clase_existe = true;
+				break;
+			}
+		}
+		
+		if(!clase_existe)
+		{
+			Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &(*it)->parametros, id_clase->nombre);
+			this->existenErrores = true;
+			continue;
+		}
+
+		bool existe = false;
+
+		std::visit(overloaded{
+			[&](auto&)
+			{
+				Errores::generarError(Errores::ERROR_CLASE_STATIC_ACCESS, &(*it)->parametros, id_clase->nombre);
+				this->existenErrores = true;
+			},
+			[&](Call_Value* a)
+			{
+				std::vector<int>* pIds = (Parser::clases)[itr]->findFuncion(a->ID->nombre);
+				//std::vector<int>* 
+				std::vector<int> staticIds;
+				for (std::vector<int>::iterator interno = pIds->begin(); interno != pIds->end(); ++interno)
 				{
-					std::visit(overloaded{
-						[&](auto&) 
-						{								
-							Errores::generarError(Errores::ERROR_CLASE_STATIC_ACCESS, &(*it)->parametros, (*it)->ID->nombre);
-							this->existenErrores = true;
-
-						},
-						[&](Call_Value * a)
-						{
-							std::vector<int>* pIds = (*clases)[itr]->findFuncion(a->ID->nombre);
-							//std::vector<int>* 
-							std::vector<int> staticIds;
-							for (std::vector<int>::iterator interno = pIds->begin(); interno != pIds->end(); ++interno)
-							{
-								if ((*clases)[itr]->funciones[*interno]->is_Static)
-								{
-									staticIds.emplace_back(*interno);
-									existe = true;
-								}
-							}
-
-							if (staticIds.size() == 0)
-							{
-								Errores::generarError(Errores::ERROR_CLASE_STATIC_FUNCTION_NOT_FOUND, &(*it)->parametros, a->ID->nombre, (*it)->ID->nombre);
-								this->existenErrores = true;
-						
-							}
-							else
-							{
-								deletePtr((*it)->inx_class);
-								
-								(*it)->setFuncion();
-								(*it)->inx_funcion->funcionesItrData = staticIds;
-								(*it)->valor_enlace->is_Static = true; // Avisamos que esta operación en concreto es estática, para el interprete.
-								a->is_Static = true; // En caso de funciones, avisaremos también al objeto de llamada, para evitar colisiones con la llamada de función.
-								(*it)->class_link_static = (*clases)[itr];
-								existe = true;
-							}
-						},
-						[&](Parser_Identificador * a)
-						{
-							std::unordered_map<std::string, int>::iterator got = (*clases)[itr]->static_var_map.find(a->nombre);
-							if (got != (*clases)[itr]->static_var_map.end())
-							{
-								(*it)->inx_class->_especial_var = got->second;
-								(*it)->valor_enlace->is_Static = true; // Avisamos que esta operación en concreto es estática, para el interprete.
-								(*it)->class_link_static = (*clases)[itr];
-								existe = true;
-							}
-							else
-							{
-								Errores::generarError(Errores::ERROR_CLASE_STATIC_VAR_NOT_FOUND, &(*it)->parametros, a->nombre, (*it)->ID->nombre);
-								this->existenErrores = true;
-							}
-
-						},
-						}, (*it)->valor_enlace->_v2);
-					continue;
+					if ((Parser::clases)[itr]->funciones[*interno]->is_Static && a->entradas.size() == (Parser::clases)[itr]->funciones[*interno]->entradas.size())
+					{
+						staticIds.emplace_back(*interno);
+						existe = true;
+					}
 				}
-			}
 
-			if (!existe && !this->existenErrores)
+				if (staticIds.size() == 0)
+				{
+					Errores::generarError(Errores::ERROR_CLASE_STATIC_FUNCTION_NOT_FOUND, &(*it)->parametros, a->ID->nombre, id_clase->nombre);
+					this->existenErrores = true;
+				}
+				else
+				{
+					deletePtr(a->inx_class);
+					a->setFuncion();
+					a->inx_funcion->funcionesItrData = staticIds;
+					a->is_Static = true; // En caso de funciones, avisaremos también al objeto de llamada, para evitar colisiones con la llamada de función.
+					existe = true;
+				}
+			},
+			[&](Parser_Identificador* a)
 			{
-				Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA, &(*it)->parametros, (*it)->ID->nombre);
-				this->existenErrores = true;
-			}
+				std::unordered_map<std::string, int>::iterator got = (Parser::clases)[itr]->static_var_map.find(a->nombre);
+				if (got != (Parser::clases)[itr]->static_var_map.end())
+				{
+					a->index = got->second;
+					a->is_Static = true; // Avisamos que esta operación en concreto es estática, para el interprete.
+					existe = true;
+				}
+				else
+				{
+					Errores::generarError(Errores::ERROR_CLASE_STATIC_VAR_NOT_FOUND, &(*it)->parametros, a->nombre, id_clase->nombre);
+					this->existenErrores = true;
+				}
 
-		}
-		else
-		{
-			if ((*it)->inx_class->class_index == -2)
-			{
-				Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_NO_VALIDO, &(*it)->parametros, (*it)->ID->nombre);
-				this->existenErrores = true;
-			}
-			//En caso contrario es una llamada a un constructor adeacuado.
-		}
+			},
+		}, (*it)->_v2);
 	}
 }
 
 //Preload de funciones y clases
-bool Parser::preloadCalls(std::vector<Parser_Funcion*>& funciones, std::vector<Parser_Class*>* clases)
+bool Parser::preloadCalls()
 {
 	for (std::vector<Call_Value*>::iterator it = this->valores_llamadas.begin(); it != this->valores_llamadas.end(); ++it)
 	{
 		if ((*it)->skip)
 			continue;
 
-		//(*it)->funcionesCoreItrData.clear();
-		//Core::core_functions
 		bool existe = false;
 
-		if ((*it)->inside_class)
+		if ((*it)->is_class) //Se trata del constructor de una clase
 		{
-			for (int itr = 0; itr < (*it)->inside_class->funciones.size(); itr++)
+			for (int itr = 0; itr < Parser::clases.size(); itr++)
 			{
-				if ((*it)->inside_class->funciones[itr]->pID->nombre == (*it)->ID->nombre)
+				//Debe coincidir el nombre de la misma.
+				if ((Parser::clases)[itr]->pID->nombre == (*it)->ID->nombre)
 				{
+					(*it)->setClass();
+
+					bool is_ok = false;
+					//Comprobamos si existe un constructor adecuado para la clase
+					for (int inx_const = 0; inx_const < (Parser::clases)[itr]->constructores.size(); inx_const++)
+					{
+						if ((Parser::clases)[itr]->constructores[inx_const]->entradas.size() != (*it)->entradas.size())
+							continue;
+
+						(*it)->AddClass(itr, inx_const);
+						is_ok = true;
+						existe = true;
+						break;
+					}
+
+					if (is_ok)
+						break;
+
+					//Constructor predefinido si no existen constructores definidos por el usuario.
+					if ((*it)->entradas.size() == 0 && (Parser::clases)[itr]->constructores.size() == 0)
+					{
+						(*it)->AddClass(itr, -1);
+						existe = true;
+						break;
+					}
+				}
+			}
+
+			if (!existe)
+			{
+				Errores::generarError(Errores::ERROR_CLASE_NO_DECLARADA, &(*it)->parametros, (*it)->ID->nombre);
+				this->existenErrores = true;
+				continue;
+			}
+		}
+		else // Se trata de una función
+		{
+			if ((*it)->inside_class)
+			{
+				for (int itr = 0; itr < (*it)->inside_class->funciones.size(); itr++)
+				{
+					if ((*it)->inside_class->funciones[itr]->pID->nombre == (*it)->ID->nombre)
+					{
 						//Establece que es una función
 						(*it)->setFuncion();
 
@@ -3453,110 +3444,57 @@ bool Parser::preloadCalls(std::vector<Parser_Funcion*>& funciones, std::vector<P
 						(*it)->AddFuncion(itr);
 						(*it)->isInsideClass = true;
 						existe = true;
+					}
 				}
 			}
-		}
 
-		if (existe)
-			continue;
+			if (existe)
+				continue;
 
-		for (int itr = 0; itr < Core::core_functions.size(); itr++)
-		{
-			if (Core::core_functions[itr]->nombre == (*it)->ID->nombre)
+			for (int itr = 0; itr < Core::core_functions.size(); itr++)
 			{
-				//Establece que es una función
-				(*it)->setFuncion();
-
-				if (Core::core_functions[itr]->entradas.size() != (*it)->entradas.size())
-					continue;
-
-				(*it)->AddFuncion_Core(itr);
-				existe = true;
-			}
-		}
-
-		for(int itr= 0; itr < funciones.size(); itr++)
-		{
-			//Debe coincidir el nombre de la misma.
-			if (funciones[itr]->pID->nombre == (*it)->ID->nombre)
-			{
-				(*it)->setFuncion();
-
-				//si no tiene el mismo numero de entradas, saltamos, no es esta función.
-				if (funciones[itr]->entradas.size() != (*it)->entradas.size())
-					continue;
-
-				(*it)->AddFuncion(itr);
-				existe = true;
-			}
-		}
-
-
-
-		if (!existe && clases == NULL)
-		{
-			Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA, &(*it)->parametros, (*it)->ID->nombre);
-			this->existenErrores = true;
-			continue;
-		}
-
-		if (existe)
-			continue;
-
-		if (clases == NULL)
-			continue;
-
-
-		for (int itr = 0; itr < clases->size(); itr++)
-		{
-			//Debe coincidir el nombre de la misma.
-			if ((*clases)[itr]->pID->nombre == (*it)->ID->nombre)
-			{
-				(*it)->setClass();
-
-				bool is_ok = false;
-				//Comprobamos si existe un constructor adecuado para la clase
-				for (int inx_const = 0; inx_const < (*clases)[itr]->constructores.size(); inx_const++)
+				if (Core::core_functions[itr]->nombre == (*it)->ID->nombre)
 				{
-					if ((*clases)[itr]->constructores[inx_const]->entradas.size() != (*it)->entradas.size())
+					//Establece que es una función
+					(*it)->setFuncion();
+
+					if (Core::core_functions[itr]->entradas.size() != (*it)->entradas.size())
 						continue;
 
-					(*it)->AddClass(itr, inx_const);
-					is_ok = true;
+					(*it)->AddFuncion_Core(itr);
 					existe = true;
-					break;
-				}
-
-				if (is_ok)
-					break;
-
-				//Constructor predefinido si no existen constructores definidos por el usuario.
-				if ((*it)->entradas.size() == 0 && (*clases)[itr]->constructores.size() == 0)
-				{
-					(*it)->AddClass(itr, -1);
-					existe = true;
-					break;
 				}
 			}
-		}
 
-		if (!existe)
-		{
-			if ((*it)->valor_enlace) //Puede tratarse de un valor estatico, pasamos el propio valor, y el valor al cual esta enlazado.
-			{
-
-				std::visit(overloaded{
-				[](auto&) {},
-				[&](Call_Value* a2) { a2->skip = true; },
-				}, (*it)->valor_enlace->_v2);	
+			if (existe)
 				continue;
+
+			for (int itr = 0; itr < funciones.size(); itr++)
+			{
+				//Debe coincidir el nombre de la misma.
+				if (funciones[itr]->pID->nombre == (*it)->ID->nombre)
+				{
+					(*it)->setFuncion();
+
+					//si no tiene el mismo numero de entradas, saltamos, no es esta función.
+					if (funciones[itr]->entradas.size() != (*it)->entradas.size())
+						continue;
+
+					(*it)->AddFuncion(itr);
+					existe = true;
+				}
 			}
+
+			if (existe)
+				continue;
+
 			Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA, &(*it)->parametros, (*it)->ID->nombre);
 			this->existenErrores = true;
 			continue;
 		}
+
 	}
-	PreloadStaticCalls(clases);
+	PreloadStaticCalls();
 	//this->valores_funciones.clear();
 	//this->valores_funciones.shrink_to_fit();
 	return true;

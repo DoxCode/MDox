@@ -329,7 +329,7 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 
 	case Errores::ERROR_CLASE_VAR_PRIVATE:
 		Errores::generarCabeceraError(node, 4514, tipo, true);
-		std::cout << "La variable '" << value << "' es privada y no puede ser modificada desde un ámbito externo. ";
+		std::cout << "La variable '" << value << "' es privada y no puede ser accedida desde un ámbito externo. ";
 		break;
 
 	case Errores::ERROR_CLASE_STATIC_FUNCTION_CALL_NOT_STATIC_VAR:
@@ -456,6 +456,10 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "Ya se ha hecho con anterioridad un require a '" + value + "'. No se puede realizar require del mismo documento más de una vez.";
 		break;
 
+	case Errores::ERROR_CLASE_NO_DECLARADA:
+		Errores::generarCabeceraError(node, 4524, tipo, false);
+		std::cout << "Se está intentando inicializar la clase '" + value + "', pero no ha sido declarada.";
+		break;
 
 	}
 

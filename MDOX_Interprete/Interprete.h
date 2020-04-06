@@ -56,15 +56,19 @@ public:
 	std::unordered_map<std::string, Variable_Runtime> _proto_variables; //Almacenamiento de las variables prototipo del objeto en particular.
 
 
-	//Como buscamos las variables.
-	//Únicamente usaremos este método, si NO disponemos de la ID directa de la variable.
-	Variable_Runtime* findVariable(std::string& id)
+	Variable_Runtime* findVariableAndCreateVoidIfNotExist(std::string& id)
 	{
 		//Primero buscamos la variable, entre las declaradas en la clase
 		std::unordered_map<std::string, int>::const_iterator got = clase->_variables_map.find(id);
 
 		if (got != clase->_variables_map.end())
-			return &variables_clase[got->second];
+		{
+			if(variables_clase[got->second].publica)
+				return &variables_clase[got->second];
+			
+			Errores::generarError(Errores::ERROR_CLASE_VAR_PRIVATE, NULL, id);
+			return nullptr;
+		}
 
 		//Si no existe en la primera búsqueda lo busca en las variables dinámicamente agregadas
 		std::unordered_map<std::string, Variable_Runtime>::iterator got2 = _proto_variables.find(id);
@@ -72,32 +76,10 @@ public:
 		if (got2 != _proto_variables.end())
 			return &got2->second;
 
+		auto a = _proto_variables.emplace(id, Variable_Runtime(std::monostate(), PARAM_VOID));
+		if (a.second)
+			return &a.first->second;
 		return nullptr;
-	}
-
-	Variable_Runtime* AsignarVariable(std::string& id, Value& v)
-	{
-		Variable_Runtime* vr = findVariable(id);
-		if (vr)
-		{
-			if (vr->publica)
-			{
-				vr->value.asignacion(v, vr->tipo);
-				return vr;
-			}
-			else
-			{
-				Errores::generarError(Errores::ERROR_CLASE_VAR_PRIVATE, NULL, id);
-				return nullptr;
-			}
-		}
-		else
-		{
-			auto a = _proto_variables.emplace(id, Variable_Runtime(v, PARAM_VOID));
-			if (a.second)
-				return &a.first->second;
-			return nullptr;
-		}
 	}
 
 	//Llamado al usar el operador @
