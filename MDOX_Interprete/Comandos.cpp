@@ -116,6 +116,7 @@ bool Comandos(std::string comando, Interprete * interprete)
 
 			//Creamos la clase Parser, ella requerirá de la clase Tokenizerm que podrá ser llamada y creada desde si misma.
 			Parser parser = Parser();
+			Parser::mainPathProgram = ruta;
 
 			//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
 			bool correcto = parser.tokenizer.GenerarTokenizerDesdeFichero(ruta);

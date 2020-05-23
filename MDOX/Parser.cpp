@@ -10,12 +10,15 @@ std::vector<Parser_Class*> Parser::clases;
 SendVariables Parser::variables_scope;
 std::vector<std::string> Parser::requireList;
 
+std::filesystem::path Parser::mainPathProgram;
+
 void Parser::removeParserCache()
 {
 	deletePtr(Parser::variables_globales_parser);
 	Parser::nombre_ficheros.clear();
 	Parser::funciones.clear();
 	Parser::clases.clear();
+	Parser::requireList.clear();
 
 	Parser::variables_scope.variables_locales.clear();
 
@@ -245,46 +248,53 @@ Parser_Declarativo* Parser::getDeclarativo(int& local_index)
 	int index = local_index;
 	std::string token = tokenizer.getTokenValue(index);
 
+	bool esEstricto = false;
+
+	if (token == "strict")
+	{
+		esEstricto = true;
+		token = tokenizer.getTokenValue(index);
+	}
 
 	if (token == "vector")
 	{
-		Parser_Declarativo* p = new Parser_Declarativo(PARAM_VECTOR);
+		Parser_Declarativo* p = new Parser_Declarativo(PARAM_VECTOR, esEstricto);
 		local_index = index;
 		return p;
 	}
 	else if (token == "string")
 	{
-		Parser_Declarativo* p = new Parser_Declarativo(PARAM_STRING);
+		Parser_Declarativo* p = new Parser_Declarativo(PARAM_STRING, esEstricto);
 		local_index = index;
 		return p;
 	}
 	else if (token == "int")
 	{
-		Parser_Declarativo* p = new Parser_Declarativo(PARAM_INT);
+		Parser_Declarativo* p = new Parser_Declarativo(PARAM_INT, esEstricto);
 		local_index = index;
 		return p;
 	}
 	else if (token == "lint")
 	{
-		Parser_Declarativo* p = new Parser_Declarativo(PARAM_LINT);
+		Parser_Declarativo* p = new Parser_Declarativo(PARAM_LINT, esEstricto);
 		local_index = index;
 		return p;
 	}
 	else if (token == "double")
 	{
-		Parser_Declarativo* p = new Parser_Declarativo(PARAM_DOUBLE);
+		Parser_Declarativo* p = new Parser_Declarativo(PARAM_DOUBLE, esEstricto);
 		local_index = index;
 		return p;
 	}
 	else if (token == "bool")
 	{
-		Parser_Declarativo* p = new Parser_Declarativo(PARAM_BOOL);
+		Parser_Declarativo* p = new Parser_Declarativo(PARAM_BOOL, esEstricto);
 		local_index = index;
 		return p;
 	}
 	else if (token == "void")
 	{
-		Parser_Declarativo* p = new Parser_Declarativo(PARAM_VOID);
+		Parser_Declarativo* p = new Parser_Declarativo(PARAM_VOID, esEstricto);
 		local_index = index;
 		return p;
 	}
@@ -325,7 +335,7 @@ Parser_Identificador* Parser::getIdentificador(int& local_index)
 	std::string token = tokenizer.getTokenValue(index);
 
 	//Comprobamos que el identificador no es una palabra reservada del sistema.
-	std::vector<std::string> palabras_reservadas = { "require", "include","global", "return", "break", "if", "else", "vector", "int", "double", "void", "bool", "operator", "constructor", "class", "function", "while", "for", "continue", "lint", "string" };
+	std::vector<std::string> palabras_reservadas = { "strict","require", "include","global", "return", "break", "if", "else", "vector", "int", "double", "void", "bool", "operator", "constructor", "class", "function", "while", "for", "continue", "lint", "string" };
 
 	if (std::find(palabras_reservadas.begin(), palabras_reservadas.end(), token) != palabras_reservadas.end())
 	{
@@ -351,7 +361,7 @@ Parser_Identificador* Parser::getIdentificador(int& local_index)
 
 multi_value* Parser::getValorList(bool& all_value, int& local_index, SendVariables& variables)
 {
-	int index = local_index;
+	int index = local_index; //##############
 
 	multi_value* mv = new multi_value();
 
@@ -404,6 +414,17 @@ Tratamiento de la lista de vectores multi_value, para permitir que siempre se mu
 De esta forma, [[1,2,3,4,5]:a,b,c,c,b,a] -> El primer a,b,c tomará los valores, dando 3,4,5 respectivamente.
 											Mientras que los siguientes c,b,a al ya existir dejará los datos en el rango inverso
 											teniendo al final: [1,2,5,4,3]
+*/
+
+/*
+
+Interprete> b=6; <:: [[1,2,3]:a,2]; <:: a;
+[1, 2, 2]3
+Interprete> b=6; <:: [[1,2,3]:a,2+5]; <:: a;
+[1, 2, 7]3
+Interprete> b=6; <:: [[1,2,3]:a,b+5]; <:: a;
+[1, 2, 3]11
+
 */
 void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 {
@@ -483,7 +504,7 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 		{
 			[&](multi_value * a)
 			{
-				if (a->is_vector)
+				if (a->is_vector) //################
 					return;
 
 				if (a->contenedor)
@@ -498,7 +519,7 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 				{
 					//Si devuelve true, implica que requiere reverse
 					if (contenedor_operacion_vector->operacionesVector->operador1 == OPERADORES::OP_CHECK_GET || 
-						a->arr[itr]->operador != OP_NONE || /*Devuelve true si es un id sin inicializar que toma datos*/std::visit(overloaded
+						/*a->arr[itr]->operador != OP_NONE || *//*Devuelve true si es un id sin inicializar que toma datos*/std::visit(overloaded
 						{
 							[&](Parser_Identificador * tr)
 							{
@@ -556,7 +577,7 @@ void TratarContenedorVectores(multi_value* contenedor_operacion_vector)
 					{
 						//Si devuelve true, implica que requiere reverse
 						if (contenedor_operacion_vector->operacionesVector->operador1 == OPERADORES::OP_CHECK_GET ||
-							a->arr[itr]->operador != OP_NONE || std::visit(overloaded
+							/*a->arr[itr]->operador != OP_NONE ||*/ std::visit(overloaded
 								{
 									[&](Parser_Identificador * tr)
 									{
@@ -687,6 +708,7 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 	if (val_pre == "[")
 	{
 		int indexX = index;
+
 		if (tokenizer.getTokenValue(index) == "]")
 		{
 			local_index = index; 
@@ -891,7 +913,7 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 				ret = false;
 				return std::monostate();
 			}
-		
+
 	}
 
 	bool constructor_clase = false;
@@ -1040,7 +1062,7 @@ OPERADORES Parser::getOperador(int& local_index)
 	else if (v == "==") return OPERADORES::OP_REL_EQUAL;
 	else if (v == "!=") return OPERADORES::OP_REL_NOT_EQUAL;
 
-	else if (v == "&&") return OPERADORES::OP_LOG_ADD;
+	else if (v == "&&") return OPERADORES::OP_LOG_AND;
 	else if (v == "||") return OPERADORES::OP_LOG_OR;
 
 	else if (v == ":") return OPERADORES::OP_POP_ADD;
@@ -1574,7 +1596,7 @@ arbol_operacional * Parser::getOperacion(int& local_index, SendVariables& variab
 	}
 
 	stack_conmp res;
-
+	//Realiza operaciones de los valores literales
 	while (!stack.empty())
 	{
 		bool _aerr = std::visit(overloaded{
@@ -2055,8 +2077,9 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 	index = local_index;
 	if (tokenizer.getTokenValue(index) == "require")
 	{
+		int index2 = index;
 		bool l;
-		Value v1 = getLiteral(l, index);
+		Value v1 = getLiteral(l, index2);
 
 		if (l)
 		{
@@ -2093,7 +2116,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 					return NULL;
 				}
 
-				local_index = index;
+				local_index = index2;
 				return pInclude;
 			}
 
@@ -2102,6 +2125,86 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 			index = local_index;
 			return NULL;
 		}
+
+		index2 = index;
+		if (tokenizer.getTokenValue(index2) == "<")
+		{
+			int index3 = index2;
+
+			std::string ruta = tokenizer.getTokenValue(index3);
+			if (tokenizer.getTokenValue(index3) == ">")
+			{
+
+				if (std::find(Parser::requireList.begin(), Parser::requireList.end(), ruta) != Parser::requireList.end())
+				{
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_INCLUDE_REQ_ALREADY, &out, ruta);
+					return NULL;
+				}
+
+				Parser::requireList.emplace_back(ruta);
+
+				//Es una importacion core
+				if (!Core::IncludeStart(ruta))
+				{
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_INCLUDE_PARAMETRO, &out);
+					return NULL;
+				}
+				local_index = index3;
+				return new Sentencia_Empty();
+			}
+
+			index3 = index2;
+			Value v1 = getLiteral(l, index3);
+
+			if (l)
+			{
+				if (auto pStr = std::get_if<std::string>(&v1.value))
+				{
+					Parser* parser = new Parser();
+
+					std::string ruta = "lib/"+ (std::string) * pStr;
+
+					if (std::find(Parser::requireList.begin(), Parser::requireList.end(), ruta) != Parser::requireList.end())
+					{
+						auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+						Errores::generarError(Errores::ERROR_INCLUDE_REQ_ALREADY, &out, ruta);
+						index = local_index;
+						return NULL;
+					}
+
+					Parser::requireList.emplace_back(ruta);
+
+					Sentencia_Include* pInclude = new Sentencia_Include(parser);
+					//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
+					bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero((std::string) * pStr);
+
+					if (!correcto)
+					{
+						auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+						Errores::generarError(Errores::ERROR_INCLUDE_RUTA_INVALIDA, &out, (std::string) * pStr);
+						return NULL;
+					}
+					if (!parser->GenerarArbol())
+					{
+						auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+						Errores::generarError(Errores::ERROR_INCLUDE_FALLO, &out, (std::string) * pStr);
+						return NULL;
+					}
+
+					local_index = index3;
+					return pInclude;
+				}
+			}
+
+		}
+		auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+		Errores::generarError(Errores::ERROR_INCLUDE_PARAMETRO, &out);
+		index = local_index;
+		return NULL;
+
+
 	}
 
 	//##########   -- SENTENCIA OPERACIONAL --   ##########
@@ -2381,7 +2484,7 @@ void Call_Value::AddFuncion_Core(int inx)
 {
 	if (inx_funcion)
 	{
-		inx_funcion->funcionesCoreItrData.emplace_back(inx);
+		inx_funcion->funcionesCoreItrData = inx;
 		return;
 	}
 
@@ -2554,13 +2657,13 @@ bool Parser::getClassOperadores(int& local_index, Parser_Class* clase, std::vect
 
 			if (inverse_operator)
 			{
-				if (clase->right_operators == NULL)
-					clase->right_operators = new Operators_List();
+				if (clase->getRightOperators() == NULL)
+					clase->createRightOperators();			
 			}
 			else
 			{
-				if (clase->normal_operators == NULL)
-					clase->normal_operators = new Operators_List();
+				if (clase->getNormalOperators() == NULL)
+					clase->createNormalOperators();
 			}
 
 			Operator_Class * operator_class = new Operator_Class(body, es_op_binario, *variables_locales_sentencia.num_local_var);
@@ -2571,201 +2674,201 @@ bool Parser::getClassOperadores(int& local_index, Parser_Class* clase, std::vect
 			     case OPERADORES::OP_ARIT_SUMA:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_suma = operator_class;
+							clase->getNormalOperators()->OPERATOR_suma = operator_class;
 						else
-							clase->right_operators->OPERATOR_suma = operator_class;
+							clase->getRightOperators()->OPERATOR_suma = operator_class;
 						break;
 					}
 				case OPERADORES::OP_ARIT_RESTA:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_resta = operator_class;
+							clase->getNormalOperators()->OPERATOR_resta = operator_class;
 						else
-							clase->right_operators->OPERATOR_resta = operator_class;
+							clase->getRightOperators()->OPERATOR_resta = operator_class;
 						break;
 					}
 				case OPERADORES::OP_ARIT_MULT:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_multiplicacion = operator_class;
+							clase->getNormalOperators()->OPERATOR_multiplicacion = operator_class;
 						else
-							clase->right_operators->OPERATOR_multiplicacion = operator_class;
+							clase->getRightOperators()->OPERATOR_multiplicacion = operator_class;
 						break;
 					}
 				case OPERADORES::OP_ARIT_DIV:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_div = operator_class;
+							clase->getNormalOperators()->OPERATOR_div = operator_class;
 						else
-							clase->right_operators->OPERATOR_div = operator_class;
+							clase->getRightOperators()->OPERATOR_div = operator_class;
 						break;
 					}
 				case OPERADORES::OP_ARIT_DIV_ENTERA:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_divEntera = operator_class;
+							clase->getNormalOperators()->OPERATOR_divEntera = operator_class;
 						else
-							clase->right_operators->OPERATOR_divEntera = operator_class;
+							clase->getRightOperators()->OPERATOR_divEntera = operator_class;
 						break;
 					}
 				case OPERADORES::OP_ARIT_MOD:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_mod = operator_class;
+							clase->getNormalOperators()->OPERATOR_mod = operator_class;
 						else
-							clase->right_operators->OPERATOR_mod = operator_class;
+							clase->getRightOperators()->OPERATOR_mod = operator_class;
 						break;
 					}
 				case OPERADORES::OP_IG_EQUAL:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_asignacion = operator_class;
+							clase->getNormalOperators()->OPERATOR_asignacion = operator_class;
 						else
-							clase->right_operators->OPERATOR_asignacion = operator_class;
+							clase->getRightOperators()->OPERATOR_asignacion = operator_class;
 						break;
 					}
 				case OPERADORES::OP_IG_EQUAL_SUM:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_asignacion_sum = operator_class;
+							clase->getNormalOperators()->OPERATOR_asignacion_sum = operator_class;
 						else
-							clase->right_operators->OPERATOR_asignacion_sum = operator_class;
+							clase->getRightOperators()->OPERATOR_asignacion_sum = operator_class;
 						break;
 					}
 				case OPERADORES::OP_IG_EQUAL_MIN:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_asignacion_res = operator_class;
+							clase->getNormalOperators()->OPERATOR_asignacion_res = operator_class;
 						else
-							clase->right_operators->OPERATOR_asignacion_res = operator_class;
+							clase->getRightOperators()->OPERATOR_asignacion_res = operator_class;
 						break;
 					}
 				case OPERADORES::OP_IG_EQUAL_MULT:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_asignacion_mult = operator_class;
+							clase->getNormalOperators()->OPERATOR_asignacion_mult = operator_class;
 						else
-							clase->right_operators->OPERATOR_asignacion_mult = operator_class;
+							clase->getRightOperators()->OPERATOR_asignacion_mult = operator_class;
 						break;
 					}
 				case OPERADORES::OP_IG_EQUAL_DIV:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_asignacion_div = operator_class;
+							clase->getNormalOperators()->OPERATOR_asignacion_div = operator_class;
 						else
-							clase->right_operators->OPERATOR_asignacion_div = operator_class;
+							clase->getRightOperators()->OPERATOR_asignacion_div = operator_class;
 						break;
 					}
 				case OPERADORES::OP_IG_EQUAL_MOD:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_asignacion_mod = operator_class;
+							clase->getNormalOperators()->OPERATOR_asignacion_mod = operator_class;
 						else
-							clase->right_operators->OPERATOR_asignacion_mod = operator_class;
+							clase->getRightOperators()->OPERATOR_asignacion_mod = operator_class;
 						break;
 					}
 				case OPERADORES::OP_REL_EQUAL:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_rel_igualdad = operator_class;
+							clase->getNormalOperators()->OPERATOR_rel_igualdad = operator_class;
 						else
-							clase->right_operators->OPERATOR_rel_igualdad = operator_class;
+							clase->getRightOperators()->OPERATOR_rel_igualdad = operator_class;
 						break;
 					}
 				case OPERADORES::OP_REL_NOT_EQUAL:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_rel_no_igual = operator_class;
+							clase->getNormalOperators()->OPERATOR_rel_no_igual = operator_class;
 						else
-							clase->right_operators->OPERATOR_rel_no_igual = operator_class;
+							clase->getRightOperators()->OPERATOR_rel_no_igual = operator_class;
 						break;
 					}
 				case OPERADORES::OP_REL_MINOR:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_rel_menor = operator_class;
+							clase->getNormalOperators()->OPERATOR_rel_menor = operator_class;
 						else
-							clase->right_operators->OPERATOR_rel_menor = operator_class;
+							clase->getRightOperators()->OPERATOR_rel_menor = operator_class;
 						break;
 					}
 				case OPERADORES::OP_REL_MAJOR:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_rel_mayor = operator_class;
+							clase->getNormalOperators()->OPERATOR_rel_mayor = operator_class;
 						else
-							clase->right_operators->OPERATOR_rel_mayor = operator_class;
+							clase->getRightOperators()->OPERATOR_rel_mayor = operator_class;
 						break;
 					}
 				case OPERADORES::OP_REL_MINOR_OR_EQUAL:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_rel_menor_igual = operator_class;
+							clase->getNormalOperators()->OPERATOR_rel_menor_igual = operator_class;
 						else
-							clase->right_operators->OPERATOR_rel_menor_igual = operator_class;
+							clase->getRightOperators()->OPERATOR_rel_menor_igual = operator_class;
 						break;
 					}
 				case OPERADORES::OP_REL_MAJOR_OR_EQUAL:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_rel_mayor_igual = operator_class;
+							clase->getNormalOperators()->OPERATOR_rel_mayor_igual = operator_class;
 						else
-							clase->right_operators->OPERATOR_rel_mayor_igual = operator_class;
+							clase->getRightOperators()->OPERATOR_rel_mayor_igual = operator_class;
 						break;
 					}
-					case OPERADORES::OP_LOG_ADD:
+					case OPERADORES::OP_LOG_AND:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_log_and = operator_class;
+							clase->getNormalOperators()->OPERATOR_log_and = operator_class;
 						else
-							clase->right_operators->OPERATOR_log_and = operator_class;
+							clase->getRightOperators()->OPERATOR_log_and = operator_class;
 						break;
 					}
 					case OPERADORES::OP_LOG_OR:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_log_or = operator_class;
+							clase->getNormalOperators()->OPERATOR_log_or = operator_class;
 						else
-							clase->right_operators->OPERATOR_log_or = operator_class;
+							clase->getRightOperators()->OPERATOR_log_or = operator_class;
 						break;
 					}
 					case OPERADORES::OP_ITR_MIN:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_min = operator_class;
+							clase->getNormalOperators()->OPERATOR_min = operator_class;
 						else
-							clase->right_operators->OPERATOR_min = operator_class;
+							clase->getRightOperators()->OPERATOR_min = operator_class;
 						break;
 					}
 					case OPERADORES::OP_ITR_PLUS:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_plus = operator_class;
+							clase->getNormalOperators()->OPERATOR_plus = operator_class;
 						else
-							clase->right_operators->OPERATOR_plus = operator_class;
+							clase->getRightOperators()->OPERATOR_plus = operator_class;
 						break;
 					}
 					case OPERADORES::OP_NEGADO:
 					{
 						if(!inverse_operator)
-							clase->normal_operators->OPERATOR_negado = operator_class;
+							clase->getNormalOperators()->OPERATOR_negado = operator_class;
 						else
-							clase->right_operators->OPERATOR_negado = operator_class;
+							clase->getRightOperators()->OPERATOR_negado = operator_class;
 						break;
 					}
 					case OPERADORES::OP_BRACKET_LEFT:
 					{
 						if (!inverse_operator)
-							clase->normal_operators->OPERATOR_brack = operator_class;
+							clase->getNormalOperators()->OPERATOR_brack = operator_class;
 						else
-							clase->right_operators->OPERATOR_brack = operator_class;
+							clase->getRightOperators()->OPERATOR_brack = operator_class;
 						break;
 					}
 					case OPERADORES::ELEM_NEG_FIRST:
 					{
 						if (!inverse_operator)
-							clase->normal_operators->OPERATOR_negado_first = operator_class;
+							clase->getNormalOperators()->OPERATOR_negado_first = operator_class;
 						else
-							clase->right_operators->OPERATOR_negado_first = operator_class;
+							clase->getRightOperators()->OPERATOR_negado_first = operator_class;
 						break;
 					}
 					default:
@@ -2854,7 +2957,7 @@ Parser_Class* Parser::getClass(int& local_index)
 							this->readingStaticValue = false;
 							return NULL;
 						}
-						clase->constructores.emplace_back(pConst);
+						clase->getConstructores().emplace_back(pConst);
 						continue;
 					}
 
@@ -2882,7 +2985,7 @@ Parser_Class* Parser::getClass(int& local_index)
 
 						if (isStatic)
 							haveStaticMember = true;
-						clase->funciones.emplace_back(fnt);
+						clase->getFuncionesBase().emplace_back(fnt);
 						continue;	
 					}
 
@@ -2904,11 +3007,11 @@ Parser_Class* Parser::getClass(int& local_index)
 							
 						if (isStatic)
 						{
-							clase->variables_static.emplace_back(pOp);
+							clase->getVariablesStaticBase().emplace_back(pOp);
 							haveStaticMember = true;
 						}
 						else
-							clase->variables_operar.emplace_back(pOp);
+							clase->getVariableOperarBase().emplace_back(pOp); //Nunca será una clase core
 
 						continue;
 					}
@@ -3053,7 +3156,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 							else if (!this->readingFunction && this->readingStaticValue && this->readingClass) //Si no es una funcion, es que esta leyendo una variable
 							{
 								int inx = this->readingClass->static_var_map.size();
-								this->readingClass->static_var_map.emplace(a->nombre, inx);
+								this->readingClass->static_var_map.emplace(a->nombre, inx); // MIRAR - se ha cambiado
 								a->index = inx;
 								a->is_Static = true;
 								a->static_link = this->readingClass;
@@ -3061,9 +3164,9 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 							else
 							{
 								int d = *variables.num_local_var;
-								variables.push_VarLocal(Variable(a->nombre, d, true));
+								variables.push_VarLocal(Variable(a->nombre, d, true)); 
 								if (this->readingClass)
-									this->readingClass->_variables_map.emplace(std::move(a->nombre), d);
+									this->readingClass->variables_map.emplace(std::move(a->nombre), d);
 								a->index = variables.variables_locales.back().index;
 							}
 						}
@@ -3072,8 +3175,8 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 					{
 						if (a->inicializando)
 							var->inicializando = true;
-						else if (var->inicializando)
-							a->inicializando = true;
+						//else if (var->inicializando)
+						//	a->inicializando = true;
 
 						a->index = IndexVar;
 					}
@@ -3136,7 +3239,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 							int d = *variables.num_local_var;
 							variables.push_VarLocal(Variable(a->nombre, d));
 							if (this->readingClass)
-								this->readingClass->_variables_map.emplace(std::move(a->nombre), d);
+								this->readingClass->variables_map.emplace(std::move(a->nombre), d);
 							a->index = variables.variables_locales.back().index;
 						}
 					}
@@ -3188,7 +3291,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 										int d = *variables.num_local_var;
 										variables.push_VarLocal(Variable(a2->nombre, d));
 										if (this->readingClass)
-											this->readingClass->_variables_map.emplace(std::move(a2->nombre), d);
+											this->readingClass->variables_map.emplace(std::move(a2->nombre), d);
 										a2->index = variables.variables_locales.back().index;
 									}
 								}
@@ -3221,18 +3324,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 					lista_llamadas_estaticas.emplace_back(arbol);
 				}
 				else a->index = IndexVar;
-			},
-			//Con esto buscamos que se trate de clase().x , si no hay entradas es posible que se trate de un valor estático
-			// pero también puede tratarse de la creación de un objeto con el constructor por defecto.
-			// por ello, tendremos que guardar el valor del identificador al que se llama, en este caso "x", para que en runtime
-			// se pueda comprobar si se trata de una variable o funcion estática.
-			[&](Call_Value* a) 
-			{
-				//if (a->entradas.size() == 0)
-				//{
-					//a->valor_enlace = arbol;
-				//}
-			},
+			}
 			}, arbol->_v1);
 
 		std::visit(overloaded{
@@ -3300,7 +3392,7 @@ void Parser::PreloadStaticCalls()
 
 		for (itr = 0; itr < Parser::clases.size(); itr++)
 		{
-			if ((Parser::clases)[itr]->pID->nombre == id_clase->nombre)
+			if ((Parser::clases)[itr]->getNombre() == id_clase->nombre)
 			{
 				id_clase->index = itr;
 				(*it)->is_Static = true;
@@ -3326,15 +3418,30 @@ void Parser::PreloadStaticCalls()
 			},
 			[&](Call_Value* a)
 			{
-				std::vector<int>* pIds = (Parser::clases)[itr]->findFuncion(a->ID->nombre);
-				//std::vector<int>* 
 				std::vector<int> staticIds;
-				for (std::vector<int>::iterator interno = pIds->begin(); interno != pIds->end(); ++interno)
+
+				if ((Parser::clases)[itr]->core)
 				{
-					if ((Parser::clases)[itr]->funciones[*interno]->is_Static && a->entradas.size() == (Parser::clases)[itr]->funciones[*interno]->entradas.size())
+					int pID = (Parser::clases)[itr]->findFuncionCore(a->ID->nombre);
+
+
+					if ((Parser::clases)[itr]->getFuncionesCore()[pID].is_Static)
 					{
-						staticIds.emplace_back(*interno);
 						existe = true;
+						staticIds.emplace_back(pID);
+					}
+				}
+				else
+				{
+					std::vector<int>* pIds = (Parser::clases)[itr]->findFuncionBase(a->ID->nombre);
+					//std::vector<int>* 
+					for (std::vector<int>::iterator interno = pIds->begin(); interno != pIds->end(); ++interno)
+					{
+						if ((Parser::clases)[itr]->getFuncionesBase()[*interno]->is_Static && a->entradas.size() == (Parser::clases)[itr]->getFuncionesBase()[*interno]->entradas.size())
+						{
+							staticIds.emplace_back(*interno);
+							existe = true;
+						}
 					}
 				}
 
@@ -3387,15 +3494,22 @@ bool Parser::preloadCalls()
 			for (int itr = 0; itr < Parser::clases.size(); itr++)
 			{
 				//Debe coincidir el nombre de la misma.
-				if ((Parser::clases)[itr]->pID->nombre == (*it)->ID->nombre)
+				if ((Parser::clases)[itr]->getNombre() == (*it)->ID->nombre)
 				{
 					(*it)->setClass();
 
+					if ((Parser::clases)[itr]->isCore)
+					{
+						(*it)->AddClass(itr, 0);
+						existe = true;
+						break;
+					}
+
 					bool is_ok = false;
 					//Comprobamos si existe un constructor adecuado para la clase
-					for (int inx_const = 0; inx_const < (Parser::clases)[itr]->constructores.size(); inx_const++)
+					for (int inx_const = 0; inx_const < (Parser::clases)[itr]->getConstructores().size(); inx_const++)
 					{
-						if ((Parser::clases)[itr]->constructores[inx_const]->entradas.size() != (*it)->entradas.size())
+						if ((Parser::clases)[itr]->getConstructores()[inx_const]->entradas.size() != (*it)->entradas.size())
 							continue;
 
 						(*it)->AddClass(itr, inx_const);
@@ -3408,7 +3522,7 @@ bool Parser::preloadCalls()
 						break;
 
 					//Constructor predefinido si no existen constructores definidos por el usuario.
-					if ((*it)->entradas.size() == 0 && (Parser::clases)[itr]->constructores.size() == 0)
+					if ((*it)->entradas.size() == 0 && (Parser::clases)[itr]->getConstructores().size() == 0)
 					{
 						(*it)->AddClass(itr, -1);
 						existe = true;
@@ -3428,22 +3542,47 @@ bool Parser::preloadCalls()
 		{
 			if ((*it)->inside_class)
 			{
-				for (int itr = 0; itr < (*it)->inside_class->funciones.size(); itr++)
+				if ((*it)->inside_class->core)
 				{
-					if ((*it)->inside_class->funciones[itr]->pID->nombre == (*it)->ID->nombre)
+					for (int itr = 0; itr < (*it)->inside_class->getFuncionesCore().size(); itr++)
 					{
-						//Establece que es una función
-						(*it)->setFuncion();
+						if ((*it)->inside_class->getFuncionesCore()[itr].nombre == (*it)->ID->nombre)
+						{
+							//Establece que es una función
+							(*it)->setFuncion();
 
-						if ((*it)->inside_class->funciones[itr]->entradas.size() != (*it)->entradas.size())
-							continue;
+							//TODO: Entradas en core?
+							//if ((*it)->inside_class->getFunciones<Core_Function*>()[itr]->entradas.size() != (*it)->entradas.size())
+							//	continue;
 
-						if ((*it)->function_parent_is_static && !(*it)->inside_class->funciones[itr]->is_Static)
-							continue;
+							if ((*it)->function_parent_is_static && !(*it)->inside_class->getFuncionesCore()[itr].is_Static)
+								continue;
 
-						(*it)->AddFuncion(itr);
-						(*it)->isInsideClass = true;
-						existe = true;
+							(*it)->AddFuncion(itr);
+							(*it)->isInsideClass = true;
+							existe = true;
+						}
+					}
+				}
+				else
+				{
+					for (int itr = 0; itr < (*it)->inside_class->getFuncionesBase().size(); itr++)
+					{
+						if ((*it)->inside_class->getFuncionesBase()[itr]->pID->nombre == (*it)->ID->nombre)
+						{
+							//Establece que es una función
+							(*it)->setFuncion();
+
+							if ((*it)->inside_class->getFuncionesBase()[itr]->entradas.size() != (*it)->entradas.size())
+								continue;
+
+							if ((*it)->function_parent_is_static && !(*it)->inside_class->getFuncionesBase()[itr]->is_Static)
+								continue;
+
+							(*it)->AddFuncion(itr);
+							(*it)->isInsideClass = true;
+							existe = true;
+						}
 					}
 				}
 			}
@@ -3457,9 +3596,10 @@ bool Parser::preloadCalls()
 				{
 					//Establece que es una función
 					(*it)->setFuncion();
-
-					if (Core::core_functions[itr]->entradas.size() != (*it)->entradas.size())
-						continue;
+					(*it)->inx_funcion->isCore = true;
+					//TODO: Entradas en core?
+					//if (Core::core_functions[itr]->entradas.size() != (*it)->entradas.size())
+					//	continue;
 
 					(*it)->AddFuncion_Core(itr);
 					existe = true;

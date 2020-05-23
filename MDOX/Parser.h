@@ -60,7 +60,7 @@ public:
 	static std::vector<Parser_Funcion*> funciones;
 	static std::vector<Parser_Class*> clases;
 	static std::vector<std::string> requireList; //Se usa para comprobar que un fichero ya fue incluido
-
+	static std::filesystem::path mainPathProgram;
 
 	static SendVariables variables_scope; //Usado para el transpaso de variables por ámbito
 
@@ -70,6 +70,8 @@ public:
 	
 	bool readingFunction = false;
 	bool readingStaticValue = false;
+
+	//bool readingVectorOperations = false;
 
 	//readingClass devolverá donde se está ejecutando el parser, será nulo si es a nivel de raiz o de función de raiz
 	//y devolverá una clase en caso de estar leyendo una clase.
@@ -136,10 +138,10 @@ class Core_Function
 {
 public:
 	std::string nombre;
-	std::vector<tipos_parametros> entradas;
-	tipos_parametros salida;
+	bool is_Static = false;
+	bool (*funcion_exec)(std::vector<Value>&);
 
-	Core_Function(std::string a, std::vector<tipos_parametros> b, tipos_parametros c) : nombre(a), entradas(b), salida(c) {}
+	Core_Function(std::string a) : nombre(a) {}
 
 	~Core_Function()
 	{};
@@ -167,6 +169,7 @@ public:
 	static std::map<std::string, Core_Function_AtomicTypes> core_atomic_vector;
 
 	static std::vector<Core_Function*> core_functions;
+	static bool IncludeStart(std::string& val);
 	static void Core_Function_Int(Call_Value* call);
 	static void Start();
 

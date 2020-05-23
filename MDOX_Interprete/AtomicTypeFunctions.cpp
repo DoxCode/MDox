@@ -66,7 +66,7 @@ std::map<std::string, Core_Function_AtomicTypes> Core::core_atomic_string =
 	Inserta el valor en la posición index indicada o
 	Inserta el valor n cantidad de veces en la posición index
 	ENTRADA: <VALUE>, <LINT> ó <VALUE>, <LINT>, <LINT>
-	SALIDA: <VOID>
+	SALIDA: <VECTOR>
 */
 bool funcion_vector_insert(Value caller, std::vector<Value>& a)
 {
@@ -79,7 +79,7 @@ bool funcion_vector_insert(Value caller, std::vector<Value>& a)
 
 		if (!v2->Cast(PARAM_LINT))
 		{
-			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "insert", "insert(<value> <lint>):<value>, insert(<lint>, <lint>, <lint>):<value>");
+			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "insert", "insert(<value>, <lint>):<vector>, insert(<lint>, <lint>, <lint>):<vector>");
 			return false;
 		}
 		long long t2 = std::get<long long>(v2->value);
@@ -103,12 +103,12 @@ bool funcion_vector_insert(Value caller, std::vector<Value>& a)
 
 		if (!v2->Cast(PARAM_LINT))
 		{
-			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "insert", "insert(<value> <lint>):<value>, insert(<lint>, <lint>, <lint>):<value>");
+			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "insert", "insert(<value>, <lint>):<vector>, insert(<lint>, <lint>, <lint>):<vector>");
 			return false;
 		}
 		if (!v3->Cast(PARAM_LINT))
 		{
-			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "insert", "insert(<value> <lint>):<value>, insert(<lint>, <lint>, <lint>):<value>");
+			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "insert", "insert(<value>, <lint>):<vector>, insert(<lint>, <lint>, <lint>):<vector>");
 			return false;
 		}
 
@@ -126,7 +126,7 @@ bool funcion_vector_insert(Value caller, std::vector<Value>& a)
 		return true;
 	}
 
-	Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "popFront", "popFront():<value>");
+	Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "insert", "insert(<value>, <lint>):<vector>, insert(<lint>, <lint>, <lint>):<vector>");
 	return false;
 }
 
@@ -241,7 +241,7 @@ bool funcion_vector_pushFront(Value caller, std::vector<Value>& a)
 /*
 	FUNCION pushBack
 	Agrega un nuevo valor en la cola del vector.
-	ENTRADA: <VALUE>
+	ENTRADA: <VALUE, ...>
 	SALIDA: <VECTOR>
 */
 bool funcion_vector_pushBack(Value caller, std::vector<Value>& a)
@@ -366,8 +366,8 @@ bool funcion_vector_replace(Value caller, std::vector<Value>& a)
 
 /*
 	FUNCION containsAll
-	Comprueba si el vector contiene todos los valores indicados en otro vector
-	ENTRADA: <VECTOR>
+	Comprueba si el vector contiene todos los valores indicados
+	ENTRADA: <value>, ...
 	SALIDA: <BOOL>
 */
 bool funcion_vector_containsAll(Value caller, std::vector<Value>& a)
@@ -376,8 +376,8 @@ bool funcion_vector_containsAll(Value caller, std::vector<Value>& a)
 
 	if (a.size() == 0)
 	{
-		Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "containsAll", "containsAll(<vector>):<bool>");
-		return false;
+		Interprete::instance->setRetorno(Value(true));
+		return true;
 	}
 
 	for (auto reg : a)
@@ -474,7 +474,7 @@ bool funcion_vector_contains(Value caller, std::vector<Value>& a)
 /*
 	FUNCION startsWith.
 	Comprueba si el string comienza por el substring indicado
-	ENTRADA: <VALUE>
+	ENTRADA: <STRING>
 	SALIDA: <BOOL>
 */
 bool funcion_string_startsWith(Value caller, std::vector<Value>& a)
@@ -507,7 +507,7 @@ bool funcion_string_startsWith(Value caller, std::vector<Value>& a)
 /*
 	FUNCION Split.
 	Corta la cadena usando una cadena regex
-	ENTRADA: <> ó <STRING>
+	ENTRADA: <STRING>
 	SALIDA: <VECTOR>
 */
 bool funcion_string_split(Value caller, std::vector<Value>& a)
@@ -716,7 +716,7 @@ bool funcion_string_toUpper(Value caller, std::vector<Value>& a)
 
 
 /*
-	FUNCION Substring.
+	FUNCION Find.
 	Devuelve la cadena entre  uno o dos puntos dados
 	* -> SIEMPRE se da, por contexto.
 	ENTRADA: <STRING>
@@ -733,7 +733,7 @@ bool funcion_string_find(Value caller, std::vector<Value>& a)
 
 		if (!v->Cast(PARAM_STRING))
 		{
-			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "find", "substring(<string>):<lint>");
+			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "find", "find(<string>):<lint>");
 			return false;
 		}
 
@@ -742,7 +742,7 @@ bool funcion_string_find(Value caller, std::vector<Value>& a)
 		return true;
 	}
 
-	Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "find", "substring(<string>):<lint>");
+	Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "find", "find(<string>):<lint>");
 	return false;
 }
 

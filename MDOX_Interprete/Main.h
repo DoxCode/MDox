@@ -2,7 +2,7 @@
 #define MAIN_H
 
 //#define _GLIBCXX_USE_CXX11_ABI 0
-#define VERSION 0.75
+#define VERSION 0.8
 #define ESTADO "BETA"
 
 #include <iostream>

@@ -10,6 +10,7 @@
 #include <chrono>
 #include <thread>
 #include <regex>
+#include <any>
 
 class MDOX_Regex_Transform
 {
@@ -26,6 +27,7 @@ class Variable_Runtime
 public:
 	Value value;
 	tipos_parametros tipo; // Si no es void, no es fuerte.
+	bool strict = false;
 	bool publica = true;
 
 	Variable_Runtime() : tipo(PARAM_VOID) {}
@@ -36,11 +38,21 @@ public:
 	void copyIn(Variable_Runtime& vr)
 	{
 		vr.tipo = this->tipo;
+		vr.strict = this->strict;
 		//vr.publica = publica;
 		vr.value = value.copyIn();
 	}
+
 };
 
+template <class T>
+class Stream
+{
+public:
+	T stream;
+};
+
+using special_variant = std::variant<Stream<std::fstream>>;
 
 //Objeto producido por alguna clase
 class mdox_object
@@ -54,14 +66,16 @@ public:
 	// prototipadas o dinámicas, únicamente se beneficiará de este cacheado las llamadas desde funciones internas de la clase.
 	Variable_Runtime* variables_clase; 
 	std::unordered_map<std::string, Variable_Runtime> _proto_variables; //Almacenamiento de las variables prototipo del objeto en particular.
-
+	
+	//Usado en clases core para guardar valores que no se podrían guardar en el lenguaje, como streams etc.
+	special_variant especial_value;
 
 	Variable_Runtime* findVariableAndCreateVoidIfNotExist(std::string& id)
 	{
 		//Primero buscamos la variable, entre las declaradas en la clase
-		std::unordered_map<std::string, int>::const_iterator got = clase->_variables_map.find(id);
+		std::unordered_map<std::string, int>::const_iterator got = clase->variables_map.find(id);
 
-		if (got != clase->_variables_map.end())
+		if (got != clase->variables_map.end())
 		{
 			if(variables_clase[got->second].publica)
 				return &variables_clase[got->second];
@@ -153,8 +167,8 @@ public:
 	//void IniciateStaticClassValues(Parser_Class* pClase);
 	ValueOrMulti getValueOrMulti(tipoValor& a, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	//bool OperacionOperadoresVectores(multi_value*, multi_value*, OPERADORES& op, Variable_Runtime* variables);
-	short int OperacionOperadoresVectores(Value*, multi_value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left);
-	short int OperacionOperadoresVectores(multi_value*, Value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left);
+	short int OperacionOperadoresVectores(Value*, multi_value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left, bool fromVector = false);
+	short int OperacionOperadoresVectores(multi_value*, Value*, OPERADORES& operador, Variable_Runtime* variables, Variable_Runtime* var_clase, bool& isPop, bool& left, bool fromVector = false);
 	short int OperacionOperadoresVectores(Value*, Value*, OPERADORES& operador, bool& isPop, bool& left);
 
 	Value lectura_arbol_CallValue(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_class);
@@ -165,6 +179,7 @@ public:
 	//Value * viewRetorno() { return _retorno; }
 	//void nullRetorno() { if (_retorno != NULL) { delete _retorno;  _retorno = NULL; } }
 
+	bool isVectorSizeEnough(Value* v1, size_t md);
 	void String_to_MultiValue(std::string&, multi_value*, Variable_Runtime*, Variable_Runtime*);
 
 	Value TratarMultiplesValores(multi_value* arr, Variable_Runtime* variables, Variable_Runtime* var_clase);
@@ -176,8 +191,8 @@ public:
 
 	//VariablePreloaded * Interprete_NuevaVariable(Parser_Parametro * par, VariablePreloaded * variables);
 	
-	void getRealValueFromValueWrapperRef(Value** v, tipos_parametros* tipo = nullptr);
-	void getRealValueFromValueWrapper(Value& v, tipos_parametros* = nullptr);
+	void getRealValueFromValueWrapperRef(Value** v, tipos_parametros* tipo = nullptr, bool * strict = nullptr);
+	void getRealValueFromValueWrapper(Value& v, tipos_parametros* = nullptr, bool* strict = nullptr);
 	std::vector<Value> transformarEntradasCall(Call_Value* vF, Variable_Runtime* variables, Variable_Runtime* var_clase);
 	bool Relacional_rec_arbol(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_clase, Value& val_r);
 
@@ -185,6 +200,7 @@ public:
 	Value ExecOperador(Operator_Class* oc, Variable_Runtime* var_class);
 	Value ExecClass(Call_Value* vf, std::vector<Value>& entradas);
 	Value ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Variable_Runtime* var_class, Parser_Class* pClass=NULL);
+	Value ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Variable_Runtime* var_class, std::shared_ptr<mdox_object>&);
 	bool FuncionCore(Call_Value* vf, std::vector<Value>& entradas);
 
 
@@ -202,17 +218,6 @@ public:
 
 	};
 };
-
-class Core_Function_Interprete : public Core_Function
-{
-public:
-	bool (*funcion_exec)(std::vector<Value>&);
-
-	Core_Function_Interprete(std::string a, std::vector<tipos_parametros> b, tipos_parametros c) : Core_Function(a, b, c) {}
-
-	~Core_Function_Interprete() {};
-};
-
 
 
 

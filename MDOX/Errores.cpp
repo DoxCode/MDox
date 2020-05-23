@@ -106,6 +106,11 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		std::cout << "No se puede realizar la conversión de la expresión, el valor asignado debe poder convertirse a un string. ";
 		break;
 
+	case Errores::ERROR_CONVERSION_STRICT:
+		Errores::generarCabeceraError(node, 2004, tipo);
+		std::cout << "No se puede realizar la conversión a la variable strict proporcionada. Los tipos no coinciden. ";
+		break;
+
 	case Errores::ERROR_COMPARACION_INT_STRING:
 		Errores::generarCabeceraError(node, 2005, tipo);
 		std::cout << "Se está intentando comparar un entero con un string. ";
@@ -213,7 +218,12 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 
 	case Errores::ERROR_FUNCION_NO_DECLARADA:
 		Errores::generarCabeceraError(node, 4006, tipo);
-		std::cout << "La función con nombre '" << value << "' no ha sido declarada.  ";
+		std::cout << "La función con nombre '" << value << "' no ha sido declarada. ";
+		break;
+
+	case Errores::ERROR_FUNCION_NO_DECLARADA_HA:
+		Errores::generarCabeceraError(node, 4006, tipo);
+		std::cout << "La función con nombre '" << value << "' no ha sido declarada. " << " Quizás quería usar: " << value2;
 		break;
 
 	case Errores::ERROR_CONVERSION_DESCONOCIDA:
@@ -424,7 +434,20 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		Errores::generarCabeceraError(node, 4523, tipo, false);
 		std::cout << "La función '" << value << "' solo puede contener los parámetros: '" << value2 << "'.";
 		break;
-		
+
+	case Errores::ERROR_CLASE_CORE_FUNCTION_NOT_EXIST:
+		Errores::generarCabeceraError(node, 4525, tipo, false);
+		std::cout << "La clase '" << value << "' no contiene ninguna función con el nombre de '" << value2 << "'.";
+		break;
+	case Errores::ERROR_FUNCTION_PARAMETER:
+		Errores::generarCabeceraError(node, 4012, tipo, false);
+		std::cout << "La función '" << value << "' solo puede contener los parámetros: '" << value2 << "'.";
+		break;
+	case Errores::ERROR_CLASE_CORE_CONSTRUCTOR:
+		Errores::generarCabeceraError(node, 4526, tipo, false);
+		std::cout << "El constructor de la clase '" << value << "' no es valido. Parámetros válidos: '" << value2 << "'.";
+		break;
+
 
 		/*
 			ERROR_INCLUDE_FALLO, //Error 2026
@@ -460,6 +483,34 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 		Errores::generarCabeceraError(node, 4524, tipo, false);
 		std::cout << "Se está intentando inicializar la clase '" + value + "', pero no ha sido declarada.";
 		break;
+
+	case Errores::ERROR_CLASE_CORE_FILE_NOT_OPENED:
+		Errores::generarCabeceraError(node, 5000, tipo, true);
+		std::cout << "No se ha podido acceder al fichero, el sistema no pudo realizar la operación si el fichero no se pudo abrir. Compruebe si no lo ha cerrado previamente. ";
+		break;
+
+	case Errores::ERROR_CLASE_CORE_FILE_FAIL_OPEN:
+		Errores::generarCabeceraError(node, 5001, tipo, true);
+		std::cout << "Ha ocurrido un error al intentar abrir el fichero. No se ha podido abrir el fichero '"+value+"'.";
+		break;
+
+	case Errores::ERROR_CLASE_CORE_FILE_OUT_INDEX:
+		Errores::generarCabeceraError(node, 5002, tipo, true);
+		std::cout << "Se intenta acceder al índice "+value+" pero el tamaño máximo del fichero es "+value2+".";
+		break;
+
+	case Errores::ERROR_CLASE_CORE_FILE_NOT_READ:
+		Errores::generarCabeceraError(node, 5003, tipo, true);
+		std::cout << "Se intenta acceder a la función " + value + " pero el fichero no se abrió con modo lectura.";
+		break;
+
+	case Errores::ERROR_CLASE_CORE_FILE_NOT_WRITE:
+		Errores::generarCabeceraError(node, 5003, tipo, true);
+		std::cout << "Se intenta acceder a la función " + value + " pero el fichero no se abrió con modo escritura.";
+		break;
+
+
+
 
 	}
 

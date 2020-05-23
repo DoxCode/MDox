@@ -22,7 +22,7 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 		bool ignore_next = false;
 
 
-		for (unsigned itr = 0; itr < (*it)->val.size(); itr++)
+		for (unsigned long long itr = 0; itr < (*it)->val.size(); itr++)
 		{
 			const char c = (*it)->val.at(itr);
 
@@ -114,10 +114,10 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 			}
 
 			//TOKENIZER:: operaciones con 3 caracteres
-			if (itr + 2 < (*it)->val.size())
+			if (itr +2 < (*it)->val.size())
 			{
 				const char c2 = (*it)->val.at(itr + 1);
-				const char c3 = (*it)->val.at(itr + 2);
+				const char c3 = (*it)->val.at(itr +2);
 
 				if (
 					(c == '<' && c2 == ':' && c3 == ':') ||
@@ -152,6 +152,9 @@ void Tokenizer::generarTokens(std::vector<Linea*> str)
 					(c == ':' && c2 == ':') || 
 					(c == '+' && c2 == '=') || 
 					(c == '-' && c2 == '=') || 
+					(c == '*' && c2 == '=') ||
+					(c == '/' && c2 == '=') ||
+					(c == '%' && c2 == '=') ||
 					(c == '=' && c2 == '=') || 
 					(c == '!' && c2 == '=') || 
 					(c == '<' && c2 == '=') || 

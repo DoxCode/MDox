@@ -12,6 +12,8 @@
 #include <map>
 #include <bitset>
 #include <fstream>
+#include <assert.h>  
+#include <filesystem>
 
 #include "Tokenizer.h"
 
@@ -170,8 +172,10 @@ public:
 class Parser_Declarativo {
 public:
 	tipos_parametros value;
+	bool estricto = false;
 
 	Parser_Declarativo(tipos_parametros a) : value(a) {}
+	Parser_Declarativo(tipos_parametros a, bool b) : value(a), estricto(b) {}
 
 	//Aseguramos el borrado de la memoria
 	virtual ~Parser_Declarativo() {
@@ -224,7 +228,7 @@ enum OPERADORES {
 
 	//Operadores lógicos
 	//Prior 3
-	OP_LOG_ADD,
+	OP_LOG_AND,
 	OP_LOG_OR,
 
 	//Operadores especiales
@@ -317,7 +321,7 @@ static int prioridad(OPERADORES & a) {
 		return PRIORIDAD_MULT_VALUE_OP;
 	else if (a >= OP_ARIT_MULT && a <= OP_ARIT_MOD)
 		return PRIORIDAD_MULT;
-	else if (a == OP_LOG_ADD || a == OP_LOG_OR)
+	else if (a == OP_LOG_AND || a == OP_LOG_OR)
 		return PRIORIDAD_LOGICA;
 	else if (a >= OP_SCOPE_LEFT && a <= OP_ITR_MIN)
 		return PRIORIDAD_SCOPES_EXP;
@@ -380,9 +384,9 @@ public:
 	Value operacion_Binaria(Value& v, const OPERADORES op);
 	bool OperacionRelacional(Value& v, const OPERADORES op);
 	Value operacion_Unitaria(OPERADORES& op);
-	bool operacion_Asignacion(Value& v, OPERADORES& op, bool fuerte);
-	bool asignacion(Value& v) { return asignacion(v, false); }; //Usado normalmente si sabemos que será Wrapper.
-	bool asignacion(Value& v, bool fuerte);
+	bool operacion_Asignacion(Value& v, OPERADORES& op, bool fuerte, bool strict);
+	bool asignacion(Value& v) { return asignacion(v, false, false); }; //Usado normalmente si sabemos que será Wrapper.
+	bool asignacion(Value& v, bool fuerte, bool strict);
 	void inicializacion(Parser_Declarativo* tipo);
 	void inicializacion(tipos_parametros tipo);
 
@@ -485,6 +489,8 @@ public:
 	bool fuerte = false; // Redundante, se obtiene se obtiene con el tipo (VOID = false, ELSE = true), pero bool es más rápido por runtime.
 	bool inicializando = false;
 
+	bool insideVectorOperator = false;
+
 
 	Parser_Declarativo* tipo = NULL;
 
@@ -505,7 +511,8 @@ class arbol_operacional;
 class IndexCall_Function
 {
 public:
-	std::vector<int> funcionesCoreItrData;  //Dirección de la función Core
+	bool isCore = false;
+	int funcionesCoreItrData = 0;			//Dirección de la función Core
 	std::vector<int> funcionesItrData;		//Dirección de la función
 };
 
@@ -1065,34 +1072,30 @@ public:
 };
 
 
-class Parser_Class : public Parser_NODE
+
+//Clase creada al llamarlo
+class Parser_Class_Created
 {
 public:
 	Parser_Identificador* pID;
-	std::vector<Parser_Funcion*> funciones; //Vector donde guardaremos la funcione de la clase
 
 	//Variables estáticas de la clase
-	bool valores_estaticos_iniciados = false;
 	std::vector<arbol_operacional*> variables_static;
-	std::unordered_map<std::string, int> static_var_map;
-	Variable_Runtime* static_var_runtime=NULL;
 
 
 	//Mapeado de las funciones.
 	// Nos servirá para crear un pair entre el nombre de la función y el índice (funciones[indice]) con coste O(1) de
 	// todas las funciones ya agregadas en la clase, este valor se creará al finalizar la clase durante el parseado, llamando a la función preloadFunctions
 	std::unordered_map<std::string, std::vector<int>> function_map; 
-	
+	std::vector<Parser_Funcion*> funciones; //Vector donde guardaremos la funcione de la clase
+
+
 	std::vector<Parser_ClassConstructor*> constructores;
 	std::vector<arbol_operacional*> variables_operar;
-
-	//Usado para guardar el nombre de los identificadores y asignarlo a la runtime variable en su momento.
-	std::unordered_map<std::string, int> _variables_map;
 
 	Operators_List* normal_operators = NULL; //Operadores del estilo this+x;  El objeto se encuentra en la izquierda de la operación.
 	Operators_List* right_operators = NULL;  //Operadores del estilo x+this;  El objeto se encuentra en la derecha de la operación.
 
-	int preload_var = 0;
 
 	//Función que deberá ser llamada al finalizar de construir la clase de forma obligatoria para crear el pair entre indices y funciones, que nos servirá como tabla
 	// hash para mayor rapidez de ejecución en runtime
@@ -1134,10 +1137,10 @@ public:
 	}
 
 
-	Parser_Class(Parser_Identificador* p) : pID(p) {};
+	Parser_Class_Created(Parser_Identificador* p) : pID(p) {};
 
 	//Aseguramos el borrado de la memoria
-	virtual ~Parser_Class()
+	virtual ~Parser_Class_Created()
 	{
 		delete pID;
 		delete normal_operators;
@@ -1168,6 +1171,258 @@ public:
 		variables_static.clear();
 
 	};
+};
+
+
+class CoreClass_Function
+{
+public:
+	std::string nombre;
+	bool is_Static = false;
+	bool (*funcion_exec)(std::shared_ptr<mdox_object>, std::vector<Value>&);
+
+	CoreClass_Function(std::string a) : nombre(a) {}
+	CoreClass_Function(std::string a, bool (*b)(std::shared_ptr<mdox_object>, std::vector<Value>&)) : nombre(a), funcion_exec(b) {}
+	CoreClass_Function(std::string a, bool (*b)(std::shared_ptr<mdox_object>, std::vector<Value>&), bool c) : nombre(a), funcion_exec(b), is_Static(c) {}
+
+	~CoreClass_Function()
+	{};
+};
+
+//Clase creada en core
+class Parser_Class_Core
+{
+public:
+	std::string nombre;
+
+	//variables de la clase core, siempre se considerarán públicas.
+	std::vector<Value> variables_operar;
+	std::vector<Value> variables_static;
+
+	std::unordered_map<OPERADORES, int>* operadores_map_right = NULL;
+	std::unordered_map<OPERADORES, int>* operadores_map_normal = NULL;
+	std::vector<bool (*)(Value*)> operadores;
+
+	std::unordered_map<std::string, int> function_map;
+	std::vector<CoreClass_Function> funciones; //Vector donde guardaremos la funcione de la clase
+
+	bool (*constructor)(std::shared_ptr<mdox_object>,std::vector<Value>&);
+
+	int findFuncion(std::string& id)
+	{
+		//Buscamos los nombres de los índices de la función con el nombre dado entre el mapeado creado durante el parseado.
+		std::unordered_map<std::string, int>::iterator got = function_map.find(id);
+		if (got != function_map.end())
+			return got->second;
+
+		return -1;
+	}
+
+	Parser_Class_Core(std::string& n) : nombre(n) {};
+
+};
+
+class Parser_Class : public Parser_NODE
+{
+public:
+	bool isCore;
+	Parser_Class_Core* core;
+	Parser_Class_Created* created;
+
+	//Mapeo de variables estáticas
+	std::unordered_map<std::string, int> static_var_map;
+	Variable_Runtime* static_var_runtime = NULL;
+	
+	//Usado para guardar el nombre de los identificadores y asignarlo a la runtime variable en su momento.
+	std::unordered_map<std::string, int> variables_map;
+
+	int preload_var = 0;
+
+	int getIndexOperator(OPERADORES op, bool right)
+	{
+		if (!isCore)
+			assert("ERROR CRITICO INTERNO: Una función normal intenta acceder a execCoreOperator");
+		else
+		{
+			if (right)
+			{
+				if (core->operadores_map_right == NULL)
+					return -1;
+
+				auto got = core->operadores_map_right->find(op);
+
+				if (got != core->operadores_map_right->end())
+					return got->second;
+				else
+					return -1;
+			}
+			else
+			{
+				if (core->operadores_map_normal == NULL)
+					return -1;
+
+				auto got = core->operadores_map_normal->find(op);
+
+				if (got != core->operadores_map_normal->end())
+					return got->second;
+				else
+					return -1;
+			}
+		}
+	}
+
+	Value execCoreOperator(int index);
+	Value execCoreOperator(int index, Value& entrada);
+
+	bool execConstructor(std::shared_ptr<mdox_object> obj, std::vector<Value>& v)
+	{
+		if (isCore)
+			return core->constructor(obj, v);
+		else assert(!"ERROR CRITICO INTERNO: Una función normal intenta acceder a execConstructor");
+	}
+
+
+	std::vector<arbol_operacional*>& getVariablesStaticBase()
+	{
+		if (!isCore)
+			return created->variables_static;
+		else assert(!"ERROR CRITICO INTERNO: Una función core intenta acceder a getVariablesStaticBase");
+	}
+
+	std::vector<Value>& getVariablesStaticCore()
+	{
+		if (isCore)
+			return core->variables_static;
+		else assert(!"ERROR CRITICO INTERNO: Una función no CORE intenta acceder a getVariablesStaticCore");
+	}
+
+	void preloadFunctions()
+	{
+		if (!isCore)
+			created->preloadFunctions();
+		else assert(!"ERROR CRITICO INTERNO: Una función core intenta acceder a preloadFunctions");
+	}
+
+	std::vector<Parser_Funcion*>& getFuncionesBase()
+	{
+		if (!isCore)
+			return created->funciones;
+		else  assert(!"ERROR CRITICO INTERNO: Una función core intenta acceder a getFuncionesBase");
+	}
+
+	std::vector<CoreClass_Function>& getFuncionesCore()
+	{
+		if (isCore)
+			return core->funciones;
+		else assert(!"ERROR CRITICO INTERNO: Una función no CORE intenta acceder a getFuncionesCore");
+	}
+
+/*	template <class T>
+	T getVariableOperar()
+	{
+		if (!isCore)
+			return created->variables_operar;
+		else return core->variables_operar; 
+	}*/
+
+	std::vector<arbol_operacional*>& getVariableOperarBase()
+	{
+		if (!isCore)
+			return created->variables_operar;
+		else assert(!"ERROR CRITICO INTERNO: Una función core intenta acceder a getVariableOperarBase"); //return core->variables_operar;
+	}
+
+	std::vector<Value>& getVariableOperarCore()
+	{
+		if (isCore)
+			return core->variables_operar;
+		else assert(!"ERROR CRITICO INTERNO: Una función no CORE intenta acceder a getVariableOperarCore"); 
+	}
+
+	std::vector<int>* findFuncionBase(std::string& id)
+	{
+		if (!isCore)
+			return created->findFuncion(id);
+		else assert(!"ERROR CRITICO INTERNO: Una función del core intenta acceder a findFuncionBase");
+		return NULL;
+	}
+
+	int findFuncionCore(std::string& id)
+	{
+		if (isCore)
+			return core->findFuncion(id);
+		else assert(!"ERROR CRITICO INTERNO: Una función que no es core intenta acceder a findFuncionCore");
+	}
+
+	std::vector<Parser_ClassConstructor*>& getConstructores()
+	{
+		if (!isCore)
+			return created->constructores;
+		else assert(!"ERROR CRITICO INTERNO: Una función del core intenta acceder a getConstructores");
+	}
+
+
+	void createNormalOperators()
+	{
+		if (!isCore)
+			created->normal_operators = new Operators_List();
+		else assert(!"ERROR CRITICO INTERNO: Una función del core intenta acceder a createNormalOperators");
+	}
+
+	void createRightOperators()
+	{
+		if (!isCore)
+			created->right_operators = new Operators_List();
+		else assert(!"ERROR CRITICO INTERNO: Una función del core intenta acceder a createNormalOperators");
+	}
+
+	Operators_List* getNormalOperators()
+	{
+		if (!isCore)
+			return created->normal_operators;
+		else assert(!"ERROR CRITICO INTERNO: Una función del core intenta acceder a getNormalOperators");
+	}
+
+	Operators_List* getRightOperators()
+	{
+		if (!isCore)
+			return created->right_operators;
+		else assert(!"ERROR CRITICO INTERNO: Una función del core intenta acceder a getRightOperators");
+	}
+
+	std::string& getNombre()
+	{
+		if (!isCore)
+			return created->pID->nombre;
+		else return core->nombre;
+	}
+
+	//Valores caché que se limpiarán después del parseado.
+	void clearAfterParser()
+	{
+		static_var_map.clear();
+	}
+
+	Parser_Class(Parser_Identificador* p)
+	{
+		isCore = false;
+		created = new Parser_Class_Created(p);
+	}
+
+	Parser_Class(std::string& p)
+	{
+		isCore = true;
+		core = new Parser_Class_Core(p);
+	}
+
+	~Parser_Class()
+	{
+		if (isCore)
+			delete core;
+		else delete created;
+
+		delete[] static_var_runtime;
+	}
 };
 
 

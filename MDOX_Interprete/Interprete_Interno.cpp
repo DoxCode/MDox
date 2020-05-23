@@ -88,6 +88,7 @@ void Interprete::String_to_MultiValue(std::string& text, multi_value* mv, Variab
 						{
 							v->value.inicializacion(a->tipo);
 							v->tipo = a->tipo->value;
+							v->strict = a->tipo->estricto;
 						}
 						
 						if (last_var)
@@ -190,10 +191,11 @@ void Interprete::MDOX_StringFormat(std::string val, arbol_operacional* operacion
 				{
 					identificador->value.inicializacion(a->tipo);
 					identificador->tipo = a->tipo->value;
-					identificador->value.asignacion(value, true);
+					identificador->strict = a->tipo->estricto;
+					identificador->value.asignacion(value, true, identificador->strict);
 					return;
 				}
-				identificador->value.asignacion(value, false);
+				identificador->value.asignacion(value, false, false);
 			},
 		//Existen multiples valores, que habrá que tratar más adelante.
 			[&](multi_value* a)

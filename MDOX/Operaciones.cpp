@@ -155,7 +155,7 @@ Value Value::Suma(Value& v1, Value& v2)
 			{
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
 				//r->vector.reserve(b->vector.size());
-
+			
 				for (std::deque<Value>::iterator sss = b->vector.begin(); sss != b->vector.end(); ++sss)
 				{
 					r->vector.emplace_back(Value::Suma(*sss, v2));
@@ -265,51 +265,84 @@ Value Value::Suma(Value& v1, Value& v2)
 			},
 			[&v1](auto& a, std::shared_ptr<mdox_object>& b)->Value
 			{
-
-				if (b->clase->right_operators && b->clase->right_operators->OPERATOR_suma)
+				if (b->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_suma, v1, b->variables_clase);
+					if(int inx = b->clase->getIndexOperator(OP_ARIT_SUMA, true); inx >= 0)
+						return b->clase->execCoreOperator(inx, v1);
+					
+					Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "+", b->clase->getNombre());
+					return std::monostate();
+				}
+				
+				if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_suma)
+				{
+					return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_suma, v1, b->variables_clase);
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "+", b->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "+", b->clase->getNombre());
 				return std::monostate();
 			},
 
 			[&v2](std::shared_ptr<mdox_object>& a, auto& b)->Value
 			{
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_suma)
+				if (a->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_suma, v2, a->variables_clase);
+					if (int inx = a->clase->getIndexOperator(OP_ARIT_SUMA, false); inx >= 0)
+						return a->clase->execCoreOperator(inx, v2);
+
+					Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "+", a->clase->getNombre());
+					return std::monostate();
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "+", a->clase->pID->nombre);
+				if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_suma)
+				{
+					return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_suma, v2, a->variables_clase);
+				}
+
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "+", a->clase->getNombre());
 				return std::monostate();
 			},
 
 			[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)->Value
 			{
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_suma)
+				if (a->clase->isCore)
+				{   				    
+					if (int inx = a->clase->getIndexOperator(OP_ARIT_SUMA, false); inx >= 0)
+						return a->clase->execCoreOperator(inx, v2);
+				}
+				else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_suma)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_suma, v2, a->variables_clase);
+						return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_suma, v2, a->variables_clase);
 				}
 
-				if (b->clase->right_operators && b->clase->right_operators->OPERATOR_suma)
+
+				if (b->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_suma, v1, b->variables_clase);
+					if (int inx = b->clase->getIndexOperator(OP_ARIT_SUMA, true); inx >= 0)
+						return b->clase->execCoreOperator(inx, v1);
+				}
+				else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_suma)
+				{
+					return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_suma, v1, b->variables_clase);
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "+", a->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "+", a->clase->getNombre());
 				return std::monostate();
 			},
 
 			[&v2](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_vector>& b)->Value
 			{
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_suma)
+				if (a->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_suma, v2, a->variables_clase);
+					if (int inx = a->clase->getIndexOperator(OP_ARIT_SUMA, false); inx >= 0)
+						return a->clase->execCoreOperator(inx, v2);
+				}
+				else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_suma)
+				{
+					return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_suma, v2, a->variables_clase);
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "+", a->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "+", a->clase->getNombre());
 				return std::monostate();
 			},
 
@@ -562,49 +595,83 @@ Value Value::Resta(Value& v1, Value& v2)
 
 					[&v1](auto& a, std::shared_ptr<mdox_object>& b)->Value
 					{
-						if (b->clase->right_operators && b->clase->right_operators->OPERATOR_resta)
+						if (b->clase->isCore)
 						{
-							return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_resta, v1, b->variables_clase);
+							if (int inx = b->clase->getIndexOperator(OP_ARIT_RESTA, true); inx >= 0)
+								return b->clase->execCoreOperator(inx, v1);
+
+							Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", b->clase->getNombre());
+							return std::monostate();
 						}
 
-						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", b->clase->pID->nombre);
+						if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_resta)
+						{
+							return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_resta, v1, b->variables_clase);
+						}
+
+						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", b->clase->getNombre());
 						return std::monostate();
 					},
 
 					[&v2](std::shared_ptr<mdox_object>& a, auto& b)->Value
 					{
-						if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_resta)
+
+						if (a->clase->isCore)
 						{
-							return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_resta, v2, a->variables_clase);
+							if (int inx = a->clase->getIndexOperator(OP_ARIT_RESTA, false); inx >= 0)
+								return a->clase->execCoreOperator(inx, v2);
+
+							Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", a->clase->getNombre());
+							return std::monostate();
 						}
 
-						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", a->clase->pID->nombre);
+						if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_resta)
+						{
+							return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_resta, v2, a->variables_clase);
+						}
+
+						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", a->clase->getNombre());
 						return std::monostate();
 					},
 
 					[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)->Value
 					{
-						if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_resta)
+						if (a->clase->isCore)
 						{
-							return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_resta, v2, a->variables_clase);
+							if (int inx = a->clase->getIndexOperator(OP_ARIT_RESTA, false); inx >= 0)
+								return a->clase->execCoreOperator(inx, v2);
 						}
-						if (b->clase->right_operators && b->clase->right_operators->OPERATOR_resta)
+						else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_resta)
 						{
-							return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_resta, v1, b->variables_clase);
+							return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_resta, v2, a->variables_clase);
 						}
 
-						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", a->clase->pID->nombre);
+						if (b->clase->isCore)
+						{
+							if (int inx = b->clase->getIndexOperator(OP_ARIT_RESTA, true); inx >= 0)
+								return b->clase->execCoreOperator(inx, v1);
+						}else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_resta)
+						{
+							return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_resta, v1, b->variables_clase);
+						}
+
+						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", a->clase->getNombre());
 						return std::monostate();
 					},
 
 					[&v2](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_vector>& b)->Value
 					{
-						if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_resta)
+						if (a->clase->isCore)
 						{
-							return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_resta, v2, a->variables_clase);
+							if (int inx = a->clase->getIndexOperator(OP_ARIT_RESTA, false); inx >= 0)
+								return a->clase->execCoreOperator(inx, v2);
+						}
+						else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_resta)
+						{
+							return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_resta, v2, a->variables_clase);
 						}
 
-						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", a->clase->pID->nombre);
+						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", a->clase->getNombre());
 						return std::monostate();
 					},
 
@@ -824,48 +891,84 @@ Value Value::Multiplicacion(Value& v1, Value& v2)
 
 					[&v1](auto& a, std::shared_ptr<mdox_object>& b)->Value
 					{
-						if (b->clase->right_operators && b->clase->right_operators->OPERATOR_multiplicacion)
+						if (b->clase->isCore)
 						{
-							return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_multiplicacion, v1, b->variables_clase);
+							if (int inx = b->clase->getIndexOperator(OP_ARIT_MULT, true); inx >= 0)
+								return b->clase->execCoreOperator(inx, v1);
+
+							Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "*", b->clase->getNombre());
+							return std::monostate();
 						}
 
-						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "*", b->clase->pID->nombre);
+						if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_multiplicacion)
+						{
+							return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_multiplicacion, v1, b->variables_clase);
+						}
+
+						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "*", b->clase->getNombre());
 						return std::monostate();
 					},
 
 					[&v2](std::shared_ptr<mdox_object>& a, auto& b)->Value
 					{
-						if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_multiplicacion)
+
+						if (a->clase->isCore)
 						{
-							return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_multiplicacion, v2, a->variables_clase);
+							if (int inx = a->clase->getIndexOperator(OP_ARIT_MULT, false); inx >= 0)
+								return a->clase->execCoreOperator(inx, v2);
+
+							Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "*", a->clase->getNombre());
+							return std::monostate();
 						}
 
-						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "*", a->clase->pID->nombre);
+						if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_multiplicacion)
+						{
+							return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_multiplicacion, v2, a->variables_clase);
+						}
+
+						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "*", a->clase->getNombre());
 						return std::monostate();
 					},
 
 					[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)->Value
 					{
-						if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_multiplicacion)
+						if (a->clase->isCore)
 						{
-							return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_multiplicacion, v2, a->variables_clase);
+							if (int inx = a->clase->getIndexOperator(OP_ARIT_MULT, false); inx >= 0)
+								return a->clase->execCoreOperator(inx, v2);
 						}
-						if (b->clase->right_operators && b->clase->right_operators->OPERATOR_multiplicacion)
+						else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_multiplicacion)
 						{
-							return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_multiplicacion, v1, b->variables_clase);
+							return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_multiplicacion, v2, a->variables_clase);
 						}
-						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "*", a->clase->pID->nombre);
+
+						if (b->clase->isCore)
+						{
+							if (int inx = b->clase->getIndexOperator(OP_ARIT_MULT, true); inx >= 0)
+								return b->clase->execCoreOperator(inx, v1);
+						}
+						else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_multiplicacion)
+						{
+							return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_multiplicacion, v1, b->variables_clase);
+						}
+
+						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "*", a->clase->getNombre());
 						return std::monostate();
 					},
 
 					[&v2](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_vector>& b)->Value
 					{
-						if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_multiplicacion)
+						if (a->clase->isCore)
 						{
-							return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_multiplicacion, v2, a->variables_clase);
+							if (int inx = a->clase->getIndexOperator(OP_ARIT_MULT, false); inx >= 0)
+								return a->clase->execCoreOperator(inx, v2);
+						} 
+						else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_multiplicacion)
+						{
+							return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_multiplicacion, v2, a->variables_clase);
 						}
 
-						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "*", a->clase->pID->nombre);
+						Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "*", a->clase->getNombre());
 						return std::monostate();
 					},
 
@@ -1055,48 +1158,76 @@ Value Value::Div(Value& v1, Value& v2)
 
 		[&v1](auto& a, std::shared_ptr<mdox_object>& b)->Value
 		{
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_div)
+			if (b->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_div, v1, b->variables_clase);
+				if (int inx = b->clase->getIndexOperator(OP_ARIT_DIV, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, v1);
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_div)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_div, v1, b->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "/", b->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "/", b->clase->getNombre());
 			return std::monostate();
 		},
 
 		[&v2](std::shared_ptr<mdox_object>& a, auto& b)->Value
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_div)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_div, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_ARIT_DIV, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_div)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_div, v2, a->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "/", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "/", a->clase->getNombre());
 			return std::monostate();
 		},
 
 		[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)->Value
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_div)
+
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_div, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_ARIT_DIV, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
 			}
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_div)
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_div)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_div, v1, b->variables_clase);
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_div, v2, a->variables_clase);
 			}
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "/", a->clase->pID->nombre);
+
+			if (b->clase->isCore)
+			{
+				if (int inx = b->clase->getIndexOperator(OP_ARIT_DIV, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, v1);
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_div)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_div, v1, b->variables_clase);
+			}
+
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "/", a->clase->getNombre());
 			return std::monostate();
 		},
 
 		[&v2](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_vector>& b)->Value
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_div)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_div, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_ARIT_DIV, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
 			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_div)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_div, v2, a->variables_clase);
+			}			
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "/", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "/", a->clase->getNombre());
 			return std::monostate();
 		},
 
@@ -1286,48 +1417,75 @@ Value Value::DivEntera(Value& v1, Value& v2)
 
 		[&v1](auto& a, std::shared_ptr<mdox_object>& b)->Value
 		{
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_divEntera)
+			if (b->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_divEntera, v1, b->variables_clase);
+				if (int inx = b->clase->getIndexOperator(OP_ARIT_DIV_ENTERA, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, v1);
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_divEntera)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_divEntera, v1, b->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "div", b->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "div", b->clase->getNombre());
 			return std::monostate();
 		},
 
 		[&v2](std::shared_ptr<mdox_object>& a, auto& b)->Value
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_divEntera)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_divEntera, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_ARIT_DIV_ENTERA, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_divEntera)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_divEntera, v2, a->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "div", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "div", a->clase->getNombre());
 			return std::monostate();
 		},
 
 		[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)->Value
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_divEntera)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_divEntera, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_ARIT_DIV_ENTERA, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
 			}
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_divEntera)
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_divEntera)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_divEntera, v1, b->variables_clase);
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_divEntera, v2, a->variables_clase);
 			}
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "div", a->clase->pID->nombre);
+
+			if (b->clase->isCore)
+			{
+				if (int inx = b->clase->getIndexOperator(OP_ARIT_DIV_ENTERA, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, v1);
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_divEntera)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_divEntera, v1, b->variables_clase);
+			}
+
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "div", a->clase->getNombre());
 			return std::monostate();
 		},
 
 		[&v2](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_vector>& b)->Value
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_divEntera)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_divEntera, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_ARIT_DIV_ENTERA, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_divEntera)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_divEntera, v2, a->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "div", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "div", a->clase->getNombre());
 			return std::monostate();
 		},
 
@@ -1523,48 +1681,74 @@ Value Value::Mod(Value& v1, Value& v2)
 
 		[&v1](auto& a, std::shared_ptr<mdox_object>& b)->Value
 		{
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_mod)
+			if (b->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_mod, v1, b->variables_clase);
+				if (int inx = b->clase->getIndexOperator(OP_ARIT_MOD, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, v1);
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_mod)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_mod, v1, b->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "%", b->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "%", b->clase->getNombre());
 			return std::monostate();
 		},
 
 		[&v2](std::shared_ptr<mdox_object>& a, auto& b)->Value
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_mod)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_mod, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_ARIT_MOD, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_mod)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_mod, v2, a->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "%", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "%", a->clase->getNombre());
 			return std::monostate();
 		},
 
 		[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)->Value
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_mod)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_mod, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_ARIT_MOD, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
 			}
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_mod)
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_mod)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_mod, v1, b->variables_clase);
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_mod, v2, a->variables_clase);
 			}
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "%", a->clase->pID->nombre);
+
+			if (b->clase->isCore)
+			{
+				if (int inx = b->clase->getIndexOperator(OP_ARIT_MOD, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, v1);
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_mod)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_mod, v1, b->variables_clase);
+			}
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "%", a->clase->getNombre());
 			return std::monostate();
 		},
 
 		[&v2](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_vector>& b)->Value
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_mod)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_mod, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_ARIT_MOD, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_mod)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_mod, v2, a->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "%", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "%", a->clase->getNombre());
 			return std::monostate();
 		},
 
@@ -1617,23 +1801,33 @@ Value Value::Offset(Value& v1, Value& v2)
 		},
 		[&v1](std::shared_ptr<mdox_vector>& a, std::shared_ptr<mdox_object>& b)
 		{
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_brack)
+			if (b->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_brack, v1, b->variables_clase);
+				if (int inx = b->clase->getIndexOperator(OP_BRACKET_LEFT, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, v1);
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_brack)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_brack, v1, b->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->getNombre());
 			return Value();
 		},
 
 		[&v1](auto & a, std::shared_ptr<mdox_object> & b)
 		{
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_brack)
+			if (b->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_brack, v1, b->variables_clase);
+				if (int inx = b->clase->getIndexOperator(OP_BRACKET_LEFT, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, v1);
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_brack)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_brack, v1, b->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->getNombre());
 			return Value();
 		},
 
@@ -1641,34 +1835,49 @@ Value Value::Offset(Value& v1, Value& v2)
 
 		[&v2](std::shared_ptr<mdox_object> & a, auto & b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_brack)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_brack, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_BRACKET_LEFT, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_brack)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_brack, v2, a->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", a->clase->getNombre());
 			return Value();
 		},
 
 		[&v2](std::shared_ptr<mdox_object> & a, std::shared_ptr<mdox_object> & b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_brack)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_brack, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_BRACKET_LEFT, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_brack)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_brack, v2, a->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->getNombre());
 			return Value();
 		},
 
 		[&v2](std::shared_ptr<mdox_object> & a, std::shared_ptr<mdox_vector> & b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_brack)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_brack, v2, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_BRACKET_LEFT, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v2);
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_brack)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_brack, v2, a->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", a->clase->getNombre());
 			return Value();
 		},
 
@@ -1782,7 +1991,9 @@ Value Value::ClassAccess(Parser_Identificador* v2, Call_Value* call, Variable_Ru
 		[&](std::shared_ptr<mdox_object> & a)->Value 
 		{ 
 			if (call)
-				return Interprete::instance->ExecFuncion(call, Interprete::instance->transformarEntradasCall(call, variables, var_class), a->variables_clase, a->clase);
+				if(a->clase->isCore)
+					return Interprete::instance->ExecFuncion(call, Interprete::instance->transformarEntradasCall(call, variables, var_class), a->variables_clase, a);
+				else return Interprete::instance->ExecFuncion(call, Interprete::instance->transformarEntradasCall(call, variables, var_class), a->variables_clase, a->clase);
 			else
 			{
 				auto ret = a->findVariableAndCreateVoidIfNotExist(v2->nombre);//wrapper_object_call(a,v2);
@@ -1902,7 +2113,7 @@ Value Value::operacion_Binaria(Value & v, const OPERADORES op)
 	// ---------------------- OPERACIÓNES LÓGICAS -------------------------
 	// --------------------------------------------------------------------
 
-	case OPERADORES::OP_LOG_ADD:
+	case OPERADORES::OP_LOG_AND:
 	{
 		return std::visit(overloaded{
 
@@ -1982,38 +2193,59 @@ Value Value::operacion_Binaria(Value & v, const OPERADORES op)
 
 			[&](auto& a, std::shared_ptr<mdox_object>& b)
 			{
-				if (b->clase->right_operators && b->clase->right_operators->OPERATOR_log_and)
+				if (b->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_log_and, *this, b->variables_clase).ValueToBool();
+					if (int inx = b->clase->getIndexOperator(OP_LOG_AND, true); inx >= 0)
+						return b->clase->execCoreOperator(inx, *this).ValueToBool();
+				}
+				else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_log_and)
+				{
+					return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_log_and, *this, b->variables_clase).ValueToBool();
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "&&", b->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "&&", b->clase->getNombre());
 				return false;
 			},
 
 			[&v](std::shared_ptr<mdox_object>& a, auto& b)
 			{
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_log_and)
+				if (a->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_log_and, v, a->variables_clase).ValueToBool();
+					if (int inx = a->clase->getIndexOperator(OP_LOG_AND, false); inx >= 0)
+						return a->clase->execCoreOperator(inx, v).ValueToBool();
+				}
+				else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_log_and)
+				{
+					return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_log_and, v, a->variables_clase).ValueToBool();
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "&&", a->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "&&", a->clase->getNombre());
 				return false;
 			},
 
 			[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)
 			{
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_log_and)
+				if (a->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_log_and, v, a->variables_clase).ValueToBool();
+					if (int inx = a->clase->getIndexOperator(OP_LOG_AND, false); inx >= 0)
+						return a->clase->execCoreOperator(inx, v).ValueToBool();
 				}
-				if (b->clase->right_operators && b->clase->right_operators->OPERATOR_log_and)
+				else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_log_and)
 				{
-					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_log_and, *this, b->variables_clase).ValueToBool();
+					return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_log_and, v, a->variables_clase).ValueToBool();
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "&&", a->clase->pID->nombre);
+				if (b->clase->isCore)
+				{
+					if (int inx = b->clase->getIndexOperator(OP_LOG_AND, true); inx >= 0)
+						return b->clase->execCoreOperator(inx, *this).ValueToBool();
+				}
+				else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_log_and)
+				{
+					return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_log_and, *this, b->variables_clase).ValueToBool();
+				}
+
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "&&", a->clase->getNombre());
 				return false;
 			},
 
@@ -2103,37 +2335,58 @@ Value Value::operacion_Binaria(Value & v, const OPERADORES op)
 
 			[&](auto& a, std::shared_ptr<mdox_object>& b)
 			{
-				if (b->clase->right_operators && b->clase->right_operators->OPERATOR_log_or)
+				if (b->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_log_or, *this, b->variables_clase).ValueToBool();
+					if (int inx = b->clase->getIndexOperator(OP_LOG_OR, true); inx >= 0)
+						return b->clase->execCoreOperator(inx, *this).ValueToBool();
+				}
+				else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_log_or)
+				{
+					return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_log_or, *this, b->variables_clase).ValueToBool();
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "||", b->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "||", b->clase->getNombre());
 				return false;
 			},
 
 			[&v](std::shared_ptr<mdox_object>& a, auto& b)
 			{
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_log_or)
+				if (a->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_log_or, v, a->variables_clase).ValueToBool();
+					if (int inx = a->clase->getIndexOperator(OP_LOG_OR, false); inx >= 0)
+						return a->clase->execCoreOperator(inx, v).ValueToBool();
+				}
+				else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_log_or)
+				{
+					return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_log_or, v, a->variables_clase).ValueToBool();
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "||", a->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "||", a->clase->getNombre());
 				return false;
 			},
 
 			[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)
 			{
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_log_or)
+				if (a->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_log_or, v, a->variables_clase).ValueToBool();
+					if (int inx = a->clase->getIndexOperator(OP_LOG_OR, false); inx >= 0)
+						return a->clase->execCoreOperator(inx, v).ValueToBool();
 				}
-				if (b->clase->right_operators && b->clase->right_operators->OPERATOR_log_or)
+				else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_log_or)
 				{
-					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_log_or, *this, b->variables_clase).ValueToBool();
+					return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_log_or, v, a->variables_clase).ValueToBool();
 				}
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "||", a->clase->pID->nombre);
+
+				if (b->clase->isCore)
+				{
+					if (int inx = b->clase->getIndexOperator(OP_LOG_OR, true); inx >= 0)
+						return b->clase->execCoreOperator(inx, *this).ValueToBool();
+				}
+				else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_log_or)
+				{
+					return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_log_or, *this, b->variables_clase).ValueToBool();
+				}
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "||", a->clase->getNombre());
 				return false;
 			},
 
@@ -2153,8 +2406,9 @@ bool Value::OperadoresEspeciales_Check(Value* v, int index/*, Parser_Identificad
 	tipos_parametros tipo_1 = PARAM_VOID, tipo_2 = PARAM_VOID;
 
 	Value* _this = &(*this);
-	Interprete::instance->getRealValueFromValueWrapperRef(&_this, &tipo_1);
-	Interprete::instance->getRealValueFromValueWrapperRef(&v, &tipo_2);
+	bool strict1 = false, strict2 = false;
+	Interprete::instance->getRealValueFromValueWrapperRef(&_this, &tipo_1, &strict1);
+	Interprete::instance->getRealValueFromValueWrapperRef(&v, &tipo_2, &strict2);
 
 
 	if (index < 0)
@@ -2168,11 +2422,11 @@ bool Value::OperadoresEspeciales_Check(Value* v, int index/*, Parser_Identificad
 					{
 						v->inicializacion(tipo_2);
 
-						v->asignacion(a->vector.back(), true);
+						v->asignacion(a->vector.back(), true, strict2);
 					}
 					else
 					{
-						v->asignacion(a->vector.back(), false);
+						v->asignacion(a->vector.back(), false, false);
 					}
 					return true;
 				}
@@ -2185,11 +2439,11 @@ bool Value::OperadoresEspeciales_Check(Value* v, int index/*, Parser_Identificad
 					if (tipo_1 != PARAM_VOID)
 					{
 						_this->inicializacion(tipo_1);
-						_this->asignacion(a->vector.front(), true);
+						_this->asignacion(a->vector.front(), true, strict1);
 					}
 					else
 					{
-						_this->asignacion(a->vector.front(), false);
+						_this->asignacion(a->vector.front(), false, false);
 					}
 					return true;
 				}
@@ -2227,11 +2481,11 @@ bool Value::OperadoresEspeciales_Check(Value* v, int index/*, Parser_Identificad
 					if (tipo_2 != PARAM_VOID)
 					{
 						v->inicializacion(tipo_2);
-						v->asignacion(a->vector[f_index], true);
+						v->asignacion(a->vector[f_index], true, strict2);
 					}
 					else
 					{
-						v->asignacion(a->vector[f_index], false);
+						v->asignacion(a->vector[f_index], false, false);
 					}
 					return true; 
 				} 
@@ -2244,11 +2498,11 @@ bool Value::OperadoresEspeciales_Check(Value* v, int index/*, Parser_Identificad
 					if (tipo_1 != PARAM_VOID)
 					{
 						_this->inicializacion(tipo_1);
-						_this->asignacion(a->vector[index], true);
+						_this->asignacion(a->vector[index], true, strict1);
 					}
 					else
 					{
-						_this->asignacion(a->vector[index], false);
+						_this->asignacion(a->vector[index], false, false);
 					}
 					return true; 
 				}
@@ -2282,8 +2536,9 @@ short int Value::OperadoresEspeciales_Pop(Value* v, bool& left)
 	tipos_parametros tipo_1 = PARAM_VOID, tipo_2 = PARAM_VOID;
 
 	Value* _this = &(*this);
-	Interprete::instance->getRealValueFromValueWrapperRef(&_this, &tipo_1);
-	Interprete::instance->getRealValueFromValueWrapperRef(&v, &tipo_2);
+	bool strict1 = false, strict2 = false;
+	Interprete::instance->getRealValueFromValueWrapperRef(&_this, &tipo_1, &strict1);
+	Interprete::instance->getRealValueFromValueWrapperRef(&v, &tipo_2, &strict2);
 
 	return std::visit(overloaded{
 		[&](std::shared_ptr<mdox_vector> & a, std::monostate)->short int
@@ -2293,11 +2548,11 @@ short int Value::OperadoresEspeciales_Pop(Value* v, bool& left)
 			if (tipo_2 != PARAM_VOID)
 			{
 				v->inicializacion(tipo_2);
-				v->asignacion(a->vector.back(), true);
+				v->asignacion(a->vector.back(), true, strict2);
 				a->vector.pop_back();
 				return true;
 			}
-			v->asignacion(a->vector.back(), false);
+			v->asignacion(a->vector.back(), false, false);
 			a->vector.pop_back();
 			return true;
 		},
@@ -2307,15 +2562,15 @@ short int Value::OperadoresEspeciales_Pop(Value* v, bool& left)
 			if (tipo_1 != PARAM_VOID)
 			{
 				_this->inicializacion(tipo_1);
-				_this->asignacion(a->vector.front(),true);
+				_this->asignacion(a->vector.front(),true, strict1);
 				a->vector.erase(a->vector.begin());
 				return true;
 			}
 
-			_this->asignacion(a->vector.front(), false);
+			_this->asignacion(a->vector.front(), false, false);
 			a->vector.erase(a->vector.begin());
 			return true;
-		}, //NO recomendado su uso.
+		}, 
 
 		//[&](std::shared_ptr<mdox_vector>& a, auto&) {  a->vector.emplace_back(v); return v; },
 		[&](std::shared_ptr<mdox_vector> & a, int&)->short int { a->vector.emplace_back(*v); left = true; return true; },
@@ -2408,11 +2663,11 @@ void Value::inicializacion(tipos_parametros tipo)
 	}
 }
 
-bool Value::asignacion(Value & v, bool fuerte)
+bool Value::asignacion(Value & v, bool fuerte, bool strict)
 {
 	tipos_parametros tipo = PARAM_NULL;
 	Value* _this = &(*this);
-	Interprete::instance->getRealValueFromValueWrapperRef(&_this, &tipo);
+	Interprete::instance->getRealValueFromValueWrapperRef(&_this, &tipo, &strict);
 	Interprete::instance->getRealValueFromValueWrapper(v);
 
 	if (tipo != PARAM_NULL)
@@ -2430,6 +2685,21 @@ bool Value::asignacion(Value & v, bool fuerte)
 	}
 	else
 	{
+		if(strict)
+		{
+			if (_this->value.index() == v.value.index())
+			{
+				*_this = v;
+				return true;
+			}
+			else
+			{
+				Errores::generarError(Errores::ERROR_CONVERSION_STRICT, Errores::outData);
+				return false;
+			}
+			return false;
+		}
+
 		return std::visit(overloaded{
 
 			//INTEGER .. XX
@@ -2523,46 +2793,66 @@ bool Value::asignacion(Value & v, bool fuerte)
 
 			[&](auto & a, std::shared_ptr<mdox_object> & b)
 			{
-				if (b->clase->right_operators && b->clase->right_operators->OPERATOR_asignacion)
+				if (b->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_asignacion, *_this, b->variables_clase).ValueToBool();
+					if (int inx = b->clase->getIndexOperator(OP_IG_EQUAL, true); inx >= 0)
+						return b->clase->execCoreOperator(inx, *_this).ValueToBool();
+				}
+				else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_asignacion)
+				{
+					return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_asignacion, *_this, b->variables_clase).ValueToBool();
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "=", b->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "=", b->clase->getNombre());
 				return false;
 			},
 
 			[&](std::monostate&, std::shared_ptr<mdox_object>& b)
 			{
-				if (b->clase->right_operators && b->clase->right_operators->OPERATOR_asignacion)
+				if (b->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_asignacion, *_this, b->variables_clase).ValueToBool();
+					if (int inx = b->clase->getIndexOperator(OP_IG_EQUAL, true); inx >= 0)
+						return b->clase->execCoreOperator(inx, *_this).ValueToBool();
+				}
+				else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_asignacion)
+				{
+					return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_asignacion, *_this, b->variables_clase).ValueToBool();
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "=", b->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "=", b->clase->getNombre());
 				return false;
 			},
 
 			[&v](std::shared_ptr<mdox_object> & a, auto & b)
 			{
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_asignacion)
+				if (a->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_asignacion, v, a->variables_clase).ValueToBool();
+					if (int inx = a->clase->getIndexOperator(OP_IG_EQUAL, false); inx >= 0)
+						return a->clase->execCoreOperator(inx, v).ValueToBool();
+				}
+				else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_asignacion)
+				{
+					return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_asignacion, v, a->variables_clase).ValueToBool();
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "=", a->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "=", a->clase->getNombre());
 				return false;
 			},
 
 
 			[&v](std::shared_ptr<mdox_object> & a, std::shared_ptr<mdox_object> & b)
 			{
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_asignacion)
+				if (a->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_asignacion, v, a->variables_clase).ValueToBool();
+					if (int inx = a->clase->getIndexOperator(OP_IG_EQUAL, false); inx >= 0)
+						return a->clase->execCoreOperator(inx, v).ValueToBool();
+				}
+				else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_asignacion)
+				{
+					return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_asignacion, v, a->variables_clase).ValueToBool();
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "=", a->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "=", a->clase->getNombre());
 				return false;
 			},
 
@@ -2577,7 +2867,7 @@ bool Value::asignacion(Value & v, bool fuerte)
 
 bool Value::Cast(Parser_Declarativo * pDec)
 {
-	return Cast(pDec->value);
+		return Cast(pDec->value);
 }
 
 bool Value::Cast(const tipos_parametros tipo)
@@ -2847,38 +3137,59 @@ bool Value::igualdad_Condicional(Value & v)
 
 		[&](auto& a, std::shared_ptr<mdox_object>& b)
 		{
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_rel_igualdad)
+			if (b->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_rel_igualdad, *this, b->variables_clase).ValueToBool();
+				if (int inx = b->clase->getIndexOperator(OP_REL_EQUAL, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, *this).ValueToBool();
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_rel_igualdad)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_rel_igualdad, *this, b->variables_clase).ValueToBool();
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "==", b->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "==", b->clase->getNombre());
 			return false;
 		},
 
 		[&v](std::shared_ptr<mdox_object>& a, auto& b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_rel_igualdad)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_rel_igualdad, v, a->variables_clase).ValueToBool();
+				if (int inx = a->clase->getIndexOperator(OP_REL_EQUAL, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v).ValueToBool();
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_rel_igualdad)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_rel_igualdad, v, a->variables_clase).ValueToBool();
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "==", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "==", a->clase->getNombre());
 			return false;
 		},
 
 
 		[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_rel_igualdad)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_rel_igualdad, v, a->variables_clase).ValueToBool();
+				if (int inx = a->clase->getIndexOperator(OP_REL_EQUAL, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v).ValueToBool();
 			}
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_rel_igualdad)
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_rel_igualdad)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_rel_igualdad, *this, b->variables_clase).ValueToBool();
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_rel_igualdad, v, a->variables_clase).ValueToBool();
 			}
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "==", a->clase->pID->nombre);
+
+			if (b->clase->isCore)
+			{
+				if (int inx = b->clase->getIndexOperator(OP_REL_EQUAL, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, *this).ValueToBool();
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_rel_igualdad)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_rel_igualdad, *this, b->variables_clase).ValueToBool();
+			}
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "==", a->clase->getNombre());
 			return false;
 		},
 
@@ -2897,10 +3208,10 @@ bool Value::mayorQue_Condicional(Value & v)
 		{
 			return a > b;
 		},
-		[](const int& a,const bool& b) { return a > b; },
-		[](const int& a,const long long& b) { return a > b; },
-		[](const int& a,const double& b) { return a > b; },
-		[](const int& a, std::string & b)
+		[]( int& a, bool& b) { return a > b; },
+		[]( int& a, long long& b) { return a > b; },
+		[]( int& a, double& b) { return a > b; },
+		[]( int& a, std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2912,11 +3223,11 @@ bool Value::mayorQue_Condicional(Value & v)
 				 return false;
 		},
 
-		[](const long long& a, const long long& b) { return a > b; },
-		[](const long long& a, const  bool& b) { return a > b; },
-		[](const long long& a, const int& b) { return a > b; },
-		[](const long long& a, const double& b) { return a > b; },
-		[](const long long& a,  std::string & b)
+		[]( long long& a,  long long& b) { return a > b; },
+		[]( long long& a,  bool& b) { return a > b; },
+		[]( long long& a,  int& b) { return a > b; },
+		[]( long long& a,  double& b) { return a > b; },
+		[]( long long& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2928,11 +3239,11 @@ bool Value::mayorQue_Condicional(Value & v)
 				 return false;
 		},
 
-		[](const double& a, const double& b) { return a > b; },
-		[](const double& a, const int& b) { return a > b; },
-		[](const double& a, const long long& b) { return a > b; },
-		[](const double& a, const bool& b) { return a > b; },
-		[](const double& a,  std::string & b)
+		[]( double& a,  double& b) { return a > b; },
+		[]( double& a,  int& b) { return a > b; },
+		[]( double& a,  long long& b) { return a > b; },
+		[]( double& a,  bool& b) { return a > b; },
+		[]( double& a,  std::string & b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2944,11 +3255,11 @@ bool Value::mayorQue_Condicional(Value & v)
 				 return false;
 		},
 
-		[](const bool& a, const double& b) { return a > b;  },
-		[](const bool& a, const int& b) { return a > b; },
-		[](const bool& a, const long long& b) { return a > b; },
-		[](const bool& a, const bool& b) { return a > b;  },
-		[](const bool& a,  std::string & b)
+		[]( bool& a,  double& b) { return a > b;  },
+		[]( bool& a,  int& b) { return a > b; },
+		[]( bool& a,  long long& b) { return a > b; },
+		[]( bool& a,  bool& b) { return a > b;  },
+		[]( bool& a,  std::string & b)
 		{
 		   if (b == "" || b == "0" || b == "false")
 				return (false > a);
@@ -2967,7 +3278,7 @@ bool Value::mayorQue_Condicional(Value & v)
 			 else
 				 return false;
 		},
-		[](std::string & a, const int& b)
+		[](std::string & a,  int& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2978,7 +3289,7 @@ bool Value::mayorQue_Condicional(Value & v)
 			 else
 				 return false;
 		},
-		[](std::string & a, const long long& b)
+		[](std::string & a,  long long& b)
 		{
 			 char* endptr = NULL;
 			 errno = 0;
@@ -2989,7 +3300,7 @@ bool Value::mayorQue_Condicional(Value & v)
 			 else
 				 return false;
 		},
-		[](std::string & a, const bool& b)
+		[](std::string & a,  bool& b)
 		{
 		   if (a == "" || a == "0" || a == "false")
 				return (false > b);
@@ -3053,37 +3364,59 @@ bool Value::mayorQue_Condicional(Value & v)
 
 		[&](auto& a, std::shared_ptr<mdox_object>& b)
 		{
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_rel_mayor)
+			if (b->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_rel_mayor, *this, b->variables_clase).ValueToBool();
+				if (int inx = b->clase->getIndexOperator(OP_REL_MAJOR, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, *this).ValueToBool();
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_rel_mayor)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_rel_mayor, *this, b->variables_clase).ValueToBool();
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">", b->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">", b->clase->getNombre());
 			return false;
 		},
 
 		[&v](std::shared_ptr<mdox_object>& a, auto& b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_rel_mayor)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_rel_mayor, v, a->variables_clase).ValueToBool();
+				if (int inx = a->clase->getIndexOperator(OP_REL_MAJOR, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v).ValueToBool();
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_rel_mayor)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_rel_mayor, v, a->variables_clase).ValueToBool();
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">", a->clase->getNombre());
 			return false;
 		},
 
 		[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_rel_mayor)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_rel_mayor, v, a->variables_clase).ValueToBool();
+				if (int inx = a->clase->getIndexOperator(OP_REL_MAJOR, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v).ValueToBool();
 			}
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_rel_mayor)
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_rel_mayor)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_rel_mayor, *this, b->variables_clase).ValueToBool();
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_rel_mayor, v, a->variables_clase).ValueToBool();
 			}
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">", a->clase->pID->nombre);
+
+			if (b->clase->isCore)
+			{
+				if (int inx = b->clase->getIndexOperator(OP_REL_MAJOR, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, *this).ValueToBool();
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_rel_mayor)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_rel_mayor, *this, b->variables_clase).ValueToBool();
+			}
+
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">", a->clase->getNombre());
 			return false;
 		},
 
@@ -3254,37 +3587,58 @@ bool Value::menorQue_Condicional(Value & v)
 
 		[&](auto& a, std::shared_ptr<mdox_object>& b)
 		{
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_rel_menor)
+			if (b->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_rel_menor, *this, b->variables_clase).ValueToBool();
+				if (int inx = b->clase->getIndexOperator(OP_REL_MINOR, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, *this).ValueToBool();
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_rel_menor)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_rel_menor, *this, b->variables_clase).ValueToBool();
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<", b->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<", b->clase->getNombre());
 			return false;
 		},
 
 		[&v](std::shared_ptr<mdox_object>& a, auto& b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_rel_menor)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_rel_menor, v, a->variables_clase).ValueToBool();
+				if (int inx = a->clase->getIndexOperator(OP_REL_MAJOR, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v).ValueToBool();
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_rel_menor)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_rel_menor, v, a->variables_clase).ValueToBool();
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<", a->clase->getNombre());
 			return false;
 		},
 
 		[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_rel_menor)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_rel_menor, v, a->variables_clase).ValueToBool();
+				if (int inx = a->clase->getIndexOperator(OP_REL_MAJOR, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v).ValueToBool();
 			}
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_rel_menor)
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_rel_menor)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_rel_menor, *this, b->variables_clase).ValueToBool();
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_rel_menor, v, a->variables_clase).ValueToBool();
 			}
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<", a->clase->pID->nombre);
+
+			if (b->clase->isCore)
+			{
+				if (int inx = b->clase->getIndexOperator(OP_REL_MINOR, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, *this).ValueToBool();
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_rel_menor)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_rel_menor, *this, b->variables_clase).ValueToBool();
+			}
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<", a->clase->getNombre());
 			return false;
 		},
 
@@ -3453,37 +3807,58 @@ bool Value::menorIgualQue_Condicional(Value & v)
 		},
 		[&](auto& a, std::shared_ptr<mdox_object>& b)
 		{
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_rel_menor_igual)
+			if (b->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_rel_menor_igual, *this, b->variables_clase).ValueToBool();
+				if (int inx = b->clase->getIndexOperator(OP_REL_MINOR_OR_EQUAL, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, *this).ValueToBool();
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_rel_menor_igual)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_rel_menor_igual, *this, b->variables_clase).ValueToBool();
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<=", b->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<=", b->clase->getNombre());
 			return false;
 		},
 
 		[&v](std::shared_ptr<mdox_object>& a, auto& b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_rel_menor_igual)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_rel_menor_igual, v, a->variables_clase).ValueToBool();
+				if (int inx = a->clase->getIndexOperator(OP_REL_MINOR_OR_EQUAL, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v).ValueToBool();
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_rel_menor_igual)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_rel_menor_igual, v, a->variables_clase).ValueToBool();
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<=", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<=", a->clase->getNombre());
 			return false;
 		},
 
 		[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_rel_menor_igual)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_rel_menor_igual, v, a->variables_clase).ValueToBool();
+				if (int inx = a->clase->getIndexOperator(OP_REL_MINOR_OR_EQUAL, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v).ValueToBool();
 			}
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_rel_menor_igual)
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_rel_menor_igual)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_rel_menor_igual, *this, b->variables_clase).ValueToBool();
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_rel_menor_igual, v, a->variables_clase).ValueToBool();
 			}
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<=", a->clase->pID->nombre);
+
+			if (b->clase->isCore)
+			{
+				if (int inx = b->clase->getIndexOperator(OP_REL_MINOR_OR_EQUAL, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, *this).ValueToBool();
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_rel_menor_igual)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_rel_menor_igual, *this, b->variables_clase).ValueToBool();
+			}
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "<=", a->clase->getNombre());
 			return false;
 		},
 
@@ -3654,37 +4029,58 @@ bool Value::mayorIgualQue_Condicional(Value & v)
 		},
 		[&](auto& a, std::shared_ptr<mdox_object>& b)
 		{
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_rel_mayor_igual)
+			if (b->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_rel_mayor_igual, *this, b->variables_clase).ValueToBool();
+				if (int inx = b->clase->getIndexOperator(OP_REL_MAJOR_OR_EQUAL, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, *this).ValueToBool();
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_rel_mayor_igual)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_rel_mayor_igual, *this, b->variables_clase).ValueToBool();
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">=", b->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">=", b->clase->getNombre());
 			return false;
 		},
 
 		[&v](std::shared_ptr<mdox_object>& a, auto& b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_rel_mayor_igual)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_rel_mayor_igual, v, a->variables_clase).ValueToBool();
+				if (int inx = a->clase->getIndexOperator(OP_REL_MAJOR_OR_EQUAL, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v).ValueToBool();
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_rel_mayor_igual)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_rel_mayor_igual, v, a->variables_clase).ValueToBool();
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">=", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">=", a->clase->getNombre());
 			return false;
 		},
 
 		[&](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_rel_mayor_igual)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_rel_mayor_igual, v, a->variables_clase).ValueToBool();
+				if (int inx = a->clase->getIndexOperator(OP_REL_MAJOR_OR_EQUAL, false); inx >= 0)
+					return a->clase->execCoreOperator(inx, v).ValueToBool();
 			}
-			if (b->clase->right_operators && b->clase->right_operators->OPERATOR_rel_mayor_igual)
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_rel_mayor_igual)
 			{
-				return Interprete::instance->ExecOperador(b->clase->right_operators->OPERATOR_rel_mayor_igual, *this, b->variables_clase).ValueToBool();
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_rel_mayor_igual, v, a->variables_clase).ValueToBool();
 			}
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">=", a->clase->pID->nombre);
+
+			if (b->clase->isCore)
+			{
+				if (int inx = b->clase->getIndexOperator(OP_REL_MAJOR_OR_EQUAL, true); inx >= 0)
+					return b->clase->execCoreOperator(inx, *this).ValueToBool();
+			}
+			else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_rel_mayor_igual)
+			{
+				return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_rel_mayor_igual, *this, b->variables_clase).ValueToBool();
+			}
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, ">=", a->clase->getNombre());
 			return false;
 		},
 
@@ -3693,43 +4089,43 @@ bool Value::mayorIgualQue_Condicional(Value & v)
 		}, value, v.value);
 }
 
-bool Value::operacion_Asignacion(Value & v, OPERADORES & op, bool fuerte)
+bool Value::operacion_Asignacion(Value & v, OPERADORES & op, bool fuerte, bool strict)
 {
 	switch (op)
 	{
 	case OPERADORES::OP_IG_EQUAL:
 	{
-		return this->asignacion(v, fuerte);
+		return this->asignacion(v, fuerte, strict);
 		break;
 	}
 
 	case OPERADORES::OP_IG_EQUAL_SUM:
 	{
-		return this->asignacion(Suma(*this,v), fuerte);
+		return this->asignacion(Suma(*this,v), fuerte, strict);
 		break;
 	}
 
 	case OPERADORES::OP_IG_EQUAL_MIN:
 	{
-		return this->asignacion(Resta(*this,v), fuerte);
+		return this->asignacion(Resta(*this,v), fuerte, strict);
 		break;
 	}
 
 	case OPERADORES::OP_IG_EQUAL_MULT:
 	{
-		return this->asignacion(Multiplicacion(*this, v), fuerte);
+		return this->asignacion(Multiplicacion(*this, v), fuerte, strict);
 		break;
 	}
 
 	case OPERADORES::OP_IG_EQUAL_DIV:
 	{
-		return this->asignacion(Div(*this, v), fuerte);
+		return this->asignacion(Div(*this, v), fuerte, strict);
 		break;
 	}
 
 	case OPERADORES::OP_IG_EQUAL_MOD:
 	{
-		return this->asignacion(Mod(*this, v), fuerte);
+		return this->asignacion(Mod(*this, v), fuerte, strict);
 		break;
 	}
 	}
@@ -3774,12 +4170,17 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 		return std::visit(overloaded{
 		[](std::shared_ptr<mdox_object> & a)->Value
 		{
-			if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_negado)
+			if (a->clase->isCore)
 			{
-				return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_negado, a->variables_clase);
+				if (int inx = a->clase->getIndexOperator(OP_NEGADO, false); inx >= 0)
+					return a->clase->execCoreOperator(inx);
+			}
+			else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_negado)
+			{
+				return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_negado, a->variables_clase);
 			}
 
-			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "!", a->clase->pID->nombre);
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "!", a->clase->getNombre());
 			return false;
 		},
 		[&]( auto&)->Value { return !this->ValueToBool(); },
@@ -3802,12 +4203,17 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 		},
 		[](std::shared_ptr<mdox_object>& a)->Value
 			{
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_negado_first)
+				if (a->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_negado_first, a->variables_clase);
+					if (int inx = a->clase->getIndexOperator(ELEM_NEG_FIRST, false); inx >= 0)
+						return a->clase->execCoreOperator(inx);
+				}
+				else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_negado_first)
+				{
+					return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_negado_first, a->variables_clase);
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", a->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "-", a->clase->getNombre());
 				return false;
 			},
 		[]( auto&)->Value {return std::monostate(); },
@@ -3823,12 +4229,17 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 			[](std::string & val)->Value {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "--"); return std::monostate(); },
 			[](std::shared_ptr<mdox_object>& a)->Value 
 			{ 
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_min)
+				if (a->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_min, a->variables_clase);
+					if (int inx = a->clase->getIndexOperator(OP_ITR_MIN, false); inx >= 0)
+						return a->clase->execCoreOperator(inx);
+				}
+				else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_min)
+				{
+					return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_min, a->variables_clase);
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "--", a->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "--", a->clase->getNombre());
 				return false;
 			},
 			[](auto&)->Value {Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO, Errores::outData, "--");  return std::monostate(); },
@@ -3845,12 +4256,17 @@ Value Value::operacion_Unitaria(OPERADORES & op)
 			[]( bool& val)->Value {return val + 1; },
 			[](std::shared_ptr<mdox_object> & a)->Value
 			{
-				if (a->clase->normal_operators && a->clase->normal_operators->OPERATOR_plus)
+				if (a->clase->isCore)
 				{
-					return Interprete::instance->ExecOperador(a->clase->normal_operators->OPERATOR_plus, a->variables_clase);
+					if (int inx = a->clase->getIndexOperator(OP_ITR_PLUS, false); inx >= 0)
+						return a->clase->execCoreOperator(inx);
+				}
+				else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_plus)
+				{
+					return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_plus, a->variables_clase);
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "++", a->clase->pID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "++", a->clase->getNombre());
 				return false;
 			},
 			[]( std::string & val)->Value {Errores::generarError(Errores::ERROR_MATH_STRING, Errores::outData, "++"); return std::monostate(); },
