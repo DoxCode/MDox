@@ -1161,6 +1161,7 @@ Value Interprete::ExecClass(Call_Value* vf, std::vector<Value>& entradas)
 	}
 
 	Parser_ClassConstructor* constructor = claseMain->getConstructores()[vf->inx_class->constructor_index];
+	Variable_Runtime* vr = new Variable_Runtime[constructor->preLoadSize];
 
 	int itr = 0;
 	for (std::vector<Value>::iterator dItr = entradas.begin(); dItr != entradas.end(); ++dItr)
@@ -1173,9 +1174,22 @@ Value Interprete::ExecClass(Call_Value* vf, std::vector<Value>& entradas)
 				[&](auto& a)->Value { return a; },
 			}, dItr->value);*/
 
-		objeto_salida->variables_clase[constructor->entradas[itr]].value.asignacion(*dItr,false, false);
-		itr++;
+		if(constructor->entradas[itr]) // Si el valor es 1 lo agrega a clases
+			objeto_salida->variables_clase[constructor->entradas[itr+1]].value.asignacion(*dItr,false, false);
+		else
+			vr[constructor->entradas[itr + 1]].value.asignacion(*dItr, false, false);
+
+		itr += 2;
 	}
+
+
+
+	if (!Interprete_Sentencia(constructor->op, vr, objeto_salida->variables_clase))
+	{
+		Errores::generarError(Errores::ERROR_CLASE_OPERADOR_SENTENCIA_INVALIDA, NULL);
+		return std::monostate();
+	}
+	
 
 	return Value(objeto_salida);
 

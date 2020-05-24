@@ -1892,9 +1892,6 @@ Value Value::ClassAccess(Parser_Identificador* v2, Call_Value* call, Variable_Ru
 
 	return std::visit(overloaded{
 
-
-		//
-
 		[&](int& a)->Value
 		{
 			if (call)

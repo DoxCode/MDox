@@ -55,7 +55,7 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 	switch (error)
 	{
 
-	case Errores::ERROR_MAIN_NO_ENCONTRADO:
+	case Errores::ERROR_MAIN_NO_ENCONTRADO: // Obsoleto.
 		std::cout << "ERROR: 10. ";
 		std::cout << "No se ha encontrado la función de inicio del programa <main>.";
 		break;
@@ -270,6 +270,11 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 	case Errores::ERROR_CLASE_CONSTRUCTOR_ID_NOT_FOUND:
 		Errores::generarCabeceraError(node, 4501, tipo, false);
 		std::cout << "El identificador '" << value << "' del constructor no existe en la clase referenciada.";
+		break;
+
+	case Errores::ERROR_CLASE_CONSTRUCTOR_SENTENCIA_ERROR:
+		Errores::generarCabeceraError(node, 4502, tipo, false);
+		std::cout << "Se ha producido un error al intentar construir el objeto.";
 		break;
 
 	case Errores::ERROR_CLASE_CONSTRUCTOR_NOT_ID:

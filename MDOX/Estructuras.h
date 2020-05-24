@@ -980,8 +980,12 @@ class Parser_ClassConstructor
 {
 public:
 	std::vector<int> entradas;
+	Parser_Sentencia* op = NULL;
+	int preLoadSize = 0;
+
 	Parser_ClassConstructor()  {};
-	Parser_ClassConstructor(std::vector<int>& a) : entradas(a) {};
+	Parser_ClassConstructor(Parser_Sentencia* b) : op(b) {};
+	Parser_ClassConstructor(std::vector<int>& a, Parser_Sentencia* b, int c) : entradas(a), op(b), preLoadSize(c){};
 };
 
 class Operator_Class

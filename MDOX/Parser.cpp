@@ -2430,18 +2430,30 @@ etiquetas_class Parser::getLabelClass(int& local_index)
 Parser_ClassConstructor* Parser::getClassConstructor(int& local_index, std::vector<Variable>& variables_clase)
 {
 	int index = local_index;
+	SendVariables variables(variables_clase);
+
 	if (tokenizer.getTokenValue(index) == "constructor")
 	{
 		if (tokenizer.getTokenValue(index) == "(")
 		{
 			if (tokenizer.getTokenValue(index) == ")")
 			{
+				this->readingFunction = true;
+				Parser_Sentencia* op = getSentencia(index, variables);
+				this->readingFunction = false;
+				if (op == NULL)
+				{
+					Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_SENTENCIA_ERROR, NULL);
+					return NULL;
+				}
+
 				local_index = index;
-				return new Parser_ClassConstructor();
+				return new Parser_ClassConstructor(op);
 			}
 			index--;
 
 			std::vector<int> entradas;
+			int sizeId = 0;
 	
 			do
 			{
@@ -2452,16 +2464,34 @@ Parser_ClassConstructor* Parser::getClassConstructor(int& local_index, std::vect
 
 					if (var == NULL)
 					{
-						Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_ID_NOT_FOUND, NULL, id->nombre);
-						return NULL;
-					}
+						int index_v = *variables.num_local_var;
+						variables.push_VarLocal(Variable(id->nombre, index_v, true));
+						sizeId++;
+						entradas.emplace_back(0);
+						entradas.emplace_back(index_v);
 
-					entradas.emplace_back(var->index);
+						//Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_ID_NOT_FOUND, NULL, id->nombre);
+						//continue;
+					}
+					else
+					{
+						entradas.emplace_back(1);
+						entradas.emplace_back(var->index);
+					}
 
 					if (tokenizer.getTokenValue(index) == ")")
 					{
+						this->readingFunction = true;
+						Parser_Sentencia* op = getSentencia(index, variables);
+						this->readingFunction = false;
+						if (op == NULL)
+						{
+							Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_SENTENCIA_ERROR, NULL);
+							return NULL;
+						}
+
 						local_index = index;
-						return new Parser_ClassConstructor(entradas);
+						return new Parser_ClassConstructor(entradas, op, *variables.num_local_var);
 					}
 
 					index--;
@@ -2472,8 +2502,11 @@ Parser_ClassConstructor* Parser::getClassConstructor(int& local_index, std::vect
 					return NULL;
 				}
 
-			} while (tokenizer.getTokenValue(index) == ",");		
+			} while (tokenizer.getTokenValue(index) == ",");
+
+
 		}
+
 		Errores::generarError(Errores::ERROR_CLASE_CONSTRUCTOR_SINTAXIS, NULL);
 	}
 	return NULL;
@@ -3161,12 +3194,19 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 								a->is_Static = true;
 								a->static_link = this->readingClass;
 							}
+							else if (this->readingClass && !this->readingFunction)
+							{
+								int d = *variables.num_local_var;
+								variables.push_VarLocal(Variable(a->nombre, d, true));
+								this->readingClass->variables_map.emplace(a->nombre, d);
+								a->index = d;
+							}
 							else
 							{
 								int d = *variables.num_local_var;
 								variables.push_VarLocal(Variable(a->nombre, d, true)); 
-								if (this->readingClass)
-									this->readingClass->variables_map.emplace(std::move(a->nombre), d);
+								//if (this->readingClass)
+								//	this->readingClass->variables_map.emplace(std::move(a->nombre), d);
 								a->index = variables.variables_locales.back().index;
 							}
 						}
@@ -3234,12 +3274,19 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 							a->is_Static = true;
 							a->static_link = this->readingClass;
 						}
+						else if (this->readingClass && !this->readingFunction)
+						{
+							int d = *variables.num_local_var;
+							variables.push_VarLocal(Variable(a->nombre, d));
+							this->readingClass->variables_map.emplace(a->nombre, d);
+							a->index = d;
+						}
 						else
 						{
 							int d = *variables.num_local_var;
 							variables.push_VarLocal(Variable(a->nombre, d));
-							if (this->readingClass)
-								this->readingClass->variables_map.emplace(std::move(a->nombre), d);
+							//if (this->readingClass)
+							//	this->readingClass->variables_map.emplace(std::move(a->nombre), d);
 							a->index = variables.variables_locales.back().index;
 						}
 					}
@@ -3286,12 +3333,19 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 										a2->is_Static = true;
 										a2->static_link = this->readingClass;
 									}
+									else if (this->readingClass && !this->readingFunction)
+									{
+										int d = *variables.num_local_var;
+										variables.push_VarLocal(Variable(a2->nombre, d));
+										this->readingClass->variables_map.emplace(a2->nombre, d);
+										a2->index = d;
+									}
 									else
 									{
 										int d = *variables.num_local_var;
 										variables.push_VarLocal(Variable(a2->nombre, d));
-										if (this->readingClass)
-											this->readingClass->variables_map.emplace(std::move(a2->nombre), d);
+										//if (this->readingClass)
+										//	this->readingClass->variables_map.emplace(std::move(a2->nombre), d);
 										a2->index = variables.variables_locales.back().index;
 									}
 								}
@@ -3509,7 +3563,7 @@ bool Parser::preloadCalls()
 					//Comprobamos si existe un constructor adecuado para la clase
 					for (int inx_const = 0; inx_const < (Parser::clases)[itr]->getConstructores().size(); inx_const++)
 					{
-						if ((Parser::clases)[itr]->getConstructores()[inx_const]->entradas.size() != (*it)->entradas.size())
+						if ((Parser::clases)[itr]->getConstructores()[inx_const]->entradas.size() / 2 != (*it)->entradas.size())
 							continue;
 
 						(*it)->AddClass(itr, inx_const);
