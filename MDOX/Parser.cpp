@@ -2947,6 +2947,11 @@ Parser_Class* Parser::getClass(int& local_index)
 				//En el caso de que en el futuro se decida implementar innerClass, se dejará .variables_clase para tomar valores del 'padre'
 				SendVariables variables;
 
+				//Creamos una variable automática - this - 
+				this->readingClass = clase;
+				variables.push_VarLocal(Variable("this", 0, true));
+				this->readingClass->variables_map.emplace("this", 0);
+
 				//Aquí buscaremos todos los valores, funciones, operadores y constructores de los que disponga la clase.
 				while (tokenizer.getFirstNotCloseToken(index) != "}")
 				{

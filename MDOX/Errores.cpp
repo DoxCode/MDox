@@ -78,7 +78,7 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 
 	case Errores::ERROR_VARIABLE_NO_EXISTE:
 		Errores::generarCabeceraError(node, 2001, tipo);
-		std::cout << "La variable " << value << " no existe. ";
+		std::cout << "La variable " << value << " no existe o no fue declarada. ";
 		break;
 
 	case Errores::ERROR_CONVERSION_VARIABLE_INT:

@@ -1132,6 +1132,7 @@ Value Interprete::ExecClass(Call_Value* vf, std::vector<Value>& entradas)
 	Parser_Class* claseMain = Parser::clases[vf->inx_class->class_index];
 
 	std::shared_ptr<mdox_object> objeto_salida = std::make_shared<mdox_object>(claseMain);
+	objeto_salida->variables_clase[0].value = objeto_salida;
 
 	if (claseMain->isCore)
 	{
