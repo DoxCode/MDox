@@ -29,6 +29,10 @@ void Core::Start()
 	Core_Function* sleep = new Core_Function("sleep");
 	sleep->funcion_exec = &funcion_sleep;
 	Core::core_functions.push_back(sleep);
+	
+	Core_Function* typeOf = new Core_Function("typeOf");
+	typeOf->funcion_exec = &funcion_typeOf;
+	Core::core_functions.push_back(typeOf);
 }
 
 
@@ -126,6 +130,50 @@ bool funcion_now(std::vector<Value>& a)
 	return true;
 }
 
+
+/*
+	FUNCION TypeOf().
+	Compara un tipo con el introducido por le usuario.
+	ENTRADA: <LINT>
+	SALIDA: NONE
+*/
+bool funcion_typeOf(std::vector<Value>& a)
+{
+	if (a.size() != 2)
+	{
+		Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA_HA, Errores::outData, "typeOf", "typeOf(<value>, <string>):<bool>");
+		return false;
+	}
+
+	if (!a[1].Cast(PARAM_STRING))
+	{
+		Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA_HA, Errores::outData, "typeOf", "typeOf(<value>, <string>):<bool>");
+		return false;
+	}
+
+	std::string entrada = std::get<std::string>(a[1].value);
+
+	Interprete::instance->getRealValueFromValueWrapper(a[0]);
+
+		Value res = a[0];
+
+		bool v = std::visit(overloaded{
+			[&](int&)->bool { return entrada == "int"; },
+			[&](double&)->bool { return entrada == "double"; },
+			[&](long long&)->bool { return entrada == "lint"; },
+			[&](bool&)->bool { return entrada == "bool"; },
+			[&](std::shared_ptr<mdox_vector>&)->bool { return entrada == "vector"; },
+			[&](std::shared_ptr<mdox_object>& a)->bool { return a->clase->created->pID->nombre == entrada; },
+			[&](std::string&)->bool { return entrada == "string"; },
+			[&](std::monostate&)->bool { return entrada == "void"; },
+			[&](auto&)->bool { return false; },
+		}, a[0].value);
+	
+	Interprete::instance->setRetorno(Value(v));
+
+	return true;
+}
+
 /*
 	FUNCION SLEEP().
 	Pausa el hilo actual durante x ms
@@ -134,20 +182,20 @@ bool funcion_now(std::vector<Value>& a)
 */
 bool funcion_sleep(std::vector<Value>& a)
 {
-	if (a.size() != 0)
+	if (a.size() != 1)
 	{
-		Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA, Errores::outData, "sleep", "sleep(<lint>):<void>");
+		Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA_HA, Errores::outData, "sleep", "sleep(<lint>):<void>");
 		return false;
 	}
 
 	if (!a[0].Cast(PARAM_LINT))
 	{
-		Errores::generarError(Errores::ERROR_FUNCTION_PARAMETER, Errores::outData, "sleep", "sleep(<lint>):<void>");
+		Errores::generarError(Errores::ERROR_FUNCION_NO_DECLARADA_HA, Errores::outData, "sleep", "sleep(<lint>):<void>");
 		return false;
 	}
 
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(std::get<int>(a[0].value)));
+	std::this_thread::sleep_for(std::chrono::milliseconds(std::get<long long>(a[0].value)));
 
 	return true;
 }

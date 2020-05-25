@@ -1886,7 +1886,7 @@ Value Value::Offset(Value& v1, Value& v2)
 		}, v1.value, v2.value);
 }
 
-Value Value::ClassAccess(Parser_Identificador* v2, Call_Value* call, Variable_Runtime* variables, Variable_Runtime * var_class)
+Value Value::ClassAccess(Parser_Identificador* v2, Call_Value* call, bool isThis, Variable_Runtime* variables, Variable_Runtime * var_class)
 {
 	Interprete::instance->getRealValueFromValueWrapper(*this);
 
@@ -1990,10 +1990,10 @@ Value Value::ClassAccess(Parser_Identificador* v2, Call_Value* call, Variable_Ru
 			if (call)
 				if(a->clase->isCore)
 					return Interprete::instance->ExecFuncion(call, Interprete::instance->transformarEntradasCall(call, variables, var_class), a->variables_clase, a);
-				else return Interprete::instance->ExecFuncion(call, Interprete::instance->transformarEntradasCall(call, variables, var_class), a->variables_clase, a->clase);
+				else return Interprete::instance->ExecFuncion(call, Interprete::instance->transformarEntradasCall(call, variables, var_class), a->variables_clase, a->clase, isThis);
 			else
 			{
-				auto ret = a->findVariableAndCreateVoidIfNotExist(v2->nombre);//wrapper_object_call(a,v2);
+				auto ret = a->findVariableAndCreateVoidIfNotExist(v2->nombre, isThis);//wrapper_object_call(a,v2);
 				if (ret == nullptr)
 				{
 					Errores::generarError(Errores::ERROR_CLASE_VAR_NOT_EXIST, Errores::outData, v2->nombre);

@@ -139,6 +139,7 @@ public:
 bool funcion_print(std::vector<Value>&);
 bool funcion_now(std::vector<Value>&);
 bool funcion_sleep(std::vector<Value>&);
+bool funcion_typeOf(std::vector<Value>&);
 
 // ----- FUNCIONES DE V ATOMICAS
 

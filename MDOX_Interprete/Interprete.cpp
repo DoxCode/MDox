@@ -608,14 +608,16 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 			return std::monostate();
 		}
 
+		bool isThis = false;
+
 		return std::visit(overloaded{
 			[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a, variables,var_class); },
 			[](Value & a)->Value {return a; },
-			[&](Parser_Identificador * a)->Value { return a->var_global ? this->variables_globales[a->index].value : a->var_class ? var_class[a->index].value : a->is_Static ? a->static_link->static_var_runtime[a->index].value : variables[a->index].value;  },
+			[&](Parser_Identificador* a)->Value { Variable_Runtime* r = a->var_global ? &this->variables_globales[a->index] : a->var_class ? &var_class[a->index] : a->is_Static ? &a->static_link->static_var_runtime[a->index] : &variables[a->index]; isThis = r->isThis; return r;   },
 			[&](Call_Value * a)->Value { return a->is_class ? ExecClass(a, transformarEntradasCall(a, variables,var_class)) : ExecFuncion(a, transformarEntradasCall(a, variables,var_class),var_class); },
 			[&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables,var_class); },
 			[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return std::monostate(); },
-			}, node->_v1).ClassAccess(id, cv, variables, var_class);
+			}, node->_v1).ClassAccess(id, cv, isThis, variables, var_class);
 
 	}
 	else
@@ -1132,7 +1134,9 @@ Value Interprete::ExecClass(Call_Value* vf, std::vector<Value>& entradas)
 	Parser_Class* claseMain = Parser::clases[vf->inx_class->class_index];
 
 	std::shared_ptr<mdox_object> objeto_salida = std::make_shared<mdox_object>(claseMain);
+	//Establecemos el objeto this
 	objeto_salida->variables_clase[0].value = objeto_salida;
+	objeto_salida->variables_clase[0].isThis = true;
 
 	if (claseMain->isCore)
 	{
@@ -1226,7 +1230,7 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 
 // Ejecuta la función dentro del ENTORNO. Es decir, se trata de una función que NO está fuera del entorno de llamada. (Es decir, no forma parte de una clase diferente)
 // Las variables a las cuales tiene acceso esta función, serán las variables del entorno propio, es decir VARIABLES GLOBALES, variables declaradas a nivel de main.
-Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Variable_Runtime* var_class,Parser_Class* pClass)
+Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Variable_Runtime* var_class,Parser_Class* pClass, bool isThis)
 {
 /*	if (vf->is_class)
 	{
@@ -1319,7 +1323,7 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 
 	for (std::vector<int>::iterator dItr = indices_parseados->begin(); dItr != indices_parseados->end(); ++dItr)
 	{
-		if (pClass && !(*funciones)[*dItr]->is_Public)
+		if (pClass && (!(*funciones)[*dItr]->is_Public && !isThis))
 			continue;
 
 		if (entradas.size() != (*funciones)[*dItr]->entradas.size())

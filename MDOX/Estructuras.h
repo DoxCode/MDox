@@ -378,7 +378,7 @@ public:
 	
 
 	Value copyIn();
-	Value ClassAccess(Parser_Identificador* v2, Call_Value * call = nullptr, Variable_Runtime* variables = nullptr, Variable_Runtime* var_class = nullptr);
+	Value ClassAccess(Parser_Identificador* v2, Call_Value * call = nullptr, bool isThis = false, Variable_Runtime* variables = nullptr, Variable_Runtime* var_class = nullptr);
 	bool OperadoresEspeciales_Check(Value* v, int index);
 	short int OperadoresEspeciales_Pop(Value* v, bool& left);
 	Value operacion_Binaria(Value& v, const OPERADORES op);

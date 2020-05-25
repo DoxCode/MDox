@@ -29,6 +29,7 @@ public:
 	tipos_parametros tipo; // Si no es void, no es fuerte.
 	bool strict = false;
 	bool publica = true;
+	bool isThis = false;
 
 	Variable_Runtime() : tipo(PARAM_VOID) {}
 	Variable_Runtime(Value a) : value(a), tipo(PARAM_VOID) {}
@@ -70,14 +71,14 @@ public:
 	//Usado en clases core para guardar valores que no se podrían guardar en el lenguaje, como streams etc.
 	special_variant especial_value;
 
-	Variable_Runtime* findVariableAndCreateVoidIfNotExist(std::string& id)
+	Variable_Runtime* findVariableAndCreateVoidIfNotExist(std::string& id, bool isThis = false)
 	{
 		//Primero buscamos la variable, entre las declaradas en la clase
 		std::unordered_map<std::string, int>::const_iterator got = clase->variables_map.find(id);
 
 		if (got != clase->variables_map.end())
 		{
-			if(variables_clase[got->second].publica)
+			if(variables_clase[got->second].publica || isThis)
 				return &variables_clase[got->second];
 			
 			Errores::generarError(Errores::ERROR_CLASE_VAR_PRIVATE, NULL, id);
@@ -199,7 +200,7 @@ public:
 	Value ExecOperador(Operator_Class* oc, Value& v, Variable_Runtime* var_class);
 	Value ExecOperador(Operator_Class* oc, Variable_Runtime* var_class);
 	Value ExecClass(Call_Value* vf, std::vector<Value>& entradas);
-	Value ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Variable_Runtime* var_class, Parser_Class* pClass=NULL);
+	Value ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Variable_Runtime* var_class, Parser_Class* pClass=NULL, bool isThis = false);
 	Value ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Variable_Runtime* var_class, std::shared_ptr<mdox_object>&);
 	bool FuncionCore(Call_Value* vf, std::vector<Value>& entradas);
 
