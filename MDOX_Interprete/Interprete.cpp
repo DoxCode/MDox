@@ -229,6 +229,7 @@ Value Interprete::TratarMultiplesValores(multi_value* arr, Variable_Runtime* var
 	}
 }
 
+// USADO SOLO EN VECTORES
 //Igual que lectura_arbol_operacional, pero en caso de que la operacion sea un identificador
 //el value, devolvera la referencia en lugar de el valor.
 Value Interprete::lectura_arbol_MultiValue_ref(arbol_operacional* node, Variable_Runtime* variables, Variable_Runtime* var_class)
@@ -249,11 +250,11 @@ Value Interprete::lectura_arbol_MultiValue_ref(arbol_operacional* node, Variable
 						vr->strict = a->tipo->estricto;
 					}
 
-					/*if (a->inicializando)
+					if (a->inicializando)
 					{	
 						vr->value = std::monostate();
 						return vr;
-					}*/
+					}
 
 					return vr;
 				},
@@ -583,9 +584,9 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 				{   
 					return &(Parser::clases)[id_clase->index]->static_var_runtime[a->index];		
 				},
-				[&](Call_Value* a)->Value 
+				[&](Call_Value* a)->Value
 				{
-					return ExecFuncion(a, transformarEntradasCall(a, variables, var_class), var_class, (Parser::clases)[id_clase->index]);		
+					return ExecFuncion(a, transformarEntradasCall(a, variables, var_class), var_class, (Parser::clases)[id_clase->index]);
 				},
 				[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA_VOID, NULL);  return std::monostate(); },
 				}, node->_v2);
@@ -669,7 +670,7 @@ ValueOrMulti Interprete::getValueOrMulti(tipoValor& a, Variable_Runtime* variabl
 
 			if (a->inicializando)
 			{		
-			//	vr->value = std::monostate();
+				vr->value = std::monostate();
 				return std::visit(overloaded{
 					[&vr](Variable_Runtime*)->Value { return vr->value; },
 					[&vr](auto&)->Value { return vr;  },

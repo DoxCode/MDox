@@ -1505,12 +1505,14 @@ arbol_operacional * Parser::getOperacion(int& local_index, SendVariables& variab
 			}
 			else if (aux == OPERADORES::OP_SCOPE_LEFT)
 			{
-				is_op = 0;
+				index--;
+				break;
+				/*is_op = 0;
 				left_scope++;
 				OPERADORES a = OPERADORES::OP_ARIT_MULT;
 				normal_operator_do(left_scope, is_op, a, stack, op_stack);
 				op_stack.push_back(aux);
-				continue;
+				continue;*/
 			}
 			else if (aux == OPERADORES::OP_SCOPE_RIGHT)
 			{
@@ -3220,8 +3222,12 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 					{
 						if (a->inicializando)
 							var->inicializando = true;
-						//else if (var->inicializando)
-						//	a->inicializando = true;
+
+						else if (var->inicializando)
+						{
+							a->inicializando = true;
+							var->inicializando = false;
+						}
 
 						a->index = IndexVar;
 					}
