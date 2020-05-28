@@ -358,12 +358,13 @@ Parser_Identificador* Parser::getIdentificador(int& local_index)
 // ######################### VALOR  ########################### 
 // ############################################################
 
-
+//Usado en vectores solo
 multi_value* Parser::getValorList(bool& all_value, int& local_index, SendVariables& variables)
 {
 	int index = local_index; //##############
 
 	multi_value* mv = new multi_value();
+	this->readingVector = true;
 
 	while (true)
 	{
@@ -372,6 +373,7 @@ multi_value* Parser::getValorList(bool& all_value, int& local_index, SendVariabl
 
 		if (!c)
 		{
+			this->readingVector = false;
 			delete mv;
 			return NULL;
 		}
@@ -401,12 +403,14 @@ multi_value* Parser::getValorList(bool& all_value, int& local_index, SendVariabl
 		}
 		else
 		{
+			this->readingVector = false;
 			index2--;
 			local_index = index2;
 			return mv;
 		}
 	}
 
+	this->readingVector = false;
 }
 
 /*
@@ -3220,13 +3224,22 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 					}
 					else
 					{
+						
 						if (a->inicializando)
-							var->inicializando = true;
+						{
+							if (this->readingFunction || this->readingVector)
+								var->inicializando = false;
+							else
+								var->inicializando = true;
+						}
 
 						else if (var->inicializando)
 						{
-							a->inicializando = true;
-							var->inicializando = false;
+							if(this->readingFunction || this->readingVector)
+								var->inicializando = false;
+							else
+								a->inicializando = true;
+						   //var->inicializando = false;
 						}
 
 						a->index = IndexVar;

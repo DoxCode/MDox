@@ -68,7 +68,8 @@ public:
 
 	bool existenErrores = false;
 	
-	bool readingFunction = false;
+	bool readingFunction = false; //Elementos de entrada / parametros
+	bool readingVector = false;
 	bool readingStaticValue = false;
 
 	//bool readingVectorOperations = false;
