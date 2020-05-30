@@ -213,23 +213,19 @@ Value Value::Suma(Value& v1, Value& v2)
 				std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
 				//r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
-				Value* a1 = &*a->vector.begin();
-				Value* b1 = &*b->vector.begin();
+				std::deque<Value>::iterator a1 = a->vector.begin();
+				std::deque<Value>::iterator b1 = b->vector.begin();
 
-				Value * a2 = &a->vector.back();
-				Value * b2 = &b->vector.back();
+				std::deque<Value>::iterator a2 = a->vector.end();
+				std::deque<Value>::iterator b2 = b->vector.end();
 
 
 				while (true)
 				{
 					if (a1 == a2)
 					{
-						r->vector.emplace_back(Value::Suma(*a1, *b1));
-
 						if (b1 == b2)
 							return r;
-
-						b1++; 
 
 						while (b1 != b2)
 						{
@@ -237,25 +233,19 @@ Value Value::Suma(Value& v1, Value& v2)
 							b1++; 
 						}
 
-						r->vector.emplace_back(*b1);
 						return r;
 					}
 
 					if (b1 == b2)
 					{
-						r->vector.emplace_back(Value::Suma(*a1, *b1));
-
 						if (a1 == a2)
 							return r;
-
-						a1++; 
 
 						while (a1 != a2)
 						{
 							r->vector.emplace_back(*a1);
 							a1++; 
 						}
-						r->vector.emplace_back(*a1);
 						return r;
 					}
 
@@ -541,23 +531,21 @@ Value Value::Resta(Value& v1, Value& v2)
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
 						//r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
-						Value* a1 = &*a->vector.begin();
-						Value* b1 = &*b->vector.begin();
+						std::deque<Value>::iterator a1 = a->vector.begin();
+						std::deque<Value>::iterator b1 = b->vector.begin();
 
-						Value* a2 = &a->vector.back();
-						Value* b2 = &b->vector.back();
+						std::deque<Value>::iterator a2 = a->vector.end();
+						std::deque<Value>::iterator b2 = b->vector.end();
 
 
 						while (true)
 						{
 							if (a1 == a2)
 							{
-								r->vector.emplace_back(Value::Resta(*a1, *b1));
 
 								if (b1 == b2)
 									return r;
 
-								b1++;
 
 								OPERADORES op = ELEM_NEG_FIRST;
 								while (b1 != b2)
@@ -566,25 +554,21 @@ Value Value::Resta(Value& v1, Value& v2)
 									b1++;
 								}
 
-								r->vector.emplace_back(b1->operacion_Unitaria(op));
 								return r;
 							}
 
 							if (b1 == b2)
 							{
-								r->vector.emplace_back(Value::Resta(*a1, *b1));
 
 								if (a1 == a2)
 									return r;
-
-								a1++;
 
 								while (a1 != a2)
 								{
 									r->vector.emplace_back(*a1);
 									a1++;
 								}
-								r->vector.emplace_back(*a1);
+
 								return r;
 							}
 
@@ -837,23 +821,19 @@ Value Value::Multiplicacion(Value& v1, Value& v2)
 						std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
 						//r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
-						Value* a1 = &*a->vector.begin();
-						Value* b1 = &*b->vector.begin();
+						std::deque<Value>::iterator a1 = a->vector.begin();
+						std::deque<Value>::iterator b1 = b->vector.begin();
 
-						Value* a2 = &a->vector.back();
-						Value* b2 = &b->vector.back();
+						std::deque<Value>::iterator a2 = a->vector.end();
+						std::deque<Value>::iterator b2 = b->vector.end();
 
 
 						while (true)
 						{
 							if (a1 == a2)
 							{
-								r->vector.emplace_back(Value::Multiplicacion(*a1, *b1));
-
 								if (b1 == b2)
 									return r;
-
-								b1++;
 
 								while (b1 != b2)
 								{
@@ -861,25 +841,20 @@ Value Value::Multiplicacion(Value& v1, Value& v2)
 									b1++;
 								}
 
-								r->vector.emplace_back(std::monostate());
 								return r;
 							}
 
 							if (b1 == b2)
 							{
-								r->vector.emplace_back(Value::Multiplicacion(*a1, *b1));
-
 								if (a1 == a2)
 									return r;
-
-								a1++;
 
 								while (a1 != a2)
 								{
 									r->vector.emplace_back(std::monostate());
 									a1++;
 								}
-								r->vector.emplace_back(std::monostate());
+
 								return r;
 							}
 
@@ -1105,23 +1080,20 @@ Value Value::Div(Value& v1, Value& v2)
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
 			//r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
-			Value* a1 = &*a->vector.begin();
-			Value* b1 = &*b->vector.begin();
+			std::deque<Value>::iterator a1 = a->vector.begin();
+			std::deque<Value>::iterator b1 = b->vector.begin();
 
-			Value* a2 = &a->vector.back();
-			Value* b2 = &b->vector.back();
+			std::deque<Value>::iterator a2 = a->vector.end();
+			std::deque<Value>::iterator b2 = b->vector.end();
 
 
 			while (true)
 			{
 				if (a1 == a2)
 				{
-					r->vector.emplace_back(Value::Div(*a1, *b1));
-
 					if (b1 == b2)
 						return r;
 
-					b1++;
 
 					while (b1 != b2)
 					{
@@ -1129,25 +1101,21 @@ Value Value::Div(Value& v1, Value& v2)
 						b1++;
 					}
 
-					r->vector.emplace_back(std::monostate());
 					return r;
 				}
 
 				if (b1 == b2)
 				{
-					r->vector.emplace_back(Value::Div(*a1, *b1));
 
 					if (a1 == a2)
 						return r;
-
-					a1++;
 
 					while (a1 != a2)
 					{
 						r->vector.emplace_back(std::monostate());
 						a1++;
 					}
-					r->vector.emplace_back(std::monostate());
+
 					return r;
 				}
 
@@ -1364,23 +1332,21 @@ Value Value::DivEntera(Value& v1, Value& v2)
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
 			//	r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
-			Value* a1 = &*a->vector.begin();
-			Value* b1 = &*b->vector.begin();
+			std::deque<Value>::iterator a1 = a->vector.begin();
+			std::deque<Value>::iterator b1 = b->vector.begin();
 
-			Value* a2 = &a->vector.back();
-			Value* b2 = &b->vector.back();
+			std::deque<Value>::iterator a2 = a->vector.end();
+			std::deque<Value>::iterator b2 = b->vector.end();
 
 
 			while (true)
 			{
 				if (a1 == a2)
 				{
-					r->vector.emplace_back(Value::DivEntera(*a1, *b1));
 
 					if (b1 == b2)
 						return r;
 
-					b1++;
 
 					while (b1 != b2)
 					{
@@ -1388,25 +1354,20 @@ Value Value::DivEntera(Value& v1, Value& v2)
 						b1++;
 					}
 
-					r->vector.emplace_back(std::monostate());
 					return r;
 				}
 
 				if (b1 == b2)
 				{
-					r->vector.emplace_back(Value::DivEntera(*a1, *b1));
-
 					if (a1 == a2)
 						return r;
-
-					a1++;
 
 					while (a1 != a2)
 					{
 						r->vector.emplace_back(std::monostate());
 						a1++;
 					}
-					r->vector.emplace_back(std::monostate());
+
 					return r;
 				}
 
@@ -1628,23 +1589,20 @@ Value Value::Mod(Value& v1, Value& v2)
 			std::shared_ptr<mdox_vector> r = std::make_shared<mdox_vector>();
 			//r->vector.reserve(a->vector.size() > b->vector.size() ? a->vector.size() : b->vector.size());
 
-			Value* a1 = &*a->vector.begin();
-			Value* b1 = &*b->vector.begin();
+			std::deque<Value>::iterator a1 = a->vector.begin();
+			std::deque<Value>::iterator b1 = b->vector.begin();
 
-			Value* a2 = &a->vector.back();
-			Value* b2 = &b->vector.back();
+			std::deque<Value>::iterator a2 = a->vector.end();
+			std::deque<Value>::iterator b2 = b->vector.end();
 
 
 			while (true)
 			{
 				if (a1 == a2)
 				{
-					r->vector.emplace_back(Value::Mod(*a1, *b1));
 
 					if (b1 == b2)
 						return r;
-
-					b1++;
 
 					while (b1 != b2)
 					{
@@ -1652,25 +1610,21 @@ Value Value::Mod(Value& v1, Value& v2)
 						b1++;
 					}
 
-					r->vector.emplace_back(std::monostate());
 					return r;
 				}
 
 				if (b1 == b2)
 				{
-					r->vector.emplace_back(Value::Mod(*a1, *b1));
 
 					if (a1 == a2)
 						return r;
-
-					a1++;
 
 					while (a1 != a2)
 					{
 						r->vector.emplace_back(std::monostate());
 						a1++;
 					}
-					r->vector.emplace_back(std::monostate());
+
 					return r;
 				}
 

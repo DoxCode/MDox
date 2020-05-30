@@ -1083,17 +1083,19 @@ Value Interprete::ExecOperador(Operator_Class* oc, Value& v, Variable_Runtime* v
 	variables[0] = v;
 	if (!Interprete_Sentencia(oc->body, variables, var_class))
 	{
+		delete[] variables;
 		Errores::generarError(Errores::ERROR_CLASE_OPERADOR_SENTENCIA_INVALIDA,NULL);	
 		return std::monostate();
 	}		
 
 	if (this->returnCalled())
 	{
-
+		delete[] variables;
 		return this->getRetorno();
 	}
 	else
 	{
+		delete[] variables;
 		return std::monostate();
 	}
 }
@@ -1192,6 +1194,7 @@ Value Interprete::ExecClass(Call_Value* vf, std::vector<Value>& entradas)
 
 	if (!Interprete_Sentencia(constructor->op, vr, objeto_salida->variables_clase))
 	{
+		delete[] vr;
 		Errores::generarError(Errores::ERROR_CLASE_OPERADOR_SENTENCIA_INVALIDA, NULL);
 		return std::monostate();
 	}
@@ -1301,7 +1304,7 @@ Value Interprete::ExecFuncion(Call_Value* vf, std::vector<Value>& entradas, Vari
 			}
 			return std::monostate();
 		}
-		if (vf->isInsideClass)
+		else if (vf->isInsideClass)
 		{
 			if (!vf->inside_class->isCore)
 			{

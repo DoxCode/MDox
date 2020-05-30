@@ -358,7 +358,7 @@ public:
 	wrapper_object_call(std::shared_ptr<mdox_object>& a, Parser_Identificador* x) : objeto(a), var(x) {}
 };*/
 
-using val_variant = std::variant< std::monostate, int, bool, double, std::shared_ptr<mdox_vector>, std::shared_ptr<mdox_object>, long long, std::string, Variable_Runtime*>;
+using val_variant = std::variant< std::monostate, int, bool, double, std::shared_ptr<mdox_vector>, std::shared_ptr<mdox_object>, std::string, long long, Variable_Runtime*>;
 
 class Call_Value;
 
