@@ -235,6 +235,17 @@ Value Parser::getLiteral(bool& v, int& local_index)
 		return Value(false);
 	}
 
+	//######### Probando si puede tratarse de un void
+	index = local_index;
+	token = tokenizer.getTokenValue(index);
+	if (token == "void")
+	{
+		v = true;
+		local_index = index;
+		return Value();
+	}
+
+
 	v = false;
 	return Value();
 }
@@ -292,7 +303,7 @@ Parser_Declarativo* Parser::getDeclarativo(int& local_index)
 		local_index = index;
 		return p;
 	}
-	else if (token == "void")
+	else if (token == "auto")
 	{
 		Parser_Declarativo* p = new Parser_Declarativo(PARAM_VOID, esEstricto);
 		local_index = index;
@@ -335,7 +346,7 @@ Parser_Identificador* Parser::getIdentificador(int& local_index)
 	std::string token = tokenizer.getTokenValue(index);
 
 	//Comprobamos que el identificador no es una palabra reservada del sistema.
-	std::vector<std::string> palabras_reservadas = { "strict","require", "include","global", "return", "break", "if", "else", "vector", "int", "double", "void", "bool", "operator", "constructor", "class", "function", "while", "for", "continue", "lint", "string" };
+	std::vector<std::string> palabras_reservadas = { "strict","require", "include","global", "return", "break", "if", "else", "vector", "int", "double", "void", "auto", "bool", "operator", "constructor", "class", "function", "while", "for", "continue", "lint", "string" };
 
 	if (std::find(palabras_reservadas.begin(), palabras_reservadas.end(), token) != palabras_reservadas.end())
 	{

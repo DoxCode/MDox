@@ -3083,7 +3083,9 @@ bool Value::igualdad_Condicional(Value & v)
 		},
 		[](std::string & a,  std::string & b) { return a == b; },
 
-		[](std::shared_ptr<mdox_vector> & a,  std::shared_ptr<mdox_vector> & b) { return distance(a->vector.begin(), a->vector.end()) == distance(b->vector.begin(), b->vector.end()) && equal(a->vector.begin(), a->vector.end(), b->vector.begin()); },
+		[](std::shared_ptr<mdox_vector> & a,  std::shared_ptr<mdox_vector> & b) { 
+			return distance(a->vector.begin(), a->vector.end()) == distance(b->vector.begin(), b->vector.end()) && equal(a->vector.begin(), a->vector.end(), b->vector.begin());
+		},
 
 
 		[&](auto& a, std::shared_ptr<mdox_object>& b)
@@ -3144,6 +3146,7 @@ bool Value::igualdad_Condicional(Value & v)
 			return false;
 		},
 
+		[](std::monostate, std::monostate) { return true; },
 		[](auto&,auto&) { return false; },
 
 		}, value, v.value);
