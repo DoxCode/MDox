@@ -3318,38 +3318,30 @@ bool Value::mayorQue_Condicional(Value & v)
 			if (b->vector.empty())
 				return true;
 
-			Value * v1 = &*a->vector.begin();
-			Value * v1_end = &a->vector.back();
+			std::deque<Value>::iterator v1 = a->vector.begin();
+			std::deque<Value>::iterator v2 = b->vector.begin();
 
-			Value * v2 = &*b->vector.begin();
-			Value * v2_end = &b->vector.back();
+			std::deque<Value>::iterator v1_end = a->vector.end();
+			std::deque<Value>::iterator v2_end = b->vector.end();
 
 
 			while (true)
 			{
 				if (v1 == v1_end)
 				{
-					if (*v1 == *v2)
+					if (v2 == v2_end)
 					{
-						if (v2 == v2_end)
-						{
-							return false; // Son iguales
-						}
-						else return false; //V2 tiene mas valores, ende es mayor
+						return false; // Son iguales
 					}
-					return v1->mayorQue_Condicional(*v2); //Dependera de que valor es mayor.
+					else return false; //V2 tiene mas valores, ende es mayor
 				}
 				else if (v2 == v2_end)
 				{
-					if (*v1 == *v2)
+					if (v1 == v1_end)
 					{
-						if (v1 == v1_end)
-						{
-							return false; // Son iguales
-						}
-						else return true; //V1 tiene mas valores, ende es mayor
+						return false; // Son iguales
 					}
-					return v1->mayorQue_Condicional(*v2); //Dependera de que valor es mayor.
+					else return true; //V1 tiene mas valores, ende es mayor
 				}
 				else
 				{
@@ -3541,37 +3533,31 @@ bool Value::menorQue_Condicional(Value & v)
 			if (a->vector.empty())
 				return true;
 
-			Value * v1 = &*a->vector.begin();
-			Value * v1_end = &a->vector.back();
 
-			Value * v2 = &*b->vector.begin();
-			Value * v2_end = &b->vector.back();
+			std::deque<Value>::iterator v1 = a->vector.begin();
+			std::deque<Value>::iterator v2 = b->vector.begin();
+
+			std::deque<Value>::iterator v1_end = a->vector.end();
+			std::deque<Value>::iterator v2_end = b->vector.end();
+
 
 			while (true)
 			{
 				if (v1 == v1_end)
 				{
-					if (*v1 == *v2)
+					if (v2 == v2_end)
 					{
-						if (v2 == v2_end)
-						{
-							return false; // Son iguales
-						}
-						else return true; //V2 tiene mas valores, ende es mayor
+						return false; // Son iguales
 					}
-					return v1->menorQue_Condicional(*v2); //Dependera de que valor es mayor.
+					else return true; //V2 tiene mas valores, ende es mayor
 				}
 				else if (v2 == v2_end)
 				{
-					if (*v1 == *v2)
-					{
 						if (v1 == v1_end)
 						{
 							return false; // Son iguales
 						}
 						else return false; //V1 tiene mas valores, ende es mayor
-					}
-					return v1->menorQue_Condicional(*v2); //Dependera de que valor es mayor.
 				}
 				else
 				{
@@ -3763,37 +3749,30 @@ bool Value::menorIgualQue_Condicional(Value & v)
 			if (a->vector.empty() || (a->vector.empty() && b->vector.empty()))
 				return true;
 
-			Value * v1 = &*a->vector.begin();
-			Value * v1_end = &a->vector.back();
+			std::deque<Value>::iterator v1 = a->vector.begin();
+			std::deque<Value>::iterator v2 = b->vector.begin();
 
-			Value * v2 = &*b->vector.begin();
-			Value * v2_end = &b->vector.back();
+			std::deque<Value>::iterator v1_end = a->vector.end();
+			std::deque<Value>::iterator v2_end = b->vector.end();
+
 
 			while (true)
 			{
 				if (v1 == v1_end)
 				{
-					if (*v1 == *v2)
+					if (v2 == v2_end)
 					{
-						if (v2 == v2_end)
-						{
-							return true; // Son iguales
-						}
-						else return true; //V2 tiene mas valores, ende es mayor
+						return true; // Son iguales
 					}
-					return v1->menorIgualQue_Condicional(*v2); //Dependera de que valor es mayor.
+					else return true; //V2 tiene mas valores, ende es mayor
 				}
 				else if (v2 == v2_end)
 				{
-					if (*v1 == *v2)
+					if (v1 == v1_end)
 					{
-						if (v1 == v1_end)
-						{
-							return true; // Son iguales
-						}
-						else return false; //V1 tiene mas valores, ende es mayor
+						return true; // Son iguales
 					}
-					return v1->menorIgualQue_Condicional(*v2); //Dependera de que valor es mayor.
+					else return false; //V1 tiene mas valores, ende es mayor
 				}
 				else
 				{
@@ -3984,38 +3963,30 @@ bool Value::mayorIgualQue_Condicional(Value & v)
 			if (b->vector.empty() || (a->vector.empty() && b->vector.empty()))
 				return true;
 
-			Value * v1 = &*a->vector.begin();
-			Value * v1_end = &a->vector.back();
+			std::deque<Value>::iterator v1 = a->vector.begin();
+			std::deque<Value>::iterator v2 = b->vector.begin();
 
-			Value * v2 = &*b->vector.begin();
-			Value * v2_end = &b->vector.back();
+			std::deque<Value>::iterator v1_end = a->vector.end();
+			std::deque<Value>::iterator v2_end = b->vector.end();
 
 
 			while (true)
 			{
 				if (v1 == v1_end)
 				{
-					if (*v1 == *v2)
+					if (v2 == v2_end)
 					{
-						if (v2 == v2_end)
-						{
-							return true; // Son iguales
-						}
-						else return false; //V2 tiene mas valores, ende es mayor
+						return true; // Son iguales
 					}
-					return v1->mayorIgualQue_Condicional(*v2); //Dependera de que valor es mayor.
+					else return false; //V2 tiene mas valores, ende es mayor
 				}
 				else if (v2 == v2_end)
 				{
-					if (*v1 == *v2)
+					if (v1 == v1_end)
 					{
-						if (v1 == v1_end)
-						{
-							return true; // Son iguales
-						}
-						else return true; //V1 tiene mas valores, ende es mayor
+						return true; // Son iguales
 					}
-					return v1->mayorIgualQue_Condicional(*v2); //Dependera de que valor es mayor.
+					else return true; //V1 tiene mas valores, ende es mayor
 				}
 				else
 				{
