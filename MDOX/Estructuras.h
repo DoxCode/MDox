@@ -421,11 +421,13 @@ public:
 	Value(long long& a) : value(a) {  };
 	Value(std::string& a) : value(a) {  };
 	Value(bool& a) : value(a) {  };
+	Value(char& a) : value(std::string(1, a)) {  };
 	Value(std::monostate&) : value(std::monostate()) {  };
 	Value(std::shared_ptr<mdox_vector>& a) : value(a) {  };
 	Value(std::shared_ptr<mdox_object>& a) : value(a) { };
 	Value(Variable_Runtime* a) : value(a) { };
 
+	Value(char&& a) : value(std::string(1, a)) {  };
 	Value(int&& a) : value(std::move(a)) {  };
 	Value(double&& a) : value(std::move(a)) {  };
 	Value(long long&& a) : value(std::move(a)) {  };

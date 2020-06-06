@@ -577,7 +577,7 @@ bool funcion_string_split(Value caller, std::vector<Value>& a)
 /*
 	FUNCION Match.
 	Devuelve verdadero si encuentra un match especificado por un regex
-	ENTRADA: <STRING>
+	ENTRADA: <STRING:REGE>
 	SALIDA: <BOOL>
 */
 bool funcion_string_match(Value caller, std::vector<Value>& a)
@@ -717,8 +717,7 @@ bool funcion_string_toUpper(Value caller, std::vector<Value>& a)
 
 /*
 	FUNCION Find.
-	Devuelve la cadena entre  uno o dos puntos dados
-	* -> SIEMPRE se da, por contexto.
+	Busca un valor y devuelve el punto donde lo encuentra
 	ENTRADA: <STRING>
 	SALIDA: <LINT>
 */
@@ -764,7 +763,7 @@ bool funcion_string_substring(Value caller, std::vector<Value>& a)
 
 		if (!v->Cast(PARAM_LINT))
 		{
-			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "substring", "substring(<int>, <int?>):<string>");
+			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "substring", "substring(<lint>, <lint?>):<string>");
 			return false;
 		}
 
@@ -787,7 +786,7 @@ bool funcion_string_substring(Value caller, std::vector<Value>& a)
 
 		if (!v->Cast(PARAM_LINT))
 		{
-			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "substring", "substring(<int>, <int?>):<string>");
+			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "substring", "substring(<lint>, <lint?>):<string>");
 			return false;
 		}
 
@@ -814,7 +813,7 @@ bool funcion_string_substring(Value caller, std::vector<Value>& a)
 		return true;
 	}
 
-	Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "substring", "substring(<int>, <int?>):<string>");
+	Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "substring", "substring(<lint>, <lint?>):<string>");
 	return false;
 
 }
@@ -987,6 +986,12 @@ bool funcion_toBinaryString(Value& caller, std::vector<Value>& a) {
 		auto val = input >> i;
 		result.push_back((val & 1) + '0');
 	}
+
+	result.erase(0, result.find_first_not_of('0'));
+
+	if (result.size() == 0)
+		result = "0";
+
 	Interprete::instance->setRetorno(Value(result));
 	return true;
 }
@@ -1014,6 +1019,8 @@ template <class T>
 bool funcion_toHexString(Value& caller, std::vector<Value>& a)
 {
 	T v = std::get<T>(caller.value);
+	if (v < 0)
+		v = -v;
 	std::ostringstream vStream;
 	vStream << std::hex << v;
 	Interprete::instance->setRetorno(Value(vStream.str()));
@@ -1041,6 +1048,10 @@ template <class T>
 bool funcion_toOctalString(Value& caller, std::vector<Value>& a)
 {
 	T v = std::get<T>(caller.value);
+
+	if (v < 0)
+		v = -v;
+
 	std::ostringstream vStream;
 	vStream << std::oct << v;
 	Interprete::instance->setRetorno(Value(vStream.str()));

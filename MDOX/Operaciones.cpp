@@ -1717,7 +1717,7 @@ Value Value::Offset(Value& v1, Value& v2)
 		
 		[&](std::shared_ptr<mdox_vector> & a, int& b)
 		{
-			if (b > a->vector.size() || b < 0)
+			if (b >= a->vector.size() || b < 0)
 			{
 				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(b));
 				return Value();
@@ -1727,7 +1727,7 @@ Value Value::Offset(Value& v1, Value& v2)
 
 		[&](std::shared_ptr<mdox_vector> & a, long long& b)
 		{
-			if (b > a->vector.size() || b < 0)
+			if (b >= a->vector.size() || b < 0)
 			{
 				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(b));
 				return Value();
@@ -1740,7 +1740,7 @@ Value Value::Offset(Value& v1, Value& v2)
 			if (v2.Cast(PARAM_LINT))
 			{
 				long long tr = std::get<long long>(v2.value);
-				if (tr > a->vector.size() || tr < 0)
+				if (tr >= a->vector.size() || tr < 0)
 				{
 					Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(tr));
 					return Value();
@@ -1753,6 +1753,53 @@ Value Value::Offset(Value& v1, Value& v2)
 				 return Value();
 			}
 		},
+		[&](std::string& a, int& b)
+		{
+			if (b >= a.size() || b < 0)
+			{
+				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(b));
+				return Value();
+			}
+			return Value(a[b]);
+		},
+
+		[&](std::string& a, long long& b)
+		{
+			if (b >= a.size() || b < 0)
+			{
+				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(b));
+				return Value();
+			}
+			return  Value(a[b]);
+		},
+
+		[&](std::string& a, std::shared_ptr<mdox_object>& b)
+		{
+			Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->getNombre());
+			return Value();
+		},
+
+		[&](std::string& a, auto&)
+		{
+			if (v2.Cast(PARAM_LINT))
+			{
+				long long tr = std::get<long long>(v2.value);
+				if (tr >= a.size() || tr < 0)
+				{
+					Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(tr));
+					return Value();
+				}
+				return  Value(a[tr]);
+			}
+			else
+			{
+				 Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "[]");
+				 return Value();
+			}
+		},
+
+
+
 		[&v1](std::shared_ptr<mdox_vector>& a, std::shared_ptr<mdox_object>& b)
 		{
 			if (b->clase->isCore)

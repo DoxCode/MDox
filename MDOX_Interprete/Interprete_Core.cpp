@@ -129,13 +129,11 @@ bool funcion_now(std::vector<Value>& a)
 	Interprete::instance->setRetorno(v);
 	return true;
 }
-
-
 /*
 	FUNCION TypeOf().
 	Compara un tipo con el introducido por le usuario.
-	ENTRADA: <LINT>
-	SALIDA: NONE
+	ENTRADA: <value>, <STRING>
+	SALIDA: <BOOL>
 */
 bool funcion_typeOf(std::vector<Value>& a)
 {

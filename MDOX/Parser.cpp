@@ -182,41 +182,41 @@ Value Parser::getLiteral(bool& v, int& local_index)
 				v = true;
 				return Value(value);
 			}
-
-			//Si llegamos aquí, no es un DOUBLE; pero tampoco un INT.
+			//Puede ser un metodo
+			
 		}
-		else
+
+		
+		//Se trata de un ENTERO
+		long long value;
+
+		try {
+			value = std::stoll(token);
+		}
+		catch (const std::out_of_range)
 		{
-			//Se trata de un ENTERO
-			long long value;
-
-			try {
-				value = std::stoll(token);
-			}
-			catch (const std::out_of_range)
-			{
-				auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
-				Errores::generarError(Errores::ERROR_INTEGER_OVERFLOW, &out);
-				v = false;
-				return Value();
-			}
-
-			if (value > INT_MAX)
-			{
-				local_index = index;
-				v = true;
-				return Value(value);
-			}
-			else
-			{
-				local_index = index;
-				v = true;
-				return Value((int)value);
-			}
-
+			auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+			Errores::generarError(Errores::ERROR_INTEGER_OVERFLOW, &out);
 			v = false;
 			return Value();
 		}
+
+		if (value > INT_MAX)
+		{
+			local_index = index;
+			v = true;
+			return Value(value);
+		}
+		else
+		{
+			local_index = index;
+			v = true;
+			return Value((int)value);
+		}
+
+		v = false;
+		return Value();
+		
 	}
 
 	//######### Probando si puede tratarse de un booleano

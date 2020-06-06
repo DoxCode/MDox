@@ -39,8 +39,8 @@ int main(int argument_count, char * argument_list[])
 	}
 
 	std::cout << "Bienvenido a MDOX, version " << VERSION << "(" << ESTADO << ")  \n";
-	std::cout << "Copyright (c) 2018-2019 Rodrigo de Miguel Fernández. \n";
-	std::cout << "MDOX es un software gratuito y SIN GARANTIAS, eres libre de distribuirlo. \n";
+	std::cout << "Copyright (c) 2020 Rodrigo de Miguel Fernández. \n";
+	std::cout << "MDOX es un software gratuito y SIN GARANTIAS, es libre de distribuirlo. \n";
 	//std::cout << "RUTA: " << getAbsolutePathFromRelative("MDOX_Interprete.ilk") << "\n";
 
 	Core::Start();
