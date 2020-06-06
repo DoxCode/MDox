@@ -53,7 +53,8 @@ std::map<std::string, Core_Function_AtomicTypes> Core::core_atomic_string =
 	{ "startsWith",  Core_Function_AtomicTypes(&funcion_string_startsWith) },
 	{ "match",  Core_Function_AtomicTypes(&funcion_string_match) },
 	{ "split",  Core_Function_AtomicTypes(&funcion_string_split) },
-	{ "find", Core_Function_AtomicTypes(&funcion_string_find) }
+	{ "find", Core_Function_AtomicTypes(&funcion_string_find) },
+	{ "searchMatch", Core_Function_AtomicTypes(&funcion_string_searchMatch) }
 };
 
 
@@ -575,6 +576,59 @@ bool funcion_string_split(Value caller, std::vector<Value>& a)
 
 
 /*
+	FUNCION searchMatch.
+	Devuelve un vector con las coincidencias aceptadas
+	ENTRADA: <STRING:Regex>
+	SALIDA: <VECTOR>
+*/
+
+bool funcion_string_searchMatch(Value caller, std::vector<Value>& a)
+{
+	std::string n = std::get<std::string>(caller.value);
+
+	if (a.size() == 1)
+	{
+		Value* v = &a[0];
+
+		if (!v->Cast(PARAM_STRING))
+		{
+			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "searchMatch", "searchMatch(<string:regex>):<vector>");
+			return false;
+		}
+
+		std::string t1 = std::get<std::string>(v->value);
+
+		std::regex e;
+		try {
+			e = t1;
+		}
+		catch (std::regex_error & e) {
+			Errores::generarError(Errores::ERROR_REGEX_INVALID, Errores::outData, t1);
+			return false;
+		}
+
+		std::smatch m;
+		std::shared_ptr<mdox_vector> elems = std::make_shared<mdox_vector>();
+	
+		if (t1 != "")
+		{
+			while (std::regex_search(n, m, e))
+			{
+				elems->vector.emplace_back(Value(m[0]));
+				n = m.suffix();
+			}
+		}
+
+		Interprete::instance->setRetorno(Value(elems));
+		return true;
+	}
+
+	Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "searchMatch", "searchMatch(<string:regex>):<vector>");
+	return false;
+}
+
+
+/*
 	FUNCION Match.
 	Devuelve verdadero si encuentra un match especificado por un regex
 	ENTRADA: <STRING:REGE>
@@ -713,7 +767,6 @@ bool funcion_string_toUpper(Value caller, std::vector<Value>& a)
 	return false;
 
 }
-
 
 /*
 	FUNCION Find.

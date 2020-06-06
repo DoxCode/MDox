@@ -147,6 +147,7 @@ bool funcion_typeOf(std::vector<Value>&);
 bool funcion_string_find(Value, std::vector<Value>&);
 bool funcion_string_substring(Value, std::vector<Value>&);
 bool funcion_string_find(Value, std::vector<Value>&);
+bool funcion_string_searchMatch(Value, std::vector<Value>&);
 bool funcion_string_toUpper(Value, std::vector<Value>&);
 bool funcion_string_toLower(Value, std::vector<Value>&);
 bool funcion_string_Replace(Value, std::vector<Value>&);
