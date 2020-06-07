@@ -39,7 +39,13 @@ std::map<std::string, Core_Function_AtomicTypes> Core::core_atomic_vector =
 	{ "popBack",  Core_Function_AtomicTypes(&funcion_vector_popBack) },
 	{ "popFront",  Core_Function_AtomicTypes(&funcion_vector_popFront) },
 	{ "insert",  Core_Function_AtomicTypes(&funcion_vector_insert) },
+	{ "front",  Core_Function_AtomicTypes(&funcion_vector_front) },
+	{ "back",  Core_Function_AtomicTypes(&funcion_vector_back) },
 	{ "containsAll", Core_Function_AtomicTypes(&funcion_vector_containsAll) }
+
+
+	
+
 };
 
 std::map<std::string, Core_Function_AtomicTypes> Core::core_atomic_string =
@@ -143,7 +149,7 @@ bool funcion_vector_popFront(Value caller, std::vector<Value>& a)
 
 	if (a.size() == 0)
 	{
-		Interprete::instance->setRetorno(Value(n->vector.front()));
+		Interprete::instance->setRetorno(caller);
 		n->vector.pop_front();
 		return true;
 	}
@@ -164,7 +170,7 @@ bool funcion_vector_popBack(Value caller, std::vector<Value>& a)
 
 	if (a.size() == 0)
 	{
-		Interprete::instance->setRetorno(Value(n->vector.back()));
+		Interprete::instance->setRetorno(caller);
 		n->vector.pop_back();
 		return true;
 	}

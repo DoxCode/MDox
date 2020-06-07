@@ -195,8 +195,12 @@ Value Interprete::TratarMultiplesValores(multi_value* arr, Variable_Runtime* var
 				}, v3))
 				return false;
 
-			if (isPop || isPop2)
-				return std::get<Value>(v2);
+				if (isPop || isPop2)
+				{
+					Value* _val = &(std::get<Value>(v2));
+					getRealValueFromValueWrapperRef(&_val);
+					return *_val;
+				}
 
 			return true;
 		}
@@ -728,7 +732,7 @@ short int Interprete::OperacionOperadoresVectores(multi_value* v1, Value* v2,  O
 		int itr = 0;
 		for (std::vector<arbol_operacional*>::iterator it = v1->arr.begin(); it != v1->arr.end(); ++it)
 		{
-			if (lectura_arbol_MultiValue_ref(*it,variables, var_class).OperadoresEspeciales_Check(v2, itr))
+			if (!lectura_arbol_MultiValue_ref(*it,variables, var_class).OperadoresEspeciales_Check(v2, itr))
 				return false;
 			itr++;
 		}
