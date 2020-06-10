@@ -64,7 +64,14 @@ bool  MDOX_File::MDOX_Class_File_Function_Static_createFile(std::shared_ptr<mdox
 		return false;
 	}
 
-	std::fstream stream(std::get<std::string>(v[0].value), std::ios::out);
+
+	std::filesystem::path path = std::get<std::string>(v[0].value);
+	if (!path.is_absolute())
+	{
+		path = Parser::mainPathProgram.parent_path() / std::get<std::string>(v[0].value);
+	}
+
+	std::fstream stream(path, std::ios::out);
 
 	if (stream.is_open())
 	{
@@ -349,7 +356,7 @@ bool MDOX_File::MDOX_Class_File_Function_getSize(std::shared_ptr<mdox_object> ob
 		return false;
 	}
 
-	std::fstream in(std::get<std::string>(obj->variables_clase[ruta_fichero].value.value), std::fstream::ate | std::fstream::binary);
+	std::ifstream in(std::get<std::string>(obj->variables_clase[ruta_fichero].value.value), std::ifstream::ate | std::ifstream::binary);
 	long long lng = in.tellg();
 	in.close();
 
@@ -475,7 +482,7 @@ bool MDOX_File::MDOX_Class_File_Function_close(std::shared_ptr<mdox_object> obj,
 }
 
 /*
-CLASE File - FUNCION getChar.
+CLASE File - FUNCION readChar.
 Obtiene el siguiente caracter del fichero.
 ENTRADA: <>
 SALIDA: <STRING>
@@ -485,19 +492,14 @@ bool MDOX_File::MDOX_Class_File_Function_getChar(std::shared_ptr<mdox_object> ob
 {
 	if (v.size() != 0)
 	{
-		Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "getChar", "getChar():<STRING>");
+		Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "readChar", "readChar():<STRING>");
 		return false;
 	}
 
-	if (!std::get<bool>(obj->variables_clase[ruta_fichero].value.value))
-	{
-		Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "getChar", "getChar():<STRING>");
-		return false;
-	}
 
 	if (std::get<int>(obj->variables_clase[abierto_como].value.value) != FILE_CLASS_LECTURA)
 	{
-		Errores::generarError(Errores::ERROR_CLASE_CORE_FILE_NOT_READ, Errores::outData, "getChar");
+		Errores::generarError(Errores::ERROR_CLASE_CORE_FILE_NOT_READ, Errores::outData, "readChar");
 		return false;
 	}
 
@@ -541,7 +543,7 @@ bool MDOX_File::MDOX_File::MDOX_Class_File_Function_isEOF(std::shared_ptr<mdox_o
 
 
 /*
-CLASE File - FUNCION getLine.
+CLASE File - FUNCION readLine.
 Lee y devuelve la siguiente linea del fichero.
 ENTRADA: <>
 SALIDA: <STRING>
@@ -550,7 +552,7 @@ bool MDOX_File::MDOX_File::MDOX_Class_File_Function_getLine(std::shared_ptr<mdox
 {
 	if (v.size() != 0)
 	{
-		Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "getLine", "getLine():<STRING>");
+		Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "readLine", "readLine():<STRING>");
 		return false;
 	}
 
@@ -571,7 +573,7 @@ bool MDOX_File::MDOX_File::MDOX_Class_File_Function_getLine(std::shared_ptr<mdox
 
 	if (std::get<int>(obj->variables_clase[abierto_como].value.value) != FILE_CLASS_LECTURA)
 	{
-		Errores::generarError(Errores::ERROR_CLASE_CORE_FILE_NOT_READ, Errores::outData, "getLine");
+		Errores::generarError(Errores::ERROR_CLASE_CORE_FILE_NOT_READ, Errores::outData, "readLine");
 		return false;
 	}
 
@@ -596,7 +598,7 @@ bool MDOX_File::MDOX_File::MDOX_Class_File_Function_getAll(std::shared_ptr<mdox_
 {
 	if (v.size() != 0)
 	{
-		Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "getAll", "getAll():<STRING>");
+		Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "readAll", "readAll():<STRING>");
 		return false;
 	}
 
@@ -610,7 +612,7 @@ bool MDOX_File::MDOX_File::MDOX_Class_File_Function_getAll(std::shared_ptr<mdox_
 
 	if (std::get<int>(obj->variables_clase[abierto_como].value.value) != FILE_CLASS_LECTURA)
 	{
-		Errores::generarError(Errores::ERROR_CLASE_CORE_FILE_NOT_READ, Errores::outData, "getAll");
+		Errores::generarError(Errores::ERROR_CLASE_CORE_FILE_NOT_READ, Errores::outData, "readAll");
 		return false;
 	}
 
@@ -687,7 +689,7 @@ bool MDOX_File::MDOX_File::MDOX_Class_File_Constructor(std::shared_ptr<mdox_obje
 		if (tipo_apertura == FILE_CLASS_LECTURA)
 			stream->open(path, std::ios::in);
 		else if (tipo_apertura == FILE_CLASS_ESCRITURA)
-			stream->open(path, std::ios::out);
+			stream->open(path, std::ios_base::app);
 		else if (tipo_apertura == FILE_CLASS_REMPLAZO)
 			stream->open(path, std::ios::trunc | std::ios::out);
 

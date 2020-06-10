@@ -762,15 +762,15 @@ short int Interprete::OperacionOperadoresVectores(Value* v1, multi_value* v2, OP
 		//Igualmente, trabajaremos considerando v1-> vector, y dejamos el error al check del operador.
 
 		//Esto implica que los valores se checkean desde atrás->   [vector::a,b,c]
-		int itr = 0;
-		for (std::vector<arbol_operacional*>::iterator it = v2->arr.begin(); it != v2->arr.end(); ++it)
+		int itr = v2->arr.size()-1;
+		for (std::vector<arbol_operacional*>::reverse_iterator it = v2->arr.rbegin(); it != v2->arr.rend(); ++it)
 		{
 			Value ref = lectura_arbol_MultiValue_ref(*it, variables, var_class);
 			if (!v1->OperadoresEspeciales_Check(&ref, itr))
 			{
 				return false;
 			}
-			itr++;
+			itr--;
 		}
 	}
 	else // POP

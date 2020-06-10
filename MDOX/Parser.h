@@ -15,6 +15,7 @@ public:
 	// Cacheado para comprobar si la variable fue inicializada en algun momento.
 	// Luego se usará para dar valor al identificador de turno.
 	bool inicializando = false;
+	bool seIncioDesdeVoid = false;
 
 	Variable(std::string a, int i) : nombre(a), index(i) {}
 	Variable(std::string a, int i, bool init) : nombre(a), index(i), inicializando(init) {}

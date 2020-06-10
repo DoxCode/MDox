@@ -2049,9 +2049,15 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 			{
 				Parser* parser = new Parser();
 
-				std::string ruta = getAbsolutePathFromRelative((std::string)* pStr);
+				std::string ruta = (std::string) * pStr;
 
-				if (std::find(this->includeList.begin(), this->includeList.end(), ruta) != this->includeList.end())
+				std::filesystem::path path = ruta;
+				if (!path.is_absolute())
+				{
+					path = Parser::mainPathProgram.parent_path() / ruta;
+				}
+
+				if (std::find(this->includeList.begin(), this->includeList.end(), path) != this->includeList.end())
 				{
 					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
 					Errores::generarError(Errores::ERROR_INCLUDE_REF_CIRCULAR, &out, ruta);
@@ -2060,11 +2066,11 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 				}
 				
 				parser->includeList = this->includeList;
-				parser->includeList.emplace_back(ruta);
+				parser->includeList.emplace_back(path.string());
 
 				Sentencia_Include* pInclude = new Sentencia_Include(parser);
 				//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
-				bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero((std::string)*pStr);
+				bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero(path.string());
 
 				if (!correcto)
 				{
@@ -2104,9 +2110,15 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 			{
 				Parser* parser = new Parser();
 
-				std::string ruta = getAbsolutePathFromRelative((std::string) * pStr);
+				std::string ruta = (std::string) * pStr;
 
-				if (std::find(Parser::requireList.begin(), Parser::requireList.end(), ruta) != Parser::requireList.end())
+				std::filesystem::path path = ruta;
+				if (!path.is_absolute())
+				{
+					path = Parser::mainPathProgram.parent_path() / ruta;
+				}
+
+				if (std::find(Parser::requireList.begin(), Parser::requireList.end(), path) != Parser::requireList.end())
 				{
 					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
 					Errores::generarError(Errores::ERROR_INCLUDE_REQ_ALREADY, &out, ruta);
@@ -2114,11 +2126,11 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 					return NULL;
 				}
 
-				Parser::requireList.emplace_back(ruta);
+				Parser::requireList.emplace_back(path.string());
 
 				Sentencia_Include* pInclude = new Sentencia_Include(parser);
 				//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
-				bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero((std::string) * pStr);
+				bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero(path.string());
 
 				if (!correcto)
 				{
@@ -2195,23 +2207,30 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 
 					Sentencia_Include* pInclude = new Sentencia_Include(parser);
 					//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
-					bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero((std::string) * pStr);
+					bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero(ruta);
 
 					if (!correcto)
 					{
 						auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
-						Errores::generarError(Errores::ERROR_INCLUDE_RUTA_INVALIDA, &out, (std::string) * pStr);
+						Errores::generarError(Errores::ERROR_INCLUDE_RUTA_INVALIDA, &out, ruta);
 						return NULL;
 					}
 					if (!parser->GenerarArbol())
 					{
 						auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
-						Errores::generarError(Errores::ERROR_INCLUDE_FALLO, &out, (std::string) * pStr);
+						Errores::generarError(Errores::ERROR_INCLUDE_FALLO, &out, ruta);
 						return NULL;
 					}
 
-					local_index = index3;
-					return pInclude;
+					if (tokenizer.getTokenValue(index3) == ">")
+					{
+						local_index = index3;
+						return pInclude;
+					}
+
+					auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
+					Errores::generarError(Errores::ERROR_INCLUDE_PARAMETRO, &out);
+					return NULL;
 				}
 			}
 
@@ -3160,6 +3179,9 @@ int Parser::BusquedaVariable(Parser_Identificador * ID, SendVariables& variables
 			ID->is_Static = true;
 			ID->static_link = this->readingClass;
 
+			if (res != NULL)
+				*res = NULL;
+
 			return ID->index;
 		}
 	}
@@ -3226,7 +3248,13 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 							else
 							{
 								int d = *variables.num_local_var;
-								variables.push_VarLocal(Variable(a->nombre, d, true)); 
+								variables.push_VarLocal(Variable(a->nombre, d, true));
+
+								if (a->fuerte)
+								{
+									variables.variables_locales.back().seIncioDesdeVoid = true;
+								}
+
 								//if (this->readingClass)
 								//	this->readingClass->variables_map.emplace(std::move(a->nombre), d);
 								a->index = variables.variables_locales.back().index;
@@ -3235,19 +3263,32 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 					}
 					else
 					{
+
 						
 						if (a->inicializando)
 						{
 							if (this->readingFunction || this->readingVector)
+							{
 								var->inicializando = false;
+								var->seIncioDesdeVoid = false;
+							}
 							else
 								var->inicializando = true;
+
+							if (a->fuerte)
+								var->seIncioDesdeVoid = true;
 						}
 
-						else if (var->inicializando)
+						else if (var && var->inicializando)
 						{
-							if(this->readingFunction || this->readingVector)
+							if (this->readingFunction || this->readingVector)
+							{
+								if (var->seIncioDesdeVoid)
+									a->inicializando = true;
+								
+								var->seIncioDesdeVoid = false;
 								var->inicializando = false;
+							}
 							else
 								a->inicializando = true;
 						   //var->inicializando = false;
@@ -3268,6 +3309,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 	// La variable siempre estará en la izquierda, el valor en la derecha.
 	if (arbol->operador == OP_IG_EQUAL || arbol->operador == OP_CHECK_GET || arbol->operador == OP_POP_ADD)
 	{
+		Variable* var1; //En caso de existir identificador en el operador 1 lo toma
 		std::visit(overloaded
 			{
 				[&](arbol_operacional * a) 
@@ -3289,8 +3331,8 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 				},
 				[&](Parser_Identificador * a)
 				{
-					Variable* var;
-					int IndexVar = this->BusquedaVariable(a, variables, &var);
+
+					int IndexVar = this->BusquedaVariable(a, variables, &var1);
 					if (IndexVar == -1)
 					{
 						a->inicializando = true;
@@ -3320,6 +3362,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 						{
 							int d = *variables.num_local_var;
 							variables.push_VarLocal(Variable(a->nombre, d));
+							var1 = &variables.variables_locales.back();
 							//if (this->readingClass)
 							//	this->readingClass->variables_map.emplace(std::move(a->nombre), d);
 							a->index = variables.variables_locales.back().index;
@@ -3327,8 +3370,9 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 					}
 					else
 					{
-						a->inicializando = var->inicializando;
-						var->inicializando = false;
+						a->inicializando = var1->inicializando;
+						var1->inicializando = false;
+						var1->seIncioDesdeVoid = false;
 						a->index = IndexVar;
 					}
 				},
@@ -3336,8 +3380,22 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 			}, arbol->_v1);
 
 		std::visit(overloaded{
-					[](const auto&) {},
+					[&](Value& v) 
+					{					
+						std::visit(overloaded{
+							[&](std::monostate) 
+							{ 						
+								if (var1)
+								{
+									var1->inicializando = true;
+									var1->seIncioDesdeVoid = true;
+								}
+							},
+							[&](auto&) { },
+							}, v.value);
+					},
 					[&](arbol_operacional * a2) { CargarEnCacheOperaciones(a2, variables,inside); },
+					[&](auto&) {},
 					[&](Parser_Identificador * a2)
 					{
 							Variable* var;
@@ -3389,6 +3447,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 							{
 								a2->inicializando = var->inicializando;
 								var->inicializando = false;
+								var->seIncioDesdeVoid = false;
 								a2->index = IndexVar;
 							}
 							
