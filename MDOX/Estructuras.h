@@ -392,6 +392,7 @@ public:
 
 	void print();
 
+	static std::string toString(Value& v, bool&);
 	bool mayorQue_Condicional(Value& v);
 	bool menorQue_Condicional(Value& v);
 	bool mayorIgualQue_Condicional(Value& v);

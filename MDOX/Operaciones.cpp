@@ -2661,6 +2661,34 @@ void Value::inicializacion(tipos_parametros tipo)
 	}
 }
 
+std::string Value::toString(Value& v, bool& ok)
+{
+	return std::visit(overloaded{
+	[&](std::monostate)->std::string { return "<void>"; },
+	[&](double& b)->std::string {return to_string_p(b); },
+	[&](int& b)->std::string {return to_string_p(b); },
+	[&](long long& b)->std::string { return to_string_p(b); },
+	[&](bool& b)->std::string  { return to_string_p(b);   },
+	[&](std::string& b)->std::string { return b;  },
+	[&](std::shared_ptr<mdox_vector>& b)->std::string
+		{
+		if (b->vector.empty())
+		{
+			return "[]";
+		}
+		std::string res = "[";
+		std::for_each(b->vector.begin(), b->vector.end(), [&res, &ok](Value& x) { res += Value::toString(x, ok); if (!ok) return ""; res += ", "; });
+		
+		res.pop_back();
+		res += "]";
+		return res;
+
+		},
+	[&](auto& a)->std::string { ok = false;  return ""; }
+		}, v.value);
+
+}
+
 bool Value::asignacion(Value & v, bool fuerte, bool strict)
 {
 	tipos_parametros tipo = PARAM_NULL;
@@ -2777,7 +2805,35 @@ bool Value::asignacion(Value & v, bool fuerte, bool strict)
 			[&](std::string&,  int& b) { *_this = Value(to_string_p(b));  return true; },
 			[&](std::string&,  long long& b) { *_this = Value(to_string_p(b));   return true; },
 			[&](std::string&,  bool& b) { *_this = Value(to_string_p(b));  return true;  },
-			[&](std::string&,  std::string & b) { *_this = v;   return true; },
+			[&](std::string&,  std::shared_ptr<mdox_vector>& b) 
+			{ 
+	
+			if (b->vector.empty())
+			{
+				*_this = Value("[]");
+			}
+			std::string res = "[";
+			bool ok = true;
+			std::for_each(b->vector.begin(), b->vector.end(), [&res, &ok](Value& x) 
+				{ 
+					res += Value::toString(x, ok);
+					if (!ok) 
+					{ 
+						Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "string");
+						return false; 
+					}
+					res += ", "; });
+
+			res.pop_back();
+			res.pop_back();
+			res += "]";
+			*_this = Value(res);
+			
+			return true; 
+			
+			},
+
+			[&](std::string&,  std::string& b) { *_this = v;   return true; },
 			[&](std::string&, std::monostate&) { Errores::generarError(Errores::ERROR_ASIGNACION_VALOR_VOID, Errores::outData, "string"); return false; },
 
 			[&](std::monostate&, auto&) { *_this = v;  return true; },
