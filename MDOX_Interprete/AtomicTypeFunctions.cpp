@@ -41,10 +41,10 @@ std::map<std::string, Core_Function_AtomicTypes> Core::core_atomic_vector =
 	{ "insert",  Core_Function_AtomicTypes(&funcion_vector_insert) },
 	{ "front",  Core_Function_AtomicTypes(&funcion_vector_front) },
 	{ "back",  Core_Function_AtomicTypes(&funcion_vector_back) },
-	{ "containsAll", Core_Function_AtomicTypes(&funcion_vector_containsAll) }
+	{ "containsAll", Core_Function_AtomicTypes(&funcion_vector_containsAll) },
+	{ "containsAllElements", Core_Function_AtomicTypes(&funcion_vector_containsAllElements) },
+	{ "isPermutation", Core_Function_AtomicTypes(&funcion_vector_isPermutation) }
 
-
-	
 
 };
 
@@ -369,6 +369,100 @@ bool funcion_vector_replace(Value caller, std::vector<Value>& a)
 
 	Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "replace", "replace(<value>,<value>):<vector>");
 	return false;
+}
+
+
+
+
+/*
+	FUNCION isPermutation
+	Comprueba si un vector es permutación de otro
+	ENTRADA: <vector>
+	SALIDA: <BOOL>
+*/
+
+bool funcion_vector_isPermutation(Value caller, std::vector<Value>& a)
+{
+	std::shared_ptr<mdox_vector> n = std::get<std::shared_ptr<mdox_vector>>(caller.value);
+
+	if (a.size() == 1)
+	{
+		Value* v = &a[0];
+
+		if (!v->Cast(PARAM_VECTOR))
+		{
+			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "isPermutation", "isPermutation(<vector>):<bool>");
+			return false;
+		}
+
+		std::shared_ptr<mdox_vector> t1 = std::get<std::shared_ptr<mdox_vector>>(v->value);
+
+		//return std::is_permutation(n->vector.begin(), n->vector.end(), t1->vector.begin());
+
+
+		if (t1->vector.size() != n->vector.size())
+		{
+			Interprete::instance->setRetorno(Value(false));
+			return true;
+		}
+
+		for (auto x1 : t1->vector)
+			if (std::count_if(t1->vector.begin(), t1->vector.end(), [&](Value& y1) { return y1.igualdad_Condicional(x1); }) !=
+				std::count_if(n->vector.begin(), n->vector.end(), [&](Value& y2) { return y2.igualdad_Condicional(x1); }))
+			{
+				Interprete::instance->setRetorno(Value(false));
+				return true;
+			}
+
+		Interprete::instance->setRetorno(Value(true));
+		return true;
+	}
+
+	Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "isPermutation", "isPermutation(<vector>):<bool>");
+	return false;
+
+}
+
+/*
+	FUNCION containsAllElements
+	Comprueba si el vector contiene todos los valores de otro vector
+	ENTRADA: <vector>
+	SALIDA: <BOOL>
+*/
+bool funcion_vector_containsAllElements(Value caller, std::vector<Value>& a)
+{
+	std::shared_ptr<mdox_vector> n = std::get<std::shared_ptr<mdox_vector>>(caller.value);
+
+	if (a.size() == 1)
+	{
+		Value* v = &a[0];
+
+		if (!v->Cast(PARAM_VECTOR))
+		{
+			Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "containsAllElements", "containsAllElements(<vector>):<bool>");
+			return false;
+		}
+
+		std::shared_ptr<mdox_vector> t1 = std::get<std::shared_ptr<mdox_vector>>(v->value);
+
+		for (auto reg : t1->vector)
+		{
+			auto it = std::find_if(n->vector.begin(), n->vector.end(), [&reg](Value& obj) {return obj.igualdad_Condicional(reg); });
+
+			if (it != n->vector.end())
+				continue;
+
+			Interprete::instance->setRetorno(Value(false));
+			return true;
+		}
+
+			Interprete::instance->setRetorno(Value(true));
+			return true;
+	}
+
+	Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_PARAMETER, Errores::outData, "containsAllElements", "containsAllElements(<vector>):<bool>");
+	return false;
+
 }
 
 /*

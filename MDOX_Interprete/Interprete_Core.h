@@ -185,6 +185,8 @@ bool funcion_vector_popBack(Value, std::vector<Value>&);
 bool funcion_vector_popFront(Value, std::vector<Value>&);
 bool funcion_vector_insert(Value, std::vector<Value>&);
 bool funcion_vector_containsAll(Value, std::vector<Value>&);
+bool funcion_vector_containsAllElements(Value, std::vector<Value>&);
+bool funcion_vector_isPermutation(Value, std::vector<Value>&);
 bool funcion_vector_front(Value, std::vector<Value>&);
 bool funcion_vector_back(Value, std::vector<Value>&);
 

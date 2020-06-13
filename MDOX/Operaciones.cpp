@@ -1977,12 +1977,12 @@ Value Value::ClassAccess(Parser_Identificador* v2, Call_Value* call, bool isThis
 					return std::monostate();
 				}
 
-				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_NOT_EXIST, Errores::outData, "int", call->ID->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_FUNCTION_NOT_EXIST, Errores::outData, "vector", call->ID->nombre);
 				return std::monostate();
 			}
 			else
 			{
-				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_VAR_NOT_EXIST, Errores::outData, "int", v2->nombre);
+				Errores::generarError(Errores::ERROR_CLASE_ATOMIC_VAR_NOT_EXIST, Errores::outData, "vector", v2->nombre);
 				return std::monostate();
 			}
 		},
