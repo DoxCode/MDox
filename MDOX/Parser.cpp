@@ -1038,7 +1038,6 @@ conmp Parser::getValor(bool& ret, int& local_index, SendVariables& variables)
 
 OPERADORES Parser::getOperador(int& local_index)
 {
-
 	std::string v = tokenizer.getTokenValue(local_index);
 
 
@@ -1085,6 +1084,9 @@ OPERADORES Parser::getOperador(int& local_index)
 
 	else
 	{
+		if(tokenizer.end_file) // Fin de fichero
+			return OP_NONE;
+
 		local_index--;
 		return OP_NONE;
 	}
@@ -1306,12 +1308,16 @@ arbol_operacional* Parser::getOperacionInd(int& local_index, SendVariables& vari
 
 			} while (next_token == ",");
 
-			index--;
+			if (!tokenizer.end_file)
+				index--;
+
 			local_index = index;
 			return new arbol_operacional(mv);
 		}
 
-		index--;
+		if (!tokenizer.end_file)
+			index--;
+
 		local_index = index;
 		return Op;
 	}

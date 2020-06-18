@@ -17,14 +17,22 @@ int main(int argument_count, char * argument_list[])
 	{
 		std::string ruta = argument_list[1];
 
+	//	for (int itr = 1; itr < argument_count; itr++)
+		//{
+		//	ruta += argument_list[itr];
+		//}
+
 		Parser parser = Parser();
 		Parser::mainPathProgram = ruta;
 
 		//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
 		bool correcto = parser.tokenizer.GenerarTokenizerDesdeFichero(ruta);
 
+		std::cout << ruta << "\n";
+
 		if (!correcto)
 		{
+			std::cout << "FALLO! \n";
 			return 0;
 		}
 

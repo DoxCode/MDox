@@ -256,12 +256,13 @@ bool str_compare(std::string str, int itr,  std::string busq)
 
 bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 {
-	std::fstream ifs(ruta);
+	std::ifstream ifs(ruta);
 	std::string temp_line;
 
 	std::vector<Linea*> raw_string;
 
 	if (ifs.fail()) {
+		std::cout << "Falla aqui\n";
 		return false;
 	}
 

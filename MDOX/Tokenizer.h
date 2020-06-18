@@ -51,6 +51,8 @@ public:
 	Token * token_actual;
 	Fichero * fichero; //Se liberaría al finalizar el interprete/compilador
 
+	bool end_file = false;
+
 	Token * getToken(int& inx)
 	{ 
 		if (inx >= tokens.size()) 
@@ -109,7 +111,11 @@ public:
 		Token * t = getToken(inx);
 		if (t)
 			return t->token;
-		else return "<Cierre inválido>";
+		else
+		{
+			end_file = true;
+			return "";
+		}
 	}
 
 
