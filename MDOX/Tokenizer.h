@@ -67,6 +67,7 @@ public:
 	{
 		Token* t = getToken(inx);
 		if (t)
+		{
 			if (t->token == ";")
 				return true;
 			else if (t->firstNewLine)
@@ -76,8 +77,9 @@ public:
 			}
 			else if (tokens.size() == inx)
 				return true;
+		}
 		
-		return false;
+		return true;
 	}
 
 

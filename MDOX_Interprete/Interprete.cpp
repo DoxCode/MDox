@@ -285,13 +285,13 @@ Value Interprete::lectura_arbol_CallValue(arbol_operacional* node, Variable_Runt
 		return std::visit(overloaded
 			{
 				[&](Value & a)->Value { 
-			/*	return std::visit(overloaded{
+				return std::visit(overloaded{
 						[&](std::shared_ptr<mdox_vector>& a)->Value
 						{
 							return std::make_shared<mdox_vector>(*a);
 						},
 						[&](auto& a)->Value { return a; },
-						}, a.value);*/
+						}, a.value);
 				return a;
 				},
 				[&](Parser_Identificador * a)->Value
