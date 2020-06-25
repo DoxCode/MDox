@@ -454,35 +454,104 @@ Value Interprete::lectura_arbol_operacional(arbol_operacional* node, Variable_Ru
 			{
 				Value r1 = lectura_arbol_operacional(a, variables, var_class);
 				return std::visit(overloaded
+				{
+					[&](Variable_Runtime* a2)->Value
 					{
-						[&](Variable_Runtime* a2)->Value
-						{
 														
-							a2->value.operacion_Asignacion(
-							std::visit(overloaded{
-							[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a,variables,var_class); },
-							[](Value & a)->Value {
-								return std::visit(overloaded{
-								[](std::shared_ptr<mdox_vector>& a)->Value
-									{
-										return std::make_shared<mdox_vector>(*a);
-									},
-								[](auto& a)->Value { return a; },
-								}, a.value);
-							},
-							[&](Parser_Identificador * a)->Value
+						a2->value.operacion_Asignacion(
+						std::visit(overloaded{
+						[&](arbol_operacional * a)->Value { return lectura_arbol_operacional(a,variables,var_class); },
+						[](Value & a)->Value {
+							return std::visit(overloaded{
+							[](std::shared_ptr<mdox_vector>& a)->Value
 								{
-									return a->var_global ? this->variables_globales[a->index].value : a->var_class ? var_class[a->index].value : a->is_Static ? a->static_link->static_var_runtime[a->index].value : variables[a->index].value;
+									return std::make_shared<mdox_vector>(*a);
 								},
-							[&](Call_Value * a)->Value { return a->is_class ? ExecClass(a, transformarEntradasCall(a, variables,var_class)) : ExecFuncion(a, transformarEntradasCall(a, variables,var_class),var_class); },
-							[&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables,var_class); },
-							[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL);  return std::monostate(); },
-								}, node->_v2), 	node->operador, a2->tipo != PARAM_VOID, a2->strict
-							);
-							return a2->value;
+							[](auto& a)->Value { return a; },
+							}, a.value);
 						},
-						[&](auto&)->Value { return std::monostate(); },
-					}, r1.value);
+						[&](Parser_Identificador * a)->Value
+							{
+								return a->var_global ? this->variables_globales[a->index].value : a->var_class ? var_class[a->index].value : a->is_Static ? a->static_link->static_var_runtime[a->index].value : variables[a->index].value;
+							},
+						[&](Call_Value * a)->Value { return a->is_class ? ExecClass(a, transformarEntradasCall(a, variables,var_class)) : ExecFuncion(a, transformarEntradasCall(a, variables,var_class),var_class); },
+						[&](multi_value * a)->Value {  return TratarMultiplesValores(a, variables,var_class); },
+						[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL);  return std::monostate(); },
+							}, node->_v2), 	node->operador, a2->tipo != PARAM_VOID, a2->strict
+						);
+						return a2->value;
+					},
+					[&](auto&)->Value { return std::monostate(); },
+				}, r1.value);
+			}
+
+			if (a->operador == OPERADORES::OP_BRACKET_LEFT)
+			{
+				Value vrs1 = std::visit(overloaded{
+					[&](arbol_operacional* a)->Value { return lectura_arbol_operacional(a,variables,var_class); },
+					[](Value& a)->Value {
+						return std::visit(overloaded{
+						[](std::shared_ptr<mdox_vector>& a)->Value
+							{
+								return std::make_shared<mdox_vector>(*a);
+							},
+						[](auto& a)->Value { return a; },
+						}, a.value);
+					},
+					[&](Parser_Identificador* a)->Value { return a->var_global ? this->variables_globales[a->index].value : a->var_class ? var_class[a->index].value : a->is_Static ? a->static_link->static_var_runtime[a->index].value : variables[a->index].value; },
+					[&](Call_Value* a)->Value { return a->is_class ? ExecClass(a, transformarEntradasCall(a, variables,var_class)) : ExecFuncion(a, transformarEntradasCall(a, variables,var_class),var_class); },
+					[&](multi_value* a)->Value {  return TratarMultiplesValores(a, variables,var_class); },
+					[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL);  return std::monostate(); },
+				}, a->_v1);
+
+				Value vrs2 = std::visit(overloaded{
+					[&](arbol_operacional* a)->Value { return lectura_arbol_operacional(a,variables,var_class); },
+					[](Value& a)->Value {
+						return std::visit(overloaded{
+						[](std::shared_ptr<mdox_vector>& a)->Value
+							{
+								return std::make_shared<mdox_vector>(*a);
+							},
+						[](auto& a)->Value { return a; },
+						}, a.value);
+					},
+					[&](Parser_Identificador* a)->Value { return a->var_global ? this->variables_globales[a->index].value : a->var_class ? var_class[a->index].value : a->is_Static ? a->static_link->static_var_runtime[a->index].value : variables[a->index].value; },
+					[&](Call_Value* a)->Value { return a->is_class ? ExecClass(a, transformarEntradasCall(a, variables,var_class)) : ExecFuncion(a, transformarEntradasCall(a, variables,var_class),var_class); },
+					[&](multi_value* a)->Value {  return TratarMultiplesValores(a, variables,var_class); },
+					[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL);  return std::monostate(); },
+					}, a->_v2);
+
+				auto VorPoint = vrs1.Offset(vrs2);
+
+				Value* res = std::visit(overloaded{
+					[&](Value* a)->Value* {  return a; },
+					[&](Value& a)->Value* {  return &a; },
+					}, VorPoint);
+
+				 res->operacion_Asignacion(
+					std::visit(overloaded{
+					[&](arbol_operacional* a)->Value { return lectura_arbol_operacional(a,variables,var_class); },
+					[](Value& a)->Value {
+							return std::visit(overloaded{
+							[](std::shared_ptr<mdox_vector>& a)->Value
+								{
+									return std::make_shared<mdox_vector>(*a);
+								},
+							[](auto& a)->Value { return a; },
+							}, a.value);
+						},
+					[&](Parser_Identificador* a)->Value
+						{
+							return a->var_global ? this->variables_globales[a->index].value : a->var_class ? var_class[a->index].value : a->is_Static ? a->static_link->static_var_runtime[a->index].value : variables[a->index].value;
+						},
+					[&](Call_Value* a)->Value { return a->is_class ? ExecClass(a, transformarEntradasCall(a, variables,var_class)) : ExecFuncion(a, transformarEntradasCall(a, variables,var_class),var_class); },
+					[&](multi_value* a)->Value {  return TratarMultiplesValores(a, variables,var_class); },
+					[&](auto&)->Value { Errores::generarError(Errores::ERROR_OPERACION_INVALIDA, NULL);  return std::monostate(); },
+						}, node->_v2)
+					, node->operador,false, false);
+				
+				 return res->value;
+
 			}
 
 
@@ -1042,7 +1111,10 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 					break;
 
 				if (continueCalled())
+				{
+					lectura_arbol_operacional(x->pOp, variables, var_class);
 					continue;
+				}
 
 				if (x->pOp)
 				{

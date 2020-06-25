@@ -1711,6 +1711,163 @@ Value Value::Mod(Value& v1, Value& v2)
 		}, v1.value, v2.value);
 }
 
+//Usado comunmente para igualdades
+ValueOrValueRef Value::Offset(Value& v2)
+{
+	return std::visit(overloaded{
+
+	[&](std::shared_ptr<mdox_vector>& a, int& b)->ValueOrValueRef
+	{
+		if (b >= a->vector.size() || b < 0)
+		{
+			Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(b));
+			return Value();
+		}
+		return &a->vector[b];
+	},
+
+	[&](std::shared_ptr<mdox_vector>& a, long long& b)->ValueOrValueRef
+	{
+		if (b >= a->vector.size() || b < 0)
+		{
+			Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(b));
+			return Value();
+		}
+		return &a->vector[b];
+	},
+
+	[&](std::shared_ptr<mdox_vector>& a, auto&)->ValueOrValueRef
+	{
+		if (v2.Cast(PARAM_LINT))
+		{
+			long long tr = std::get<long long>(v2.value);
+			if (tr >= a->vector.size() || tr < 0)
+			{
+				Errores::generarError(Errores::ERROR_OFFSET_INVALIDO, Errores::outData, std::to_string(tr));
+				return Value();
+			}
+			return &a->vector[tr];
+		}
+		else
+		{
+			 Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "[]");
+			 return Value();
+		}
+	},
+	[&](std::string& a, int& b)->ValueOrValueRef
+	{
+			Errores::generarError(Errores::ERROR_ASIGNACION_FALLO, Errores::outData);
+			return Value();
+	},
+
+	[&](std::string& a, long long& b)->ValueOrValueRef
+	{
+		Errores::generarError(Errores::ERROR_ASIGNACION_FALLO, Errores::outData);
+			return Value();
+	},
+
+	[&](std::string& a, std::shared_ptr<mdox_object>& b)->ValueOrValueRef
+	{
+		Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->getNombre());
+		return Value();
+	},
+
+	[&](std::string& a, auto&)->ValueOrValueRef
+	{
+		Errores::generarError(Errores::ERROR_ASIGNACION_FALLO, Errores::outData);
+			return Value();
+	},
+
+
+
+	[&](std::shared_ptr<mdox_vector>& a, std::shared_ptr<mdox_object>& b)->ValueOrValueRef
+	{
+		if (b->clase->isCore)
+		{
+			if (int inx = b->clase->getIndexOperator(OP_BRACKET_LEFT, true); inx >= 0)
+				return b->clase->execCoreOperator(inx, *this);
+		}
+		else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_brack)
+		{
+			return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_brack, *this, b->variables_clase);
+		}
+
+		Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->getNombre());
+		return Value();
+	},
+
+	[&](auto& a, std::shared_ptr<mdox_object>& b)->ValueOrValueRef
+	{
+		if (b->clase->isCore)
+		{
+			if (int inx = b->clase->getIndexOperator(OP_BRACKET_LEFT, true); inx >= 0)
+				return b->clase->execCoreOperator(inx, *this);
+		}
+		else if (b->clase->getRightOperators() && b->clase->getRightOperators()->OPERATOR_brack)
+		{
+			return Interprete::instance->ExecOperador(b->clase->getRightOperators()->OPERATOR_brack, *this, b->variables_clase);
+		}
+
+		Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->getNombre());
+		return Value();
+	},
+
+
+
+	[&v2](std::shared_ptr<mdox_object>& a, auto& b)->ValueOrValueRef
+	{
+		if (a->clase->isCore)
+		{
+			if (int inx = a->clase->getIndexOperator(OP_BRACKET_LEFT, false); inx >= 0)
+				return a->clase->execCoreOperator(inx, v2);
+		}
+		else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_brack)
+		{
+			return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_brack, v2, a->variables_clase);
+		}
+
+		Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", a->clase->getNombre());
+		return Value();
+	},
+
+	[&v2](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_object>& b)->ValueOrValueRef
+	{
+		if (a->clase->isCore)
+		{
+			if (int inx = a->clase->getIndexOperator(OP_BRACKET_LEFT, false); inx >= 0)
+				return a->clase->execCoreOperator(inx, v2);
+		}
+		else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_brack)
+		{
+			return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_brack, v2, a->variables_clase);
+		}
+
+		Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", b->clase->getNombre());
+		return Value();
+	},
+
+	[&v2](std::shared_ptr<mdox_object>& a, std::shared_ptr<mdox_vector>& b)->ValueOrValueRef
+	{
+		if (a->clase->isCore)
+		{
+			if (int inx = a->clase->getIndexOperator(OP_BRACKET_LEFT, false); inx >= 0)
+				return a->clase->execCoreOperator(inx, v2);
+		}
+		else if (a->clase->getNormalOperators() && a->clase->getNormalOperators()->OPERATOR_brack)
+		{
+			return Interprete::instance->ExecOperador(a->clase->getNormalOperators()->OPERATOR_brack, v2, a->variables_clase);
+		}
+
+		Errores::generarError(Errores::ERROR_CLASE_OPERADOR_NO_DECLARADO, NULL, "[]", a->clase->getNombre());
+		return Value();
+	},
+
+	[](auto&,auto&)->ValueOrValueRef {  Errores::generarError(Errores::ERROR_OPERADOR_INVALIDO,  Errores::outData, "[]"); return Value(); },
+
+		}, this->value, v2.value);
+
+}
+
 Value Value::Offset(Value& v1, Value& v2)
 {
 	return std::visit(overloaded{

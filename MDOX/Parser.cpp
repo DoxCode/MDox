@@ -9,8 +9,8 @@ std::vector<Parser_Funcion*> Parser::funciones;
 std::vector<Parser_Class*> Parser::clases;
 SendVariables Parser::variables_scope;
 std::vector<std::string> Parser::requireList;
-
 std::filesystem::path Parser::mainPathProgram;
+
 
 void Parser::removeParserCache()
 {
@@ -1458,6 +1458,11 @@ arbol_operacional * Parser::getOperacion(int& local_index, SendVariables& variab
 
 					return NULL;
 				}
+				else if (aux == OPERADORES::OP_NEGADO)
+				{
+					normal_operator_do(left_scope, is_op, aux, stack, op_stack);
+					continue;
+				}
 				else if (is_assignment_operator(op_stack.back()) || isRelationalOperator(op_stack.back()))
 				{
 					if (is_left(aux))
@@ -2053,15 +2058,17 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 		{
 			if (auto pStr = std::get_if<std::string>(&v1.value))
 			{
-				Parser* parser = new Parser();
 
 				std::string ruta = (std::string) * pStr;
+
 
 				std::filesystem::path path = ruta;
 				if (!path.is_absolute())
 				{
-					path = Parser::mainPathProgram.parent_path() / ruta;
+					path = this->pathParser.parent_path() / ruta;
 				}
+
+				Parser* parser = new Parser(path);
 
 				if (std::find(this->includeList.begin(), this->includeList.end(), path) != this->includeList.end())
 				{
@@ -2114,15 +2121,16 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 		{
 			if (auto pStr = std::get_if<std::string>(&v1.value))
 			{
-				Parser* parser = new Parser();
 
 				std::string ruta = (std::string) * pStr;
 
 				std::filesystem::path path = ruta;
 				if (!path.is_absolute())
 				{
-					path = Parser::mainPathProgram.parent_path() / ruta;
+					path = this->pathParser.parent_path() / ruta;
 				}
+
+				Parser* parser = new Parser(path);
 
 				if (std::find(Parser::requireList.begin(), Parser::requireList.end(), path) != Parser::requireList.end())
 				{
@@ -2197,9 +2205,9 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 			{
 				if (auto pStr = std::get_if<std::string>(&v1.value))
 				{
-					Parser* parser = new Parser();
-
+				
 					std::string ruta = "lib/"+ (std::string) * pStr;
+					Parser* parser = new Parser(ruta); 
 
 					if (std::find(Parser::requireList.begin(), Parser::requireList.end(), ruta) != Parser::requireList.end())
 					{
@@ -3326,10 +3334,15 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 						{
 							CargarEnCacheOperaciones(a, variables, inside);
 						}
+					/*	else if (a->operador == OP_BRACKET_LEFT)
+						{
+
+						}*/
 						else
 						{
-							Errores::generarError(Errores::ERROR_ASIGNACION_FALLO, &a->parametros);
-							existenErrores = true;
+							CargarEnCacheOperaciones(a, variables, inside);
+							//Errores::generarError(Errores::ERROR_ASIGNACION_FALLO, &a->parametros);
+							//existenErrores = true;
 						}
 					}
 					else
@@ -3408,13 +3421,13 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 							int IndexVar = this->BusquedaVariable(a2, variables, &var);
 							if (IndexVar == -1)
 							{
-								if (arbol->operador == OP_IG_EQUAL)
-								{
-									Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a2->parametros, a2->nombre);
-									existenErrores = true;
-								}
-								else
-								{
+								//if (arbol->operador == OP_IG_EQUAL)
+								//{
+								//	Errores::generarError(Errores::ERROR_VARIABLE_NO_EXISTE, &a2->parametros, a2->nombre);
+								//	existenErrores = true;
+								//}
+								//else
+								//{
 									a2->inicializando = true;
 
 									//Si no existe, la creamos.
@@ -3447,7 +3460,7 @@ void Parser::CargarEnCacheOperaciones(arbol_operacional * arbol, SendVariables& 
 										//	this->readingClass->variables_map.emplace(std::move(a2->nombre), d);
 										a2->index = variables.variables_locales.back().index;
 									}
-								}
+								//}
 							}
 							else 
 							{

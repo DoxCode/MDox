@@ -96,10 +96,18 @@ public:
 
 	std::vector<std::string> includeList; //Se usa para comprobar que no hay referencias circulares.
 
-
+	std::filesystem::path pathParser;
 	
-	Parser() 
+	Parser(std::string ruta) 
 	{  
+		pathParser = ruta;
+		if (Parser::variables_globales_parser == NULL)
+			Parser::variables_globales_parser = new std::vector<Variable>();
+	}
+
+	Parser(std::filesystem::path ruta)
+	{
+		pathParser = ruta;
 		if (Parser::variables_globales_parser == NULL)
 			Parser::variables_globales_parser = new std::vector<Variable>();
 	}

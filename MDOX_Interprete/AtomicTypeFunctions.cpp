@@ -190,7 +190,7 @@ bool funcion_vector_front(Value caller, std::vector<Value>& a)
 {
 	std::shared_ptr<mdox_vector> n = std::get<std::shared_ptr<mdox_vector>>(caller.value);
 
-	if (a.size() == 0)
+	if (a.size() == 0 && n->vector.size() > 0)
 	{
 		Interprete::instance->setRetorno(Value(n->vector.front()));
 		return true;
@@ -210,7 +210,7 @@ bool funcion_vector_back(Value caller, std::vector<Value>& a)
 {
 	std::shared_ptr<mdox_vector> n = std::get<std::shared_ptr<mdox_vector>>(caller.value);
 
-	if (a.size() == 0)
+	if (a.size() == 0 && n->vector.size() > 0)
 	{
 		Interprete::instance->setRetorno(Value(n->vector.back()));
 		return true;

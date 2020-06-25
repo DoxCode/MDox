@@ -466,7 +466,7 @@ void Errores::generarError(Errores::NUM_ERRORES error, OutData_Parametros * node
 
 	case Errores::ERROR_INCLUDE_RUTA_INVALIDA:
 		Errores::generarCabeceraError(node, 2026, tipo, false);
-		std::cout << "Error en el include. El fichero de la ruta '" + value + "' no existe o ne se puede acceder hasta el.";
+		std::cout << "Error en el include. El fichero de la ruta '" + value + "' no existe o no se puede acceder hasta el.";
 		break;
 
 	case Errores::ERROR_INCLUDE_PARAMETRO:

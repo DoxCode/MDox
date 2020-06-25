@@ -22,7 +22,7 @@ int main(int argument_count, char * argument_list[])
 		//	ruta += argument_list[itr];
 		//}
 
-		Parser parser = Parser();
+		Parser parser = Parser(ruta);
 		Parser::mainPathProgram = ruta;
 
 		//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
@@ -66,7 +66,9 @@ void Iniciar_Interprete()
 	while (!salida)
 	{
 		Parser::removeParserCache();
-		Parser parser = Parser();
+		Parser parser = Parser((std::string)"");
+		Parser::mainPathProgram = "";
+
 		Interprete interprete = Interprete();
 
 		std::cout << "\nInterprete> ";

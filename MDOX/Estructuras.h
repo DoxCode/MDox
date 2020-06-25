@@ -360,6 +360,7 @@ public:
 
 using val_variant = std::variant< std::monostate, int, bool, double, std::shared_ptr<mdox_vector>, std::shared_ptr<mdox_object>, std::string, long long, Variable_Runtime*>;
 
+using ValueOrValueRef = std::variant<Value, Value*>;
 class Call_Value;
 
 //template <class valueType>
@@ -376,7 +377,7 @@ public:
 	static Value Mod(Value& v1, Value& v2);
 	static Value Offset(Value& v1, Value& v2); //[x]
 	
-
+	ValueOrValueRef Offset(Value& v2);
 	Value copyIn();
 	Value ClassAccess(Parser_Identificador* v2, Call_Value * call = nullptr, bool isThis = false, Variable_Runtime* variables = nullptr, Variable_Runtime* var_class = nullptr);
 	bool OperadoresEspeciales_Check(Value* v, int index);
@@ -596,6 +597,7 @@ using tipoValor = std::variant<Value, Parser_Identificador*, Call_Value*, arbol_
 //using ValueCopyOrRef = std::variant<Value, Value*, std::monostate>;
 
 using ValueOrMulti = std::variant<Value, multi_value*>;
+
 
 /*
 class ValueCopyOrRef

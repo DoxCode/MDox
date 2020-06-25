@@ -262,7 +262,7 @@ bool Tokenizer::GenerarTokenizerDesdeFichero(std::string ruta)
 	std::vector<Linea*> raw_string;
 
 	if (ifs.fail()) {
-		std::cout << "Falla aqui\n";
+		//std::cout << "Falla aqui\n";
 		return false;
 	}
 
