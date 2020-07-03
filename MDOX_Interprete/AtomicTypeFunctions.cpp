@@ -890,7 +890,13 @@ bool funcion_string_find(Value caller, std::vector<Value>& a)
 		}
 
 		std::string t1 = std::get<std::string>(v->value);
-		Interprete::instance->setRetorno(Value((long long)n.find(t1)));
+
+		size_t temp_r = n.find(t1);
+		if(temp_r == std::string::npos)
+			Interprete::instance->setRetorno(Value((long long)-1));
+		else
+			Interprete::instance->setRetorno(Value((long long)temp_r));
+
 		return true;
 	}
 
