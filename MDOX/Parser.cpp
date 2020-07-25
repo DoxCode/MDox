@@ -2005,7 +2005,7 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 		if (tokenizer.isCloseToken(index))
 		{
 			local_index = index;
-			Sentencia_Accion* sif = new Sentencia_Accion(TipoAccion::IGNORE);
+			Sentencia_Accion* sif = new Sentencia_Accion(TipoAccion::MDOX_IGNORE);
 			sif->generarPosicion(&tokenizer);
 			return sif;
 		}
@@ -2206,33 +2206,34 @@ Parser_Sentencia* Parser::getSentencia(int& local_index, SendVariables& variable
 				if (auto pStr = std::get_if<std::string>(&v1.value))
 				{
 				
-					std::string ruta = "lib/"+ (std::string) * pStr;
-					Parser* parser = new Parser(ruta); 
+					std::filesystem::path ruta = GetExecutableLocation() / ("lib/" + (std::string) * pStr);
+
+					Parser* parser = new Parser(ruta.string()); 
 
 					if (std::find(Parser::requireList.begin(), Parser::requireList.end(), ruta) != Parser::requireList.end())
 					{
 						auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
-						Errores::generarError(Errores::ERROR_INCLUDE_REQ_ALREADY, &out, ruta);
+						Errores::generarError(Errores::ERROR_INCLUDE_REQ_ALREADY, &out, ruta.string());
 						index = local_index;
 						return NULL;
 					}
 
-					Parser::requireList.emplace_back(ruta);
+					Parser::requireList.emplace_back(ruta.string());
 
 					Sentencia_Include* pInclude = new Sentencia_Include(parser);
 					//Desde el parser, accedemos al tokenizer, desde el mismo podremos generarlo a través del fichero.
-					bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero(ruta);
+					bool correcto = parser->tokenizer.GenerarTokenizerDesdeFichero(ruta.string());
 
 					if (!correcto)
 					{
 						auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
-						Errores::generarError(Errores::ERROR_INCLUDE_RUTA_INVALIDA, &out, ruta);
+						Errores::generarError(Errores::ERROR_INCLUDE_RUTA_INVALIDA, &out, ruta.string());
 						return NULL;
 					}
 					if (!parser->GenerarArbol())
 					{
 						auto out = OutData_Parametros(tokenizer.token_actual->linea, tokenizer.token_actual->char_horizontal, tokenizer.fichero);
-						Errores::generarError(Errores::ERROR_INCLUDE_FALLO, &out, ruta);
+						Errores::generarError(Errores::ERROR_INCLUDE_FALLO, &out, ruta.string());
 						return NULL;
 					}
 

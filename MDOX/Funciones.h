@@ -6,6 +6,15 @@
 #include <sstream>
 #include <deque>
 #include <stdlib.h>
+#include <tchar.h>
+#include <filesystem>
+#include <iostream>
+
+#if _WIN32
+	#include <windows.h>
+#elif __unix__
+	#include <unistd.h>
+#endif
 
 
 #define deletePtr(x) {if(x){ delete x; x = NULL;}}
@@ -24,6 +33,7 @@ std::string getFileNameAndExt(std::string s);
 bool addOvf(int*, int, int);
 bool minOvf(int*, int, int);
 bool multOvf(int*, int, int);
+std::filesystem::path GetExecutableLocation();
 
 
 

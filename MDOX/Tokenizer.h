@@ -82,6 +82,23 @@ public:
 		return true;
 	}
 
+	bool isNextNewLine(int& inx)
+	{
+		Token* t = getToken(inx);
+		if (t)
+		{
+			if (t->firstNewLine)
+			{
+				inx--;
+				return true;
+			}
+			else if (tokens.size() == inx)
+				return true;
+		}
+		inx--;
+		return false;
+	}
+
 
 	//Solo checkea, devuelve el indice actual.
 	bool checkCloseToken(int& inx)

@@ -13,7 +13,7 @@
 #include <bitset>
 #include <fstream>
 #include <assert.h>  
-#include <filesystem>
+
 
 #include "Tokenizer.h"
 
@@ -905,9 +905,9 @@ public:
 
 enum TipoAccion
 {
-	BREAK,		//ROMPE bucles
-	CONTINUE,	//CONTINUA bucles
-	IGNORE,		//IGNORA la función actual y pasa a buscar la siguiente.
+	BREAK,				//ROMPE bucles
+	CONTINUE,			//CONTINUA bucles
+	MDOX_IGNORE,		//IGNORA la función actual y pasa a buscar la siguiente.
 };
 
 class Sentencia_Accion : public Parser_Sentencia {

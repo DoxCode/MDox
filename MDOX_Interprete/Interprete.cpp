@@ -995,7 +995,7 @@ bool Interprete::Interprete_Sentencia(Parser_Sentencia * sentencia, Variable_Run
 				this->continue_activo = true;
 				break;
 			}
-			case TipoAccion::IGNORE:
+			case TipoAccion::MDOX_IGNORE:
 			{
 				this->ignore_activo = true;
 				break;

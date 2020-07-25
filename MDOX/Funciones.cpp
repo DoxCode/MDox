@@ -1,6 +1,7 @@
 
 #include "Funciones.h"
 
+
 /* Transforma de cadena a double, pasandole el formato de coma por locale.*/
 double s2d(const std::string str, const std::locale &loc) {
 	double val;
@@ -122,7 +123,7 @@ std::string getAbsolutePathFromRelative(std::string path)
 			return path;
 		}
 
-	#elif linux	
+	#elif __unix__	
 		char * full = realpath(path.c_str(), NULL);
 
 		if (full != NULL)
@@ -237,3 +238,16 @@ bool multOvf(int* result, int a, int b)
 	return false;
 }
 
+
+std::filesystem::path GetExecutableLocation()
+{
+	#ifdef  _WIN32 
+	    wchar_t buffer[FILENAME_MAX] = { 0 };
+		GetModuleFileNameW(NULL, buffer, MAX_PATH);
+		return std::filesystem::path(buffer).parent_path().string();
+	#elif __unix__
+	    char buffer[FILENAME_MAX];
+		ssize_t count = readlink("/proc/self/exe", buffer, FILENAME_MAX);
+		return std::filesystem::path(std::string(buffer, (count > 0) ? count : 0)).parent_path().string();
+	#endif
+}
