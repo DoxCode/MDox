@@ -1,0 +1,11 @@
+CppDependOut/
+.vs/
+MDOX_Compilador/
+MDOX_Interprete/Release/
+MDOX_Interprete/Debug/
+MDOX_Interprete/x64/
+*.smp
+*.smproj
+*.cdproj
+x64/
+*.cd
